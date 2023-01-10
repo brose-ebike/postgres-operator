@@ -36,16 +36,5 @@ jobs:
         with:
           python-version: '3.10'
       - run: pip3 install -r requirements.txt
-      - run: mkdocs build -d build/site/
-      - uses: actions/upload-artifact@v3
-        with:
-          name: site
-          path: build/site/
-      #- name: Upload documentation
-      #  uses: sebastianpopp/ftp-action@releases/v2
-      #  with:
-      #    host: ${{ secrets.WEBSPACE_HOST }}
-      #    user: ${{ secrets.WEBSPACE_USER }}
-      #    password: ${{ secrets.WEBSPACE_PASSWORD }}
-      #    localDir: "build/site/"
-      #    remoteDir: "."
+      - run: mkdocs gh-deploy
+
