@@ -3,6 +3,7 @@ package pgserverapi
 import (
 	"errors"
 	"strconv"
+	"strings"
 )
 
 type PgConnectionString struct {
@@ -55,7 +56,7 @@ func (pgcs *PgConnectionString) toString() string {
 	if pgcs.sslMode != "" {
 		result += "sslmode=" + pgcs.sslMode + " "
 	}
-	return result
+	return strings.TrimSpace(result)
 }
 
 func (pgcs *PgConnectionString) Hostname() string {
@@ -74,12 +75,16 @@ func (pgcs *PgConnectionString) Password() string {
 	return pgcs.password
 }
 
+func (pgcs *PgConnectionString) Database() string {
+	return pgcs.database
+}
+
 func (pgcs *PgConnectionString) SslMode() string {
 	return pgcs.sslMode
 }
 
-func (pgcs *PgConnectionString) copy() PgConnectionString {
-	return PgConnectionString{
+func (pgcs *PgConnectionString) copy() *PgConnectionString {
+	return &PgConnectionString{
 		hostname: pgcs.hostname,
 		port:     pgcs.port,
 		username: pgcs.username,

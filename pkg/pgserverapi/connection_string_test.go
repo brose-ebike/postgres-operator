@@ -2,10 +2,66 @@ package pgserverapi
 
 import "testing"
 
-func TestNewMissingPropertyValueError(t *testing.T) {
-	t.Skipf("Not implemented")
+func TestNewPgConnectionString(t *testing.T) {
+	pgCS, err := NewPgConnectionString("hostname", 1234, "username", "password", "database", "none")
+	if err != nil {
+		t.Errorf("Create connection string failed")
+	}
+	if pgCS == nil {
+		t.Errorf("Connection string is nil")
+	}
 }
 
-func TestMissingPropertyValueError(t *testing.T) {
-	t.Skipf("Not implemented")
+func TestNewPgConnectionStringWithNegativePort(t *testing.T) {
+	_, err := NewPgConnectionString("hostname", -1, "username", "password", "database", "none")
+	if err == nil {
+		t.Errorf("Create connection string succeeded with invalid port")
+	}
+}
+
+func TestPgConnectionStringProperties(t *testing.T) {
+	pgCS, err := NewPgConnectionString("hostname", 1234, "username", "password", "database", "none")
+	if err != nil {
+		t.Errorf("Create connection string failed")
+	}
+	if pgCS.Hostname() != "hostname" {
+		t.Errorf("Hostname is invalid")
+	}
+	if pgCS.Port() != 1234 {
+		t.Errorf("Hostname is invalid")
+	}
+	if pgCS.Username() != "hostname" {
+		t.Errorf("Hostname is invalid")
+	}
+	if pgCS.Password() != "hostname" {
+		t.Errorf("Hostname is invalid")
+	}
+	if pgCS.Database() != "hostname" {
+		t.Errorf("Hostname is invalid")
+	}
+	if pgCS.SslMode() != "hostname" {
+		t.Errorf("Hostname is invalid")
+	}
+}
+
+func TestPgConnectionStringCopy(t *testing.T) {
+	pgCS, err := NewPgConnectionString("hostname", 1234, "username", "password", "database", "none")
+	if err != nil {
+		t.Errorf("Create connection string failed")
+	}
+	pgCScopy := pgCS.copy()
+	if pgCS == pgCScopy {
+		t.Errorf("equal references for different objects")
+	}
+}
+
+func TestPgConnectionStringToString(t *testing.T) {
+	pgCS, err := NewPgConnectionString("hostname", 1234, "username", "password", "database", "none")
+	if err != nil {
+		t.Errorf("Create connection string failed")
+	}
+	actual := pgCS.toString()
+	if actual != "host=hostname port=1234 user=username password=password dbname=database sslmode=none" {
+		t.Errorf("Postgres Connection String: %s", actual)
+	}
 }
