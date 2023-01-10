@@ -1,0 +1,12 @@
+apiVersion: postgres.brose.bike/v1
+kind: PgInstance
+metadata:
+  labels:
+    app.kubernetes.io/name: pginstance
+    app.kubernetes.io/instance: pginstance-sample
+    app.kubernetes.io/part-of: postgres-controller
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: postgres-controller
+  name: pginstance-sample
+spec:
+  # TODO(user): Add fields here

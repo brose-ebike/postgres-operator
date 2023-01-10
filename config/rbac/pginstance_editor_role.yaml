@@ -1,0 +1,31 @@
+# permissions for end users to edit pginstances.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: pginstance-editor-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: postgres-controller
+    app.kubernetes.io/part-of: postgres-controller
+    app.kubernetes.io/managed-by: kustomize
+  name: pginstance-editor-role
+rules:
+- apiGroups:
+  - postgres.brose.bike
+  resources:
+  - pginstances
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - postgres.brose.bike
+  resources:
+  - pginstances/status
+  verbs:
+  - get
