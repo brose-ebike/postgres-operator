@@ -32,7 +32,8 @@ import (
 // PgInstanceReconciler reconciles a PgInstance object
 type PgInstanceReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme             *runtime.Scheme
+	PgServerApiFactory services.PgServerApiFactory
 }
 
 //+kubebuilder:rbac:groups=postgres.brose.bike,resources=pginstances,verbs=get;list;watch;create;update;patch;delete
@@ -86,6 +87,9 @@ func (r *PgInstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *PgInstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	// Register Factory Method
+	r.PgServerApiFactory = services.NewPgServerApiFromObject
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&apiV1.PgInstance{}).
 		Complete(r)
@@ -95,7 +99,7 @@ func (r *PgInstanceReconciler) createPgApi(ctx context.Context, instance *apiV1.
 	logger := log.FromContext(ctx)
 
 	// Connect to Instance
-	var err error = nil
+	pgApi, err := r.PgServerApiFactory(ctx, r, *instance)
 	if err != nil {
 		logger.Error(err, "Unable to connect", "instance", instance.Namespace+"/"+instance.Name)
 		// Update connection status
@@ -107,9 +111,9 @@ func (r *PgInstanceReconciler) createPgApi(ctx context.Context, instance *apiV1.
 	}
 
 	// Update connection status
-	if err := setCondition(ctx, r, instance, apiV1.PgConnectedConditionType, false); err != nil {
+	if err := setCondition(ctx, r, instance, apiV1.PgConnectedConditionType, true); err != nil {
 		logger.Error(err, "Unable to update condition", "instance", instance.Namespace+"/"+instance.Name)
 		return nil, err
 	}
-	return &services.PgServerApiImpl{}, nil
+	return pgApi, nil
 }
