@@ -29,9 +29,9 @@ jobs:
       - name: Get current date
         id: params
         run: |
-          echo "::set-output name=latest::$(git describe --tags `git rev-list --tags --max-count=1`)"
-          echo "::set-output name=date::$(date +'%Y-%m-%d')"
-          echo "::set-output name=version::$(cat version.txt)"
+          echo "latest=$(git describe --tags `git rev-list --tags --max-count=1`)" >> $GITHUB_OUTPUT
+          echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+          echo "version=$(cat version.txt)" >> $GITHUB_OUTPUT
       ########################################################################################################################
       ########################################### Build ######################################################################
       ########################################################################################################################
@@ -42,7 +42,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}         
       - name: "Build Docker Image"
-        run: make docker-build
+        run: make docker-build #docker-push IMG=
       - name: "Build Controller Binaries and Resource Definitions"
         run: make release
       ########################################################################################################################
@@ -81,7 +81,7 @@ jobs:
             dbalucas
 
   documentation:
-    name: "Documentation"
+    name: "Update Documentation"
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: ["release"]

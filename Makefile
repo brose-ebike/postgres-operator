@@ -255,7 +255,7 @@ catalog-push: ## Push a catalog image.
 	$(MAKE) docker-push IMG=$(CATALOG_IMG)
 
 ##@ Release
-release: generate fmt vet ## Build a release
+release: kustomize generate fmt vet ## Build a release
 	rm -rf dist/
 	mkdir -p dist/
 	$(KUSTOMIZE) build config/crd > dist/install.yaml
