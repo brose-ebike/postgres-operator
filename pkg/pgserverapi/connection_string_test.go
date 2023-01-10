@@ -28,19 +28,19 @@ func TestPgConnectionStringProperties(t *testing.T) {
 		t.Errorf("Hostname is invalid")
 	}
 	if pgCS.Port() != 1234 {
-		t.Errorf("Hostname is invalid")
+		t.Errorf("Port is invalid")
 	}
-	if pgCS.Username() != "hostname" {
-		t.Errorf("Hostname is invalid")
+	if pgCS.Username() != "username" {
+		t.Errorf("Username is invalid")
 	}
-	if pgCS.Password() != "hostname" {
-		t.Errorf("Hostname is invalid")
+	if pgCS.Password() != "password" {
+		t.Errorf("Password is invalid")
 	}
-	if pgCS.Database() != "hostname" {
-		t.Errorf("Hostname is invalid")
+	if pgCS.Database() != "database" {
+		t.Errorf("Database is invalid")
 	}
-	if pgCS.SslMode() != "hostname" {
-		t.Errorf("Hostname is invalid")
+	if pgCS.SslMode() != "none" {
+		t.Errorf("SslMode is invalid")
 	}
 }
 
