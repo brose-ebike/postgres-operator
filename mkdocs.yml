@@ -1,0 +1,36 @@
+site_name: Postgres Controller
+plugins:
+  - search
+  - markdownextradata
+#  - mkdocs_pymdownx_material_extras
+  - codeinclude:
+      title_mode: pymdownx.tabbed
+theme:
+  name: 'material'
+  palette:
+    primary: 'light blue'
+    accent: 'light blue'
+  font: false
+  #logo: 'assets/logo.svg'
+  #favicon: 'assets/logo.ico'
+repo_name: 'postgres-controller'
+repo_url: 'https://github.com/brose-ebike/postgres-controller'
+markdown_extensions:
+  - pymdownx.tabbed:
+      alternate_style: true 
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - admonition
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Configuration: configuration.md
+  - Usage: 
+    - Create Instance: usage/instance.md
+    - Create Database: usage/database.md
+    - Create LoginRole: usage/login_role.md
+  - Contribution: contribution.md
+extra:
+  latest_version: 0.0.1
