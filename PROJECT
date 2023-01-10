@@ -1,0 +1,9 @@
+domain: postgres.brose.bike
+layout:
+- go.kubebuilder.io/v3
+plugins:
+  manifests.sdk.operatorframework.io/v2: {}
+  scorecard.sdk.operatorframework.io/v2: {}
+projectName: postgres-controller
+repo: github.com/brose-ebike/postgres-controller
+version: "3"
