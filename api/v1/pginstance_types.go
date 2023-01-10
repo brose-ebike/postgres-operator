@@ -20,22 +20,24 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // PgInstanceSpec defines the desired state of PgInstance
 type PgInstanceSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	// Foo is an example field of PgInstance. Edit pginstance_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// The Hostname of the server which should be managed
+	Hostname PgProperty `json:"host,omitempty"`
+	// The Port of the server which should be managed, defaults to 5432
+	Port PgProperty `json:"port,omitempty"`
+	// The Username for the Administrator User which will be used to create, update and delete databases and users
+	Username PgProperty `json:"username,omitempty"`
+	// The Password for the Administrator User which will be used to create, update and delete databases and users
+	Password PgProperty `json:"password,omitempty"`
 }
 
 // PgInstanceStatus defines the observed state of PgInstance
 type PgInstanceStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// Conditions represent the current connection state
+	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
 }
 
 //+kubebuilder:object:root=true
@@ -48,6 +50,14 @@ type PgInstance struct {
 
 	Spec   PgInstanceSpec   `json:"spec,omitempty"`
 	Status PgInstanceStatus `json:"status,omitempty"`
+}
+
+func (i *PgInstance) GetConditions() []metav1.Condition {
+	return i.Status.Conditions
+}
+
+func (i *PgInstance) SetConditions(conditions []metav1.Condition) {
+	i.Status.Conditions = conditions
 }
 
 //+kubebuilder:object:root=true
