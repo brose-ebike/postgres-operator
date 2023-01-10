@@ -29,7 +29,7 @@ BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 #
 # For example, running 'make bundle-build bundle-push catalog-build catalog-push' will build and push both
 # postgres.brose.bike/postgres-controller-bundle:$VERSION and postgres.brose.bike/postgres-controller-catalog:$VERSION.
-IMAGE_TAG_BASE ?= postgres.brose.bike/postgres-controller
+IMAGE_TAG_BASE ?= brose.bike/postgres-controller
 
 # BUNDLE_IMG defines the image:tag used for the bundle.
 # You can use it as an arg. (E.g make bundle-build BUNDLE_IMG=<some-registry>/<project-name-bundle>:<tag>)
@@ -253,3 +253,16 @@ catalog-build: opm ## Build a catalog image.
 .PHONY: catalog-push
 catalog-push: ## Push a catalog image.
 	$(MAKE) docker-push IMG=$(CATALOG_IMG)
+
+##@ Release
+release: generate fmt vet ## Build a release
+	rm -rf dist/
+	mkdir -p dist/
+	$(KUSTOMIZE) build config/crd > dist/install.yaml
+	for arch in "amd64" "arm" "arm64" ; \
+	do \
+		GOOS=linux ; \
+		GOARCH=$${arch} ; \
+		go build -o dist/pgcontroller_$${arch} ; \
+	done
+## $(MAKE) docker-push IMG=$(CATALOG_IMG)
