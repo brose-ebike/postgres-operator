@@ -1,4 +1,4 @@
-name: CI
+name: CD
 on:
   push:
     branches: [main]
@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     concurrency:
-      group: "build-${{ github.ref }}"
+      group: "cd-build-${{ github.ref }}"
       cancel-in-progress: true
     steps:
       - uses: actions/checkout@v3
@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     concurrency:
-      group: "documentation-${{ github.ref }}"
+      group: "cd-documentation-${{ github.ref }}"
       cancel-in-progress: true
     steps:
       - uses: actions/checkout@v3

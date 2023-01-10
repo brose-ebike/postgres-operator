@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     concurrency:
-      group: "build-${{ github.ref }}"
+      group: "ci-build-${{ github.ref }}"
       cancel-in-progress: true
     steps:
       - uses: actions/checkout@v3
@@ -38,7 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     concurrency:
-      group: "linting-${{ github.ref }}"
+      group: "ci-linting-${{ github.ref }}"
       cancel-in-progress: true
     steps:
       - uses: actions/checkout@v3
@@ -62,7 +62,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     concurrency:
-      group: "tests-${{ github.ref }}"
+      group: "ci-tests-${{ github.ref }}"
       cancel-in-progress: true
     steps:
       - uses: actions/checkout@v3
@@ -81,7 +81,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     concurrency:
-      group: "documentation-${{ github.ref }}"
+      group: "ci-documentation-${{ github.ref }}"
       cancel-in-progress: true
     steps:
       - uses: actions/checkout@v3
