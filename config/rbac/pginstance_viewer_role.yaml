@@ -1,0 +1,27 @@
+# permissions for end users to view pginstances.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: pginstance-viewer-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: postgres-controller
+    app.kubernetes.io/part-of: postgres-controller
+    app.kubernetes.io/managed-by: kustomize
+  name: pginstance-viewer-role
+rules:
+- apiGroups:
+  - postgres.postgres.brose.bike
+  resources:
+  - pginstances
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - postgres.postgres.brose.bike
+  resources:
+  - pginstances/status
+  verbs:
+  - get
