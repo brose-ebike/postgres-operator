@@ -54,7 +54,7 @@ jobs:
         with:
           token: "${{ secrets.GITHUB_TOKEN }}"
           latest: "${{ steps.params.outputs.latest }}"
-          templateFile: ".github/templates/release.txt"
+          templateFile: ".github/templates/release.md"
       - name: "Github Release"
         uses: softprops/action-gh-release@d4e8205d7e959a9107da6396278b2f1f07af0f9b #v1
         env:
