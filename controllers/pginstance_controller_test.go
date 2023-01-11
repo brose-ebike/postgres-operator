@@ -140,10 +140,6 @@ var _ = Describe("PgInstanceReconciler", func() {
 		Expect(instance.Status.Conditions[0].Status).To(Equal(metaV1.ConditionTrue))
 	})
 
-	It("reconciles on update of PgInstance", func() {
-		Expect(nil).To(BeNil())
-	})
-
 	It("reconciles on delete of PgInstance", func() {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
