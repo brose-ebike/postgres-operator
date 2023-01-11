@@ -1,19 +1,30 @@
 package brose_errors
 
-import "testing"
+import (
+	"errors"
+	"testing"
 
-func TestNewMapEntryNotFoundError(t *testing.T) {
-	err := NewMapEntryNotFoundError("test")
-	if err == nil {
-		t.Errorf("Error is not allowed to be nil")
+	"github.com/google/go-cmp/cmp"
+)
+
+func TestMapEntryNotFoundErrorMessage(t *testing.T) {
+	err := NewMapEntryNotFoundError("test", nil)
+	actual := err.Error()
+	expected := "Entry for key 'test' was not found in map"
+	if diff := cmp.Diff(expected, actual); diff != "" {
+		t.Errorf("Message is incorrect (-want +got):\n%s", diff)
 	}
 }
 
-func TestMapEntryNotFoundErrorMessage(t *testing.T) {
-	err := NewMapEntryNotFoundError("test")
-	actual := err.Error()
-	expected := "Entry for key 'test' was not found in map"
-	if actual != expected {
-		t.Errorf("Message is incorrect, got: '%s' want: '%s'", actual, expected)
+func TestMapEntryNotFoundErrorUnwrap(t *testing.T) {
+	// given
+	inner := errors.New("to-be-wrapped")
+	err := NewMapEntryNotFoundError("test", inner)
+	// when
+	actual := err.Unwrap().Error()
+	// then
+	expected := "to-be-wrapped"
+	if diff := cmp.Diff(expected, actual); diff != "" {
+		t.Errorf("Message is incorrect (-want +got):\n%s", diff)
 	}
 }

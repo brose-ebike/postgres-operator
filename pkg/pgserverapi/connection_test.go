@@ -14,22 +14,22 @@ var _ = Describe("PostgresAPI Connection Handling", func() {
 
 	It("connect opens the connection pool", func() {
 		// Test Server Connection
-		err := pgApi.(*PgServerApiImpl).connect()
+		err := pgApi.(*PgServerAPIImpl).connect()
 		Expect(err).To(BeNil())
 		Expect(pgApi.IsConnected()).To(BeTrue())
 	})
 
 	It("disconnect closes the connection pool", func() {
 		// Create Connection
-		err := pgApi.(*PgServerApiImpl).connect()
+		err := pgApi.(*PgServerAPIImpl).connect()
 		Expect(err).To(BeNil())
 		Expect(pgApi.IsConnected()).To(BeTrue())
 		// Close Server Connection
-		err = pgApi.(*PgServerApiImpl).disconnect()
+		err = pgApi.(*PgServerAPIImpl).disconnect()
 		Expect(err).To(BeNil())
 		Expect(pgApi.IsConnected()).To(BeFalse())
 		// Create Connection
-		err = pgApi.(*PgServerApiImpl).connect()
+		err = pgApi.(*PgServerAPIImpl).connect()
 		Expect(err).To(BeNil())
 
 	})

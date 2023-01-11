@@ -7,11 +7,11 @@ import (
 	_ "github.com/lib/pq"
 )
 
-func (s *PgServerApiImpl) ConnectionString() PgConnectionString {
+func (s *PgServerAPIImpl) ConnectionString() PgConnectionString {
 	return s.connectionString
 }
 
-func (s *PgServerApiImpl) connect() error {
+func (s *PgServerAPIImpl) connect() error {
 	if s.instance != nil {
 		return nil
 	}
@@ -37,7 +37,7 @@ func (s *PgServerApiImpl) connect() error {
 	return nil
 }
 
-func (s *PgServerApiImpl) disconnect() error {
+func (s *PgServerAPIImpl) disconnect() error {
 	if s.instance == nil {
 		return nil
 	}
@@ -47,11 +47,11 @@ func (s *PgServerApiImpl) disconnect() error {
 	return err
 }
 
-func (s *PgServerApiImpl) IsConnected() bool {
+func (s *PgServerAPIImpl) IsConnected() bool {
 	return s.instance != nil
 }
 
-func (s *PgServerApiImpl) TestConnection() error {
+func (s *PgServerAPIImpl) TestConnection() error {
 	err := s.connect()
 	if err != nil {
 		return err
@@ -69,7 +69,7 @@ func (s *PgServerApiImpl) TestConnection() error {
 	return nil
 }
 
-func (s *PgServerApiImpl) newConnection() (*sql.Conn, error) {
+func (s *PgServerAPIImpl) newConnection() (*sql.Conn, error) {
 	// Auto Connect if needed
 	if !s.IsConnected() {
 		return nil, errors.New("Missing Connection, unable to execute query")

@@ -17,3 +17,13 @@ func formatQueryValue(query string, args ...string) string {
 	}
 	return fmt.Sprintf(query, escaped...)
 }
+
+// hasElementString checks if a given element e is contained in the slice s
+func hasElementString(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
+}

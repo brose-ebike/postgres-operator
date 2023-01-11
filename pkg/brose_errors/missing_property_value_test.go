@@ -1,19 +1,30 @@
 package brose_errors
 
-import "testing"
+import (
+	"errors"
+	"testing"
 
-func TestNewMissingPropertyValueError(t *testing.T) {
-	err := NewMissingPropertyValueError("test")
-	if err == nil {
-		t.Errorf("Error is not allowed to be nil")
+	"github.com/google/go-cmp/cmp"
+)
+
+func TestMissingPropertyValueErrorMessage(t *testing.T) {
+	err := NewMissingPropertyValueError("test", nil)
+	actual := err.Error()
+	expected := "The property 'test' has no value"
+	if diff := cmp.Diff(expected, actual); diff != "" {
+		t.Errorf("Message is incorrect (-want +got):\n%s", diff)
 	}
 }
 
-func TestMissingPropertyValueError(t *testing.T) {
-	err := NewMissingPropertyValueError("test")
-	actual := err.Error()
-	expected := "the value for the property 'test' is missing"
-	if actual != expected {
-		t.Errorf("Message is incorrect, got: '%s' want: '%s'", actual, expected)
+func TestMissingPropertyValueErrorUnwrap(t *testing.T) {
+	// given
+	inner := errors.New("to-be-wrapped")
+	err := NewMissingPropertyValueError("test", inner)
+	// when
+	actual := err.Unwrap().Error()
+	// then
+	expected := "to-be-wrapped"
+	if diff := cmp.Diff(expected, actual); diff != "" {
+		t.Errorf("Message is incorrect (-want +got):\n%s", diff)
 	}
 }

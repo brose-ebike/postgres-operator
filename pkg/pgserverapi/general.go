@@ -6,19 +6,26 @@ import (
 	"fmt"
 
 	_ "github.com/lib/pq"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-type PgServerApi interface {
+type PgConnectionApi interface {
 	// Connection Details
 	ConnectionString() PgConnectionString
 	// Connection
 	IsConnected() bool
 	TestConnection() error
+}
+
+type PgLoginRoleApi interface {
 	// Login Roles
 	IsLoginRoleExisting(roleName string) (bool, error)
 	CreateLoginRole(name string) error
 	DeleteLoginRole(name string) error
 	UpdateLoginRolePassword(name string, password string) error
+}
+
+type PgDatabaseApi interface {
 	// Databases
 	IsDatabaseExisting(databaseName string) (bool, error)
 	CreateDatabase(databaseName string) error
@@ -27,6 +34,9 @@ type PgServerApi interface {
 	UpdateDatabaseOwner(databaseName string, roleName string) error
 	ResetDatabaseOwner(databaseName string) error
 	UpdateDatabasePrivileges(databaseName string, roleName string, privileges []string) error
+}
+
+type PgSchemaApi interface {
 	// Schema
 	IsSchemaInDatabase(databaseName string, schemaName string) (bool, error)
 	CreateSchema(databaseName string, schemaName string) error
@@ -35,33 +45,44 @@ type PgServerApi interface {
 	DeleteAllPrivilegesOnSchema(databaseName string, schemaName string, role string) error
 }
 
-type PgServerApiImpl struct {
+type PgServerAPI interface {
+	PgConnectionApi
+	PgLoginRoleApi
+	PgDatabaseApi
+	PgSchemaApi
+}
+
+type PgServerAPIImpl struct {
 	name             string
 	connectionString PgConnectionString
 	ctx              context.Context
 	instance         *sql.DB
 }
 
-func NewPgServerApi(ctx context.Context, name string, connectionString PgConnectionString) (PgServerApi, error) {
-	api := PgServerApiImpl{
+func NewPgServerApi(ctx context.Context, name string, connectionString PgConnectionString) (PgServerAPI, error) {
+	logger := log.FromContext(ctx)
+	api := PgServerAPIImpl{
 		name,
 		connectionString,
 		ctx,
 		nil,
 	}
 	if err := api.connect(); err != nil {
+		logger.Error(err, "Unable to connect")
 		return nil, err
 	}
 	// Auto disconnect when context is done
 	go func() {
 		<-ctx.Done()
-		api.disconnect()
+		if err := api.disconnect(); err != nil {
+			logger.Error(err, "Unable to disconnect")
+		}
 	}()
 	return &api, nil
 }
 
 // isMember determines if roleA is a member of roleB
-func (s *PgServerApiImpl) isMember(con *sql.Conn, roleA string, roleB string) (bool, error) {
+func (s *PgServerAPIImpl) isMember(con *sql.Conn, roleA, roleB string) (bool, error) {
 	var result bool
 	const query = "select pg_has_role(%s, %s, 'member');"
 	sqlRow := con.QueryRowContext(s.ctx, formatQueryValue(query, roleA, roleB))
@@ -71,7 +92,7 @@ func (s *PgServerApiImpl) isMember(con *sql.Conn, roleA string, roleB string) (b
 	return result, nil
 }
 
-func (s *PgServerApiImpl) runAs(con *sql.Conn, role string, runner func() error) error {
+func (s *PgServerAPIImpl) runAs(con *sql.Conn, role string, runner func() error) error {
 	myRole := s.connectionString.username
 	isMember, err := s.isMember(con, myRole, role)
 	if err != nil {
@@ -98,7 +119,7 @@ func (s *PgServerApiImpl) runAs(con *sql.Conn, role string, runner func() error)
 	return err
 }
 
-func (s *PgServerApiImpl) runInDatabase(database string, runner func(ctx context.Context, con *sql.Conn) error) error {
+func (s *PgServerAPIImpl) runInDatabase(database string, runner func(ctx context.Context, conn *sql.Conn) error) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	connectionString := s.connectionString.copy()

@@ -13,7 +13,7 @@ import (
 )
 
 var container *tc.PostgresContainer
-var pgApi PgServerApi
+var pgApi PgServerAPI
 var suiteCancel func()
 
 func TestPgServerApi(t *testing.T) {
@@ -69,7 +69,7 @@ var _ = AfterSuite(func() {
 	defer cancel()
 	defer suiteCancel()
 	if pgApi != nil && pgApi.IsConnected() {
-		pgApi.(*PgServerApiImpl).disconnect()
+		pgApi.(*PgServerAPIImpl).disconnect()
 	}
 	// Exit if no container exists
 	if container == nil {
