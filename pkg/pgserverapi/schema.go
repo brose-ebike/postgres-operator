@@ -10,6 +10,15 @@ import (
 	_ "github.com/lib/pq"
 )
 
+type PgSchemaApi interface {
+	// Schema
+	IsSchemaInDatabase(databaseName string, schemaName string) (bool, error)
+	CreateSchema(databaseName string, schemaName string) error
+	DeleteSchema(databaseName string, schemaName string) error
+	UpdateDefaultPrivileges(databaseName string, schemaName string, roleName string, typeName string, privileges []string) error
+	DeleteAllPrivilegesOnSchema(databaseName string, schemaName string, role string) error
+}
+
 func (s *PgServerAPIImpl) IsSchemaInDatabase(databaseName string, schemaName string) (bool, error) {
 	var exists bool
 	err := s.runInDatabase(databaseName, func(ctx context.Context, conn *sql.Conn) error {

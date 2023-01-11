@@ -7,6 +7,14 @@ import (
 	_ "github.com/lib/pq"
 )
 
+type PgConnectionApi interface {
+	// Connection Details
+	ConnectionString() PgConnectionString
+	// Connection
+	IsConnected() bool
+	TestConnection() error
+}
+
 func (s *PgServerAPIImpl) ConnectionString() PgConnectionString {
 	return s.connectionString
 }

@@ -9,42 +9,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-type PgConnectionApi interface {
-	// Connection Details
-	ConnectionString() PgConnectionString
-	// Connection
-	IsConnected() bool
-	TestConnection() error
-}
-
-type PgLoginRoleApi interface {
-	// Login Roles
-	IsLoginRoleExisting(roleName string) (bool, error)
-	CreateLoginRole(name string) error
-	DeleteLoginRole(name string) error
-	UpdateLoginRolePassword(name string, password string) error
-}
-
-type PgDatabaseApi interface {
-	// Databases
-	IsDatabaseExisting(databaseName string) (bool, error)
-	CreateDatabase(databaseName string) error
-	DeleteDatabase(databaseName string) error
-	GetDatabaseOwner(databaseName string) (string, error)
-	UpdateDatabaseOwner(databaseName string, roleName string) error
-	ResetDatabaseOwner(databaseName string) error
-	UpdateDatabasePrivileges(databaseName string, roleName string, privileges []string) error
-}
-
-type PgSchemaApi interface {
-	// Schema
-	IsSchemaInDatabase(databaseName string, schemaName string) (bool, error)
-	CreateSchema(databaseName string, schemaName string) error
-	DeleteSchema(databaseName string, schemaName string) error
-	UpdateDefaultPrivileges(databaseName string, schemaName string, roleName string, typeName string, privileges []string) error
-	DeleteAllPrivilegesOnSchema(databaseName string, schemaName string, role string) error
-}
-
 type PgServerAPI interface {
 	PgConnectionApi
 	PgLoginRoleApi

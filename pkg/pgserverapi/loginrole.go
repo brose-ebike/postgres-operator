@@ -6,6 +6,14 @@ import (
 	_ "github.com/lib/pq"
 )
 
+type PgLoginRoleApi interface {
+	// Login Roles
+	IsLoginRoleExisting(roleName string) (bool, error)
+	CreateLoginRole(name string) error
+	DeleteLoginRole(name string) error
+	UpdateLoginRolePassword(name string, password string) error
+}
+
 func (s *PgServerAPIImpl) IsLoginRoleExisting(roleName string) (bool, error) {
 	// Connect to Database Server
 	conn, err := s.newConnection()

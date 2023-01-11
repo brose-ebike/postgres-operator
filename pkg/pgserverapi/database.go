@@ -7,6 +7,17 @@ import (
 	_ "github.com/lib/pq"
 )
 
+type PgDatabaseApi interface {
+	// Databases
+	IsDatabaseExisting(databaseName string) (bool, error)
+	CreateDatabase(databaseName string) error
+	DeleteDatabase(databaseName string) error
+	GetDatabaseOwner(databaseName string) (string, error)
+	UpdateDatabaseOwner(databaseName string, roleName string) error
+	ResetDatabaseOwner(databaseName string) error
+	UpdateDatabasePrivileges(databaseName string, roleName string, privileges []string) error
+}
+
 func (s *PgServerAPIImpl) IsDatabaseExisting(databaseName string) (bool, error) {
 	// Connect to Database Server
 	conn, err := s.newConnection()
