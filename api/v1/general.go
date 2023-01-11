@@ -30,7 +30,8 @@ import (
 const PgConnectedConditionType string = "postgres.brose.bike/connected"
 
 const (
-	PgConnectedConditionReasonConFailed = "ConnectionFailed"
+	PgConnectedConditionReasonConSucceeded = "ConnectionSucceeded"
+	PgConnectedConditionReasonConFailed    = "ConnectionFailed"
 )
 
 type PgProperty struct {

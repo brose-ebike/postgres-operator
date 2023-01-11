@@ -46,17 +46,8 @@ type ObjectWithConditions interface {
 	SetConditions(conditions []metaV1.Condition)
 }
 
+// setCondition
 func setCondition(
-	ctx context.Context,
-	r client.StatusWriter,
-	obj ObjectWithConditions,
-	conditionType string,
-	status bool,
-) error {
-	return setConditionFull(ctx, r, obj, conditionType, status, nil, nil)
-}
-
-func setConditionWithReason(
 	ctx context.Context,
 	r client.StatusWriter,
 	obj ObjectWithConditions,
@@ -64,21 +55,6 @@ func setConditionWithReason(
 	status bool,
 	reason string,
 	message string,
-) error {
-	tmpReason := reason
-	tmpMessage := message
-	return setConditionFull(ctx, r, obj, conditionType, status, &tmpReason, &tmpMessage)
-}
-
-// setCondition
-func setConditionFull(
-	ctx context.Context,
-	r client.StatusWriter,
-	obj ObjectWithConditions,
-	conditionType string,
-	status bool,
-	reason *string,
-	message *string,
 ) error {
 	statusString := metaV1.ConditionFalse
 	if status {
@@ -93,12 +69,8 @@ func setConditionFull(
 		Status:             statusString,
 		ObservedGeneration: obj.GetGeneration(),
 		LastTransitionTime: metaV1.Time{Time: time.Time{}},
-	}
-	if reason != nil {
-		condition.Reason = *reason
-	}
-	if message != nil {
-		condition.Message = *message
+		Reason:             reason,
+		Message:            message,
 	}
 	meta.SetStatusCondition(&conditions, condition)
 	obj.SetConditions(conditions)

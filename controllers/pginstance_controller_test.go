@@ -24,6 +24,7 @@ import (
 	"github.com/brose-ebike/postgres-controller/pkg/services"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -136,7 +137,7 @@ var _ = Describe("PgInstanceReconciler", func() {
 		err = k8sClient.Get(ctx, request.NamespacedName, &instance)
 		Expect(err).To(BeNil())
 		Expect(instance.Status.Conditions).To(HaveLen(1))
-		Expect(instance.Status.Conditions[0].Status).To(BeTrue())
+		Expect(instance.Status.Conditions[0].Status).To(Equal(metaV1.ConditionTrue))
 	})
 
 	It("reconciles on update of PgInstance", func() {
@@ -186,6 +187,6 @@ var _ = Describe("PgInstanceReconciler", func() {
 		err = k8sClient.Get(ctx, request.NamespacedName, &instance)
 		Expect(err).To(BeNil())
 		Expect(instance.Status.Conditions).To(HaveLen(1))
-		Expect(instance.Status.Conditions[0].Status).To(BeFalse())
+		Expect(instance.Status.Conditions[0].Status).To(Equal(metaV1.ConditionFalse))
 	})
 })

@@ -76,7 +76,7 @@ func (r *PgInstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	if err := pgApi.TestConnection(); err != nil {
 		logger.Error(err, "Unable to connect", "instance", instance.Namespace+"/"+instance.Name)
 		// Update connection status
-		if err := setConditionWithReason(ctx, r, &instance, apiV1.PgConnectedConditionType, false, apiV1.PgConnectedConditionReasonConFailed, err.Error()); err != nil {
+		if err := setCondition(ctx, r, &instance, apiV1.PgConnectedConditionType, false, apiV1.PgConnectedConditionReasonConFailed, err.Error()); err != nil {
 			logger.Error(err, "Unable to update condition", "instance", req.NamespacedName.String())
 			return ctrl.Result{RequeueAfter: time.Minute}, err
 		}
@@ -103,7 +103,7 @@ func (r *PgInstanceReconciler) createPgApi(ctx context.Context, instance *apiV1.
 	if err != nil {
 		logger.Error(err, "Unable to connect", "instance", instance.Namespace+"/"+instance.Name)
 		// Update connection status
-		if err := setConditionWithReason(ctx, r, instance, apiV1.PgConnectedConditionType, false, apiV1.PgConnectedConditionReasonConFailed, err.Error()); err != nil {
+		if err := setCondition(ctx, r.Status(), instance, apiV1.PgConnectedConditionType, false, apiV1.PgConnectedConditionReasonConFailed, err.Error()); err != nil {
 			logger.Error(err, "Unable to update condition", "instance", instance.Namespace+"/"+instance.Name)
 			return nil, err
 		}
@@ -111,7 +111,7 @@ func (r *PgInstanceReconciler) createPgApi(ctx context.Context, instance *apiV1.
 	}
 
 	// Update connection status
-	if err := setCondition(ctx, r, instance, apiV1.PgConnectedConditionType, true); err != nil {
+	if err := setCondition(ctx, r.Status(), instance, apiV1.PgConnectedConditionType, true, apiV1.PgConnectedConditionReasonConSucceeded, "-"); err != nil {
 		logger.Error(err, "Unable to update condition", "instance", instance.Namespace+"/"+instance.Name)
 		return nil, err
 	}
