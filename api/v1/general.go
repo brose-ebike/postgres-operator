@@ -74,7 +74,7 @@ func (p *PgProperty) GetPropertyValue(ctx context.Context, r client.Reader, name
 		if value, found := configMap.Data[key]; found {
 			return value, nil
 		}
-		return "", brose_errors.NewMapEntryNotFoundError(key)
+		return "", brose_errors.NewMapEntryNotFoundError(key, nil)
 	}
 	// Read from secret
 	if p.SecretKeyRef != nil {
@@ -88,11 +88,11 @@ func (p *PgProperty) GetPropertyValue(ctx context.Context, r client.Reader, name
 		valueBase64, foundBase64 := secret.Data[key]
 		valueString, foundString := secret.StringData[key]
 		if !foundBase64 && !foundString {
-			return "", brose_errors.NewMapEntryNotFoundError(key)
+			return "", brose_errors.NewMapEntryNotFoundError(key, nil)
 		} else if foundString {
 			return valueString, nil
 		}
 		return string(valueBase64), nil
 	}
-	return "", brose_errors.NewMissingPropertyValueError(name)
+	return "", brose_errors.NewMissingPropertyValueError(name, nil)
 }
