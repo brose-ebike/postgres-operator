@@ -1,3 +1,5 @@
+# General ignored
+.DS_Store
 
 # Binaries for programs and plugins
 *.exe
@@ -25,3 +27,4 @@ Dockerfile.cross
 *.swp
 *.swo
 *~
+.vscode
