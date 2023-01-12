@@ -21,7 +21,7 @@ import (
 	"errors"
 
 	apiV1 "github.com/brose-ebike/postgres-controller/api/v1"
-	"github.com/brose-ebike/postgres-controller/pkg/services"
+	"github.com/brose-ebike/postgres-controller/pkg/pgapi"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,22 +31,29 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+type pgInstanceAPIMock struct {
+}
+
+func (a *pgInstanceAPIMock) TestConnection() error {
+	return nil
+}
+
 var _ = Describe("PgInstanceReconciler", func() {
 
-	var pgApiMock services.PgServerApi
+	var pgApiMock pgapi.PgInstanceAPI
 	var reconciler *PgInstanceReconciler
 
 	BeforeEach(func() {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		// Create ApiMock
-		pgApiMock = &services.PgServerApiImpl{}
+		pgApiMock = &pgInstanceAPIMock{}
 
 		// Create Reconciler
 		reconciler = &PgInstanceReconciler{
 			k8sClient,
 			nil,
-			func(ctx context.Context, r client.Reader, instance apiV1.PgInstance) (services.PgServerApi, error) {
+			func(ctx context.Context, r client.Reader, instance apiV1.PgInstance) (pgapi.PgInstanceAPI, error) {
 				if instance.Name == "failure" {
 					return nil, errors.New("Connection Failure")
 				}

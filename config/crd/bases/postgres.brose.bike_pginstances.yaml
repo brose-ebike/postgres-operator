@@ -35,6 +35,51 @@ spec:
           spec:
             description: PgInstanceSpec defines the desired state of PgInstance
             properties:
+              database:
+                description: The Maintenance Database which should be used to establish
+                  the connection, defaults to 'postgres'
+                properties:
+                  configMapKeyRef:
+                    description: Selects a key of a ConfigMap.
+                    properties:
+                      key:
+                        description: The key to select.
+                        type: string
+                      name:
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          TODO: Add other useful fields. apiVersion, kind, uid?'
+                        type: string
+                      optional:
+                        description: Specify whether the ConfigMap or its key must
+                          be defined
+                        type: boolean
+                    required:
+                    - key
+                    type: object
+                    x-kubernetes-map-type: atomic
+                  secretKeyRef:
+                    description: Selects a key of a secret in the pod's namespace
+                    properties:
+                      key:
+                        description: The key of the secret to select from.  Must be
+                          a valid secret key.
+                        type: string
+                      name:
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          TODO: Add other useful fields. apiVersion, kind, uid?'
+                        type: string
+                      optional:
+                        description: Specify whether the Secret or its key must be
+                          defined
+                        type: boolean
+                    required:
+                    - key
+                    type: object
+                    x-kubernetes-map-type: atomic
+                  value:
+                    description: The value for this property
+                    type: string
+                type: object
               host:
                 description: The Hostname of the server which should be managed
                 properties:
@@ -127,6 +172,51 @@ spec:
               port:
                 description: The Port of the server which should be managed, defaults
                   to 5432
+                properties:
+                  configMapKeyRef:
+                    description: Selects a key of a ConfigMap.
+                    properties:
+                      key:
+                        description: The key to select.
+                        type: string
+                      name:
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          TODO: Add other useful fields. apiVersion, kind, uid?'
+                        type: string
+                      optional:
+                        description: Specify whether the ConfigMap or its key must
+                          be defined
+                        type: boolean
+                    required:
+                    - key
+                    type: object
+                    x-kubernetes-map-type: atomic
+                  secretKeyRef:
+                    description: Selects a key of a secret in the pod's namespace
+                    properties:
+                      key:
+                        description: The key of the secret to select from.  Must be
+                          a valid secret key.
+                        type: string
+                      name:
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          TODO: Add other useful fields. apiVersion, kind, uid?'
+                        type: string
+                      optional:
+                        description: Specify whether the Secret or its key must be
+                          defined
+                        type: boolean
+                    required:
+                    - key
+                    type: object
+                    x-kubernetes-map-type: atomic
+                  value:
+                    description: The value for this property
+                    type: string
+                type: object
+              sslMode:
+                description: The SSLMode which should be used for the connection,
+                  defaults to 'none'
                 properties:
                   configMapKeyRef:
                     description: Selects a key of a ConfigMap.

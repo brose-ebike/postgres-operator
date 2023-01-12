@@ -14,34 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package services
+package controllers
 
 import (
 	"context"
 
 	apiV1 "github.com/brose-ebike/postgres-controller/api/v1"
+	"github.com/brose-ebike/postgres-controller/pkg/pgapi"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-/*
-	This file contains mocks, which can be used until the real implementation is available
-*/
-
-type PgServerApi interface {
-	TestConnection() error
-}
-
-type PgServerApiFactory = func(ctx context.Context, r client.Reader, instance apiV1.PgInstance) (PgServerApi, error)
-
-func NewPgServerApiFromObject(ctx context.Context, r client.Reader, instance apiV1.PgInstance) (PgServerApi, error) {
-	return &PgServerApiImpl{}, nil
-}
-
-// Another module
-
-type PgServerApiImpl struct {
-}
-
-func (a *PgServerApiImpl) TestConnection() error {
-	return nil
-}
+type PgConnectionFactory = func(ctx context.Context, r client.Reader, instance apiV1.PgInstance) (pgapi.PgInstanceAPI, error)

@@ -49,3 +49,8 @@ spec:
       name: "my-secret"
       key: "password"
       optional: false
+  database:
+    value: "postgres"
+  sslMode:
+    value: "require"
+    

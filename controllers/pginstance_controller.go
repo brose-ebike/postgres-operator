@@ -26,14 +26,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	apiV1 "github.com/brose-ebike/postgres-controller/api/v1"
+	"github.com/brose-ebike/postgres-controller/pkg/pgapi"
 	"github.com/brose-ebike/postgres-controller/pkg/services"
 )
 
 // PgInstanceReconciler reconciles a PgInstance object
 type PgInstanceReconciler struct {
 	client.Client
-	Scheme             *runtime.Scheme
-	PgServerApiFactory services.PgServerApiFactory
+	Scheme              *runtime.Scheme
+	PgConnectionFactory PgConnectionFactory
 }
 
 //+kubebuilder:rbac:groups=postgres.brose.bike,resources=pginstances,verbs=get;list;watch;create;update;patch;delete
@@ -88,18 +89,18 @@ func (r *PgInstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 // SetupWithManager sets up the controller with the Manager.
 func (r *PgInstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	// Register Factory Method
-	r.PgServerApiFactory = services.NewPgServerApiFromObject
+	r.PgConnectionFactory = services.NewPgInstanceAPI
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&apiV1.PgInstance{}).
 		Complete(r)
 }
 
-func (r *PgInstanceReconciler) createPgApi(ctx context.Context, instance *apiV1.PgInstance) (services.PgServerApi, error) {
+func (r *PgInstanceReconciler) createPgApi(ctx context.Context, instance *apiV1.PgInstance) (pgapi.PgInstanceAPI, error) {
 	logger := log.FromContext(ctx)
 
 	// Connect to Instance
-	pgApi, err := r.PgServerApiFactory(ctx, r, *instance)
+	pgApi, err := r.PgConnectionFactory(ctx, r, *instance)
 	if err != nil {
 		logger.Error(err, "Unable to connect", "instance", instance.Namespace+"/"+instance.Name)
 		// Update connection status
