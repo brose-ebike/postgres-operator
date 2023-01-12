@@ -39,7 +39,7 @@ func TestPgConnectionStringProperties(t *testing.T) {
 	if pgCS.Database() != "database" {
 		t.Errorf("Database is invalid")
 	}
-	if pgCS.SslMode() != "none" {
+	if pgCS.SSLMode() != "none" {
 		t.Errorf("SslMode is invalid")
 	}
 }

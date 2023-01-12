@@ -10,7 +10,7 @@ import (
 )
 
 type PgServerAPI interface {
-	PgConnectionApi
+	PgConnector
 	PgLoginRoleApi
 	PgDatabaseApi
 	PgSchemaApi

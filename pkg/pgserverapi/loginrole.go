@@ -58,10 +58,7 @@ func (s *PgServerAPIImpl) DeleteLoginRole(name string) error {
 		// drop all existing privileges
 		const queryD = "drop owned by %s;"
 		_, err = conn.ExecContext(s.ctx, formatQueryObj(queryD, name))
-		if err != nil {
-			return err
-		}
-		return nil
+		return err
 	})
 	if err != nil {
 		return err

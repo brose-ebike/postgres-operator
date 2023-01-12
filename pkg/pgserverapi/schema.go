@@ -75,9 +75,6 @@ func (s *PgServerAPIImpl) DeleteAllPrivilegesOnSchema(databaseName string, schem
 		// This gets executed on the database `databaseName`
 		const query = "revoke all on schema %s from %s;"
 		_, err := conn.ExecContext(ctx, formatQueryObj(query, schemaName, role))
-		if err != nil {
-			return err
-		}
-		return nil
+		return err
 	})
 }

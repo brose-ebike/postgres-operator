@@ -79,7 +79,7 @@ func (pgcs *PgConnectionString) Database() string {
 	return pgcs.database
 }
 
-func (pgcs *PgConnectionString) SslMode() string {
+func (pgcs *PgConnectionString) SSLMode() string {
 	return pgcs.sslMode
 }
 

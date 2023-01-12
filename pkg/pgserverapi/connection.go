@@ -7,7 +7,7 @@ import (
 	_ "github.com/lib/pq"
 )
 
-type PgConnectionApi interface {
+type PgConnector interface {
 	// Connection Details
 	ConnectionString() PgConnectionString
 	// Connection
