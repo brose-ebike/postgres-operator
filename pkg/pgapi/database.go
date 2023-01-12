@@ -7,14 +7,23 @@ import (
 	_ "github.com/lib/pq"
 )
 
+// PgDatabaseAPI provides functionality to check and manipulate
+// databases, database ownership and privileges on databases
 type PgDatabaseAPI interface {
-	// Databases
+	// IsDatabaseExisting returns true if a database
+	// with the given name exists on the connected instance and false if not.
 	IsDatabaseExisting(databaseName string) (bool, error)
+	// CreateDatabase creates a new database on the connected instance
 	CreateDatabase(databaseName string) error
+	// DeleteDatabase drops the database with the given name on the connected instance
 	DeleteDatabase(databaseName string) error
+	// GetDatabaseOwner returns the owner of the database with the given name on the connected instance
 	GetDatabaseOwner(databaseName string) (string, error)
+	// UpdateDatabaseOwner changes the owner of the database with the given name to the role with the given name
 	UpdateDatabaseOwner(databaseName string, roleName string) error
+	// ResetDatabaseOwner changes the owner of the database with the given name to the role with which the client is connected
 	ResetDatabaseOwner(databaseName string) error
+	// UpdateDatabasePrivileges changes the given privileges on the given database for the given role
 	UpdateDatabasePrivileges(databaseName string, roleName string, privileges []string) error
 }
 

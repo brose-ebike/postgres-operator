@@ -7,11 +7,18 @@ import (
 	_ "github.com/lib/pq"
 )
 
+// PgConnector provides functionality to check
+// the current connection to a Postgres instance
 type PgConnector interface {
-	// Connection Details
+	// ConnectionString provides the PgConnectionString of the current connection
 	ConnectionString() PgConnectionString
-	// Connection
+	// IsConnected returns the current connection state,
+	// true if the connection is established, false if not
 	IsConnected() bool
+	// TestConnection tries to establish a connection
+	// and communicates with the Postgres instance if possible.
+	// If the connection cannot be established, or the server does not communicate
+	// as expected, an error is returned
 	TestConnection() error
 }
 

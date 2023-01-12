@@ -6,11 +6,16 @@ import (
 	_ "github.com/lib/pq"
 )
 
+// PgLoginRoleAPI provides functionality to check and manipulate login roles (role with login)
 type PgLoginRoleAPI interface {
-	// Login Roles
+	// IsLoginRoleExisting returns true if a role
+	// with the given name exists on the connected instance and false if not.
 	IsLoginRoleExisting(roleName string) (bool, error)
+	// CreateLoginRole creates the given role on the connected instance
 	CreateLoginRole(name string) error
+	// DeleteLoginRole drops the given role from the connected instance
 	DeleteLoginRole(name string) error
+	// UpdateLoginRolePassword changes the password for the given role
 	UpdateLoginRolePassword(name string, password string) error
 }
 

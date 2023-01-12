@@ -10,12 +10,20 @@ import (
 	_ "github.com/lib/pq"
 )
 
+// PgSchemaAPI provides functionality to check and manipulate
+// schemas and privileges on schemas
 type PgSchemaAPI interface {
-	// Schema
+	// IsSchemaInDatabase returns true if a schema
+	// with the given name exists in the given database and false if not.
 	IsSchemaInDatabase(databaseName string, schemaName string) (bool, error)
+	// CreateSchema creates a new schema with the given name in the given database
 	CreateSchema(databaseName string, schemaName string) error
+	// DeleteSchema drops the given schema from the given database
 	DeleteSchema(databaseName string, schemaName string) error
+	// UpdateDefaultPrivileges updates the default privileges in the given schema
+	// for the given role on the given type to the given privileges
 	UpdateDefaultPrivileges(databaseName string, schemaName string, roleName string, typeName string, privileges []string) error
+	// DeleteAllPrivilegesOnSchema removes all privileges on the given schema for the given role
 	DeleteAllPrivilegesOnSchema(databaseName string, schemaName string, role string) error
 }
 
