@@ -24,10 +24,14 @@ markdown_extensions:
   - pymdownx.superfences
   - admonition
 nav:
-  - Home: index.md
-  - Installation: installation.md
-  - Configuration: configuration.md
+  - Introduction: index.md
+  - Installation: 
+    - Introduction: installation/index.md
+    - Kubectl apply: installation/simple.md
+    - Helm: installation/helm.md
+    - Kustomize: installation/kustomize.md
   - Usage: 
+    - Introduction: usage/index.md
     - Create Instance: usage/instance.md
     - Create Database: usage/database.md
     - Create LoginRole: usage/login_role.md

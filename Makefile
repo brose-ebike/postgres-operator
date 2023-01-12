@@ -258,7 +258,7 @@ catalog-push: ## Push a catalog image.
 release: kustomize generate fmt vet ## Build a release
 	rm -rf dist/
 	mkdir -p dist/
-	$(KUSTOMIZE) build config/crd > dist/install.yaml
+	$(KUSTOMIZE) build config/default > dist/install.yaml
 	for arch in "amd64" "arm" "arm64" ; \
 	do \
 		GOOS=linux ; \
