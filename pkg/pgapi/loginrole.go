@@ -1,4 +1,4 @@
-package pgserverapi
+package pgapi
 
 import (
 	"strings"
@@ -6,7 +6,7 @@ import (
 	_ "github.com/lib/pq"
 )
 
-type PgLoginRoleApi interface {
+type PgLoginRoleAPI interface {
 	// Login Roles
 	IsLoginRoleExisting(roleName string) (bool, error)
 	CreateLoginRole(name string) error
@@ -14,7 +14,7 @@ type PgLoginRoleApi interface {
 	UpdateLoginRolePassword(name string, password string) error
 }
 
-func (s *PgServerAPIImpl) IsLoginRoleExisting(roleName string) (bool, error) {
+func (s *pgInstanceAPIImpl) IsLoginRoleExisting(roleName string) (bool, error) {
 	// Connect to Database Server
 	conn, err := s.newConnection()
 	if err != nil {
@@ -29,7 +29,7 @@ func (s *PgServerAPIImpl) IsLoginRoleExisting(roleName string) (bool, error) {
 	return exists, nil
 }
 
-func (s *PgServerAPIImpl) CreateLoginRole(name string) error {
+func (s *pgInstanceAPIImpl) CreateLoginRole(name string) error {
 	// Connect to Database Server
 	conn, err := s.newConnection()
 	if err != nil {
@@ -41,7 +41,7 @@ func (s *PgServerAPIImpl) CreateLoginRole(name string) error {
 	return err
 }
 
-func (s *PgServerAPIImpl) DeleteLoginRole(name string) error {
+func (s *pgInstanceAPIImpl) DeleteLoginRole(name string) error {
 	// Connect to Database Server
 	conn, err := s.newConnection()
 	if err != nil {
@@ -70,7 +70,7 @@ func (s *PgServerAPIImpl) DeleteLoginRole(name string) error {
 	return err
 }
 
-func (s *PgServerAPIImpl) UpdateLoginRolePassword(name string, password string) error {
+func (s *pgInstanceAPIImpl) UpdateLoginRolePassword(name string, password string) error {
 	// Connect to Database Server
 	conn, err := s.newConnection()
 	if err != nil {

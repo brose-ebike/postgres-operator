@@ -1,4 +1,4 @@
-package pgserverapi
+package pgapi
 
 import (
 	. "github.com/onsi/ginkgo/v2"
@@ -14,22 +14,22 @@ var _ = Describe("PostgresAPI Connection Handling", func() {
 
 	It("connect opens the connection pool", func() {
 		// Test Server Connection
-		err := pgApi.(*PgServerAPIImpl).connect()
+		err := pgApi.(*pgInstanceAPIImpl).connect()
 		Expect(err).To(BeNil())
 		Expect(pgApi.IsConnected()).To(BeTrue())
 	})
 
 	It("disconnect closes the connection pool", func() {
 		// Create Connection
-		err := pgApi.(*PgServerAPIImpl).connect()
+		err := pgApi.(*pgInstanceAPIImpl).connect()
 		Expect(err).To(BeNil())
 		Expect(pgApi.IsConnected()).To(BeTrue())
 		// Close Server Connection
-		err = pgApi.(*PgServerAPIImpl).disconnect()
+		err = pgApi.(*pgInstanceAPIImpl).disconnect()
 		Expect(err).To(BeNil())
 		Expect(pgApi.IsConnected()).To(BeFalse())
 		// Create Connection
-		err = pgApi.(*PgServerAPIImpl).connect()
+		err = pgApi.(*pgInstanceAPIImpl).connect()
 		Expect(err).To(BeNil())
 
 	})

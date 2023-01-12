@@ -1,4 +1,4 @@
-package pgserverapi
+package pgapi
 
 import (
 	"strings"
@@ -7,7 +7,7 @@ import (
 	_ "github.com/lib/pq"
 )
 
-type PgDatabaseApi interface {
+type PgDatabaseAPI interface {
 	// Databases
 	IsDatabaseExisting(databaseName string) (bool, error)
 	CreateDatabase(databaseName string) error
@@ -18,7 +18,7 @@ type PgDatabaseApi interface {
 	UpdateDatabasePrivileges(databaseName string, roleName string, privileges []string) error
 }
 
-func (s *PgServerAPIImpl) IsDatabaseExisting(databaseName string) (bool, error) {
+func (s *pgInstanceAPIImpl) IsDatabaseExisting(databaseName string) (bool, error) {
 	// Connect to Database Server
 	conn, err := s.newConnection()
 	if err != nil {
@@ -33,7 +33,7 @@ func (s *PgServerAPIImpl) IsDatabaseExisting(databaseName string) (bool, error) 
 	return exists, nil
 }
 
-func (s *PgServerAPIImpl) CreateDatabase(databaseName string) error {
+func (s *pgInstanceAPIImpl) CreateDatabase(databaseName string) error {
 	// Connect to Database Server
 	conn, err := s.newConnection()
 	if err != nil {
@@ -45,7 +45,7 @@ func (s *PgServerAPIImpl) CreateDatabase(databaseName string) error {
 	return err
 }
 
-func (s *PgServerAPIImpl) DeleteDatabase(databaseName string) error {
+func (s *pgInstanceAPIImpl) DeleteDatabase(databaseName string) error {
 	// Connect to Database Server
 	conn, err := s.newConnection()
 	if err != nil {
@@ -59,7 +59,7 @@ func (s *PgServerAPIImpl) DeleteDatabase(databaseName string) error {
 	})
 }
 
-func (s *PgServerAPIImpl) UpdateDatabaseOwner(databaseName string, roleName string) error {
+func (s *pgInstanceAPIImpl) UpdateDatabaseOwner(databaseName string, roleName string) error {
 	// Connect to Database Server
 	conn, err := s.newConnection()
 	if err != nil {
@@ -83,7 +83,7 @@ func (s *PgServerAPIImpl) UpdateDatabaseOwner(databaseName string, roleName stri
 	return err
 }
 
-func (s *PgServerAPIImpl) UpdateDatabasePrivileges(databaseName string, roleName string, privileges []string) error {
+func (s *pgInstanceAPIImpl) UpdateDatabasePrivileges(databaseName string, roleName string, privileges []string) error {
 	// Validate Privileges Parameter
 	databasePrivileges := []string{"CONNECT", "CREATE", "TEMPLATE", "TEMPORARY"}
 	for _, privilege := range privileges {
@@ -115,7 +115,7 @@ func (s *PgServerAPIImpl) UpdateDatabasePrivileges(databaseName string, roleName
 	return err
 }
 
-func (s *PgServerAPIImpl) GetDatabaseOwner(databaseName string) (string, error) {
+func (s *pgInstanceAPIImpl) GetDatabaseOwner(databaseName string) (string, error) {
 	// Connect to Database Server
 	conn, err := s.newConnection()
 	if err != nil {
@@ -130,7 +130,7 @@ func (s *PgServerAPIImpl) GetDatabaseOwner(databaseName string) (string, error) 
 	return databaseOwner, nil
 }
 
-func (s *PgServerAPIImpl) ResetDatabaseOwner(databaseName string) error {
+func (s *pgInstanceAPIImpl) ResetDatabaseOwner(databaseName string) error {
 	// Connect to Database Server
 	conn, err := s.newConnection()
 	if err != nil {

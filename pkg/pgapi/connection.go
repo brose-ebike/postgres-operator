@@ -1,4 +1,4 @@
-package pgserverapi
+package pgapi
 
 import (
 	"database/sql"
@@ -15,11 +15,11 @@ type PgConnector interface {
 	TestConnection() error
 }
 
-func (s *PgServerAPIImpl) ConnectionString() PgConnectionString {
+func (s *pgInstanceAPIImpl) ConnectionString() PgConnectionString {
 	return s.connectionString
 }
 
-func (s *PgServerAPIImpl) connect() error {
+func (s *pgInstanceAPIImpl) connect() error {
 	if s.instance != nil {
 		return nil
 	}
@@ -45,7 +45,7 @@ func (s *PgServerAPIImpl) connect() error {
 	return nil
 }
 
-func (s *PgServerAPIImpl) disconnect() error {
+func (s *pgInstanceAPIImpl) disconnect() error {
 	if s.instance == nil {
 		return nil
 	}
@@ -55,11 +55,11 @@ func (s *PgServerAPIImpl) disconnect() error {
 	return err
 }
 
-func (s *PgServerAPIImpl) IsConnected() bool {
+func (s *pgInstanceAPIImpl) IsConnected() bool {
 	return s.instance != nil
 }
 
-func (s *PgServerAPIImpl) TestConnection() error {
+func (s *pgInstanceAPIImpl) TestConnection() error {
 	err := s.connect()
 	if err != nil {
 		return err
@@ -77,7 +77,7 @@ func (s *PgServerAPIImpl) TestConnection() error {
 	return nil
 }
 
-func (s *PgServerAPIImpl) newConnection() (*sql.Conn, error) {
+func (s *pgInstanceAPIImpl) newConnection() (*sql.Conn, error) {
 	// Auto Connect if needed
 	if !s.IsConnected() {
 		return nil, errors.New("Missing Connection, unable to execute query")

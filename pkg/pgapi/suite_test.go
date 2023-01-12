@@ -1,4 +1,4 @@
-package pgserverapi
+package pgapi
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 )
 
 var container *tc.PostgresContainer
-var pgApi PgServerAPI
+var pgApi PgInstanceAPI
 var suiteCancel func()
 
 func TestPgServerApi(t *testing.T) {
@@ -60,7 +60,7 @@ var _ = BeforeSuite(func() {
 	connectionString, err := ConnectionStringFromContainer(ctx, container)
 	Expect(err).To(BeNil())
 	// Generate PgServerApi Object
-	pgApi, err = NewPgServerApi(ctx, "test", *connectionString)
+	pgApi, err = NewPgInstanceAPI(ctx, "test", *connectionString)
 	Expect(err).To(BeNil())
 })
 
@@ -69,7 +69,7 @@ var _ = AfterSuite(func() {
 	defer cancel()
 	defer suiteCancel()
 	if pgApi != nil && pgApi.IsConnected() {
-		pgApi.(*PgServerAPIImpl).disconnect()
+		pgApi.(*pgInstanceAPIImpl).disconnect()
 	}
 	// Exit if no container exists
 	if container == nil {

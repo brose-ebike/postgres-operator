@@ -1,4 +1,4 @@
-package pgserverapi
+package pgapi
 
 import (
 	"context"
@@ -9,23 +9,21 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-type PgServerAPI interface {
+// PgInstanceAPI represents the full functionality of the API to a postgres instance of a cluster
+// The implementation for this interface can be created by NewPgInstanceAPI
+// Instead of using this interface directly a client should implement its own interfaces or use one of the provided interfaces like
+// PgConnector, PgLoginRoleAPI, PgDatabaseAPI or PgSchemaAPI
+type PgInstanceAPI interface {
 	PgConnector
-	PgLoginRoleApi
-	PgDatabaseApi
-	PgSchemaApi
+	PgLoginRoleAPI
+	PgDatabaseAPI
+	PgSchemaAPI
 }
 
-type PgServerAPIImpl struct {
-	name             string
-	connectionString PgConnectionString
-	ctx              context.Context
-	instance         *sql.DB
-}
-
-func NewPgServerApi(ctx context.Context, name string, connectionString PgConnectionString) (PgServerAPI, error) {
+// NewPgInstanceAPI creates an implementation for the PgInstanceAPI interface
+func NewPgInstanceAPI(ctx context.Context, name string, connectionString PgConnectionString) (PgInstanceAPI, error) {
 	logger := log.FromContext(ctx)
-	api := PgServerAPIImpl{
+	api := pgInstanceAPIImpl{
 		name,
 		connectionString,
 		ctx,
@@ -45,8 +43,17 @@ func NewPgServerApi(ctx context.Context, name string, connectionString PgConnect
 	return &api, nil
 }
 
+// Implementation
+
+type pgInstanceAPIImpl struct {
+	name             string
+	connectionString PgConnectionString
+	ctx              context.Context
+	instance         *sql.DB
+}
+
 // isMember determines if roleA is a member of roleB
-func (s *PgServerAPIImpl) isMember(con *sql.Conn, roleA, roleB string) (bool, error) {
+func (s *pgInstanceAPIImpl) isMember(con *sql.Conn, roleA, roleB string) (bool, error) {
 	var result bool
 	const query = "select pg_has_role(%s, %s, 'member');"
 	sqlRow := con.QueryRowContext(s.ctx, formatQueryValue(query, roleA, roleB))
@@ -56,7 +63,7 @@ func (s *PgServerAPIImpl) isMember(con *sql.Conn, roleA, roleB string) (bool, er
 	return result, nil
 }
 
-func (s *PgServerAPIImpl) runAs(con *sql.Conn, role string, runner func() error) error {
+func (s *pgInstanceAPIImpl) runAs(con *sql.Conn, role string, runner func() error) error {
 	myRole := s.connectionString.username
 	isMember, err := s.isMember(con, myRole, role)
 	if err != nil {
@@ -83,7 +90,7 @@ func (s *PgServerAPIImpl) runAs(con *sql.Conn, role string, runner func() error)
 	return err
 }
 
-func (s *PgServerAPIImpl) runInDatabase(database string, runner func(ctx context.Context, conn *sql.Conn) error) error {
+func (s *pgInstanceAPIImpl) runInDatabase(database string, runner func(ctx context.Context, conn *sql.Conn) error) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	connectionString := s.connectionString.copy()

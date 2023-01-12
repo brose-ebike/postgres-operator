@@ -1,4 +1,4 @@
-package pgserverapi
+package pgapi
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	_ "github.com/lib/pq"
 )
 
-type PgSchemaApi interface {
+type PgSchemaAPI interface {
 	// Schema
 	IsSchemaInDatabase(databaseName string, schemaName string) (bool, error)
 	CreateSchema(databaseName string, schemaName string) error
@@ -19,7 +19,7 @@ type PgSchemaApi interface {
 	DeleteAllPrivilegesOnSchema(databaseName string, schemaName string, role string) error
 }
 
-func (s *PgServerAPIImpl) IsSchemaInDatabase(databaseName string, schemaName string) (bool, error) {
+func (s *pgInstanceAPIImpl) IsSchemaInDatabase(databaseName string, schemaName string) (bool, error) {
 	var exists bool
 	err := s.runInDatabase(databaseName, func(ctx context.Context, conn *sql.Conn) error {
 		const query = "select exists(select * from pg_catalog.pg_namespace where nspname = $1);"
@@ -28,7 +28,7 @@ func (s *PgServerAPIImpl) IsSchemaInDatabase(databaseName string, schemaName str
 	return exists, err
 }
 
-func (s *PgServerAPIImpl) CreateSchema(databaseName string, schemaName string) error {
+func (s *pgInstanceAPIImpl) CreateSchema(databaseName string, schemaName string) error {
 	return s.runInDatabase(databaseName, func(ctx context.Context, conn *sql.Conn) error {
 		const query = "create schema %s;"
 		_, err := conn.ExecContext(ctx, formatQueryObj(query, schemaName))
@@ -36,7 +36,7 @@ func (s *PgServerAPIImpl) CreateSchema(databaseName string, schemaName string) e
 	})
 }
 
-func (s *PgServerAPIImpl) DeleteSchema(databaseName string, schemaName string) error {
+func (s *pgInstanceAPIImpl) DeleteSchema(databaseName string, schemaName string) error {
 	return s.runInDatabase(databaseName, func(ctx context.Context, conn *sql.Conn) error {
 		const query = "drop schema %s;"
 		_, err := conn.ExecContext(ctx, formatQueryObj(query, schemaName))
@@ -44,7 +44,7 @@ func (s *PgServerAPIImpl) DeleteSchema(databaseName string, schemaName string) e
 	})
 }
 
-func (s *PgServerAPIImpl) UpdateDefaultPrivileges(databaseName string, schemaName string, roleName string, typeName string, privileges []string) error {
+func (s *pgInstanceAPIImpl) UpdateDefaultPrivileges(databaseName string, schemaName string, roleName string, typeName string, privileges []string) error {
 	if len(privileges) == 0 {
 		return nil
 	}
@@ -70,7 +70,7 @@ func (s *PgServerAPIImpl) UpdateDefaultPrivileges(databaseName string, schemaNam
 	return err
 }
 
-func (s *PgServerAPIImpl) DeleteAllPrivilegesOnSchema(databaseName string, schemaName string, role string) error {
+func (s *pgInstanceAPIImpl) DeleteAllPrivilegesOnSchema(databaseName string, schemaName string, role string) error {
 	return s.runInDatabase(databaseName, func(ctx context.Context, conn *sql.Conn) error {
 		// This gets executed on the database `databaseName`
 		const query = "revoke all on schema %s from %s;"

@@ -1,4 +1,4 @@
-package pgserverapi
+package pgapi
 
 import (
 	. "github.com/onsi/ginkgo/v2"
