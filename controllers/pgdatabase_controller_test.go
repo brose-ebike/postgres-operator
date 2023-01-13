@@ -20,6 +20,8 @@ import (
 	"context"
 	"errors"
 
+	kErrors "k8s.io/apimachinery/pkg/api/errors"
+
 	apiV1 "github.com/brose-ebike/postgres-controller/api/v1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -30,54 +32,130 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+type dummyDB struct {
+	owner   string
+	schemas map[string]string
+}
+
 type pgDatabaseMock struct {
+	databases                        map[string]dummyDB
+	callsIsDatabaseExisting          int
+	callsCreateDatabase              int
+	callsDeleteDatabase              int
+	callsGetDatabaseOwner            int
+	callsUpdateDatabaseOwner         int
+	callsResetDatabaseOwner          int
+	callsUpdateDatabasePrivileges    int
+	callsIsSchemaInDatabase          int
+	callsCreateSchema                int
+	callsDeleteSchema                int
+	callsUpdateDefaultPrivileges     int
+	callsDeleteAllPrivilegesOnSchema int
 }
 
-func (a *pgDatabaseMock) IsDatabaseExisting(databaseName string) (bool, error) {
+func (m *pgDatabaseMock) IsDatabaseExisting(databaseName string) (bool, error) {
+	m.callsIsDatabaseExisting += 1
+	_, exists := m.databases[databaseName]
+	return exists, nil
+}
+
+func (m *pgDatabaseMock) CreateDatabase(databaseName string) error {
+	m.callsCreateDatabase += 1
+	if _, exists := m.databases[databaseName]; exists {
+		return errors.New("Database already exists")
+	}
+	m.databases[databaseName] = dummyDB{
+		owner: "pgadmin",
+	}
+	return nil
+}
+
+func (m *pgDatabaseMock) DeleteDatabase(databaseName string) error {
+	m.callsDeleteDatabase += 1
+	delete(m.databases, databaseName)
+	return nil
+}
+
+func (m *pgDatabaseMock) GetDatabaseOwner(databaseName string) (string, error) {
+	m.callsGetDatabaseOwner += 1
+	value, exists := m.databases[databaseName]
+	if !exists {
+		return "", errors.New("Database does not exist")
+	}
+	return value.owner, nil
+}
+
+func (m *pgDatabaseMock) UpdateDatabaseOwner(databaseName string, roleName string) error {
+	m.callsUpdateDatabaseOwner += 1
+	value, exists := m.databases[databaseName]
+	if !exists {
+		return errors.New("Database does not exist")
+	}
+	value.owner = roleName
+	return nil
+}
+
+func (m *pgDatabaseMock) ResetDatabaseOwner(databaseName string) error {
+	m.callsResetDatabaseOwner += 1
+	value, exists := m.databases[databaseName]
+	if !exists {
+		return errors.New("Database does not exist")
+	}
+	value.owner = "pgadmin"
+	return nil
+}
+
+func (m *pgDatabaseMock) UpdateDatabasePrivileges(databaseName string, roleName string, privileges []string) error {
+	m.callsUpdateDatabasePrivileges += 1
+	_, exists := m.databases[databaseName]
+	if !exists {
+		return errors.New("Database does not exist")
+	}
+	return nil
+}
+
+func (m *pgDatabaseMock) IsSchemaInDatabase(databaseName string, schemaName string) (bool, error) {
+	m.callsIsSchemaInDatabase += 1
+	_, exists := m.databases[databaseName]
+	if !exists {
+		return false, errors.New("Database does not exist")
+	}
 	return true, nil
 }
 
-func (a *pgDatabaseMock) CreateDatabase(databaseName string) error {
+func (m *pgDatabaseMock) CreateSchema(databaseName string, schemaName string) error {
+	m.callsCreateSchema += 1
+	_, exists := m.databases[databaseName]
+	if !exists {
+		return errors.New("Database does not exist")
+	}
 	return nil
 }
 
-func (a *pgDatabaseMock) DeleteDatabase(databaseName string) error {
+func (m *pgDatabaseMock) DeleteSchema(databaseName string, schemaName string) error {
+	m.callsDeleteSchema += 1
+	_, exists := m.databases[databaseName]
+	if !exists {
+		return errors.New("Database does not exist")
+	}
 	return nil
 }
 
-func (a *pgDatabaseMock) GetDatabaseOwner(databaseName string) (string, error) {
-	return "", nil
-}
-
-func (a *pgDatabaseMock) UpdateDatabaseOwner(databaseName string, roleName string) error {
+func (m *pgDatabaseMock) UpdateDefaultPrivileges(databaseName string, schemaName string, roleName string, typeName string, privileges []string) error {
+	m.callsUpdateDefaultPrivileges += 1
+	_, exists := m.databases[databaseName]
+	if !exists {
+		return errors.New("Database does not exist")
+	}
 	return nil
 }
 
-func (a *pgDatabaseMock) ResetDatabaseOwner(databaseName string) error {
-	return nil
-}
-
-func (a *pgDatabaseMock) UpdateDatabasePrivileges(databaseName string, roleName string, privileges []string) error {
-	return nil
-}
-
-func (a *pgDatabaseMock) IsSchemaInDatabase(databaseName string, schemaName string) (bool, error) {
-	return true, nil
-}
-
-func (a *pgDatabaseMock) CreateSchema(databaseName string, schemaName string) error {
-	return nil
-}
-
-func (a *pgDatabaseMock) DeleteSchema(databaseName string, schemaName string) error {
-	return nil
-}
-
-func (a *pgDatabaseMock) UpdateDefaultPrivileges(databaseName string, schemaName string, roleName string, typeName string, privileges []string) error {
-	return nil
-}
-
-func (a *pgDatabaseMock) DeleteAllPrivilegesOnSchema(databaseName string, schemaName string, role string) error {
+func (m *pgDatabaseMock) DeleteAllPrivilegesOnSchema(databaseName string, schemaName string, role string) error {
+	m.callsDeleteAllPrivilegesOnSchema += 1
+	_, exists := m.databases[databaseName]
+	if !exists {
+		return errors.New("Database does not exist")
+	}
 	return nil
 }
 
@@ -90,7 +168,9 @@ var _ = Describe("PgInstanceReconciler", func() {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		// Create ApiMock
-		pgApiMock = &pgDatabaseMock{}
+		pgApiMock = &pgDatabaseMock{
+			databases: make(map[string]dummyDB),
+		}
 
 		// Create Reconciler
 		reconciler = &PgDatabaseReconciler{
@@ -207,6 +287,16 @@ var _ = Describe("PgInstanceReconciler", func() {
 		Expect(err).To(BeNil())
 		Expect(database.Status.Conditions).To(HaveLen(1))
 		Expect(database.Status.Conditions[0].Status).To(Equal(metaV1.ConditionTrue))
+
+		// and
+		database = apiV1.PgDatabase{}
+		err = k8sClient.Get(ctx, request.NamespacedName, &database)
+		Expect(err).To(BeNil())
+		Expect(database.Finalizers).To(HaveLen(1))
+
+		// and
+		mock := pgApiMock.(*pgDatabaseMock)
+		Expect(mock.callsCreateDatabase).To(Equal(1))
 	})
 
 	It("reconciles on delete of PgDatabase", func() {
@@ -216,7 +306,7 @@ var _ = Describe("PgInstanceReconciler", func() {
 		request := reconcile.Request{
 			NamespacedName: types.NamespacedName{
 				Namespace: "default",
-				Name:      "missing",
+				Name:      "dummy",
 			},
 		}
 		// when
@@ -228,5 +318,38 @@ var _ = Describe("PgInstanceReconciler", func() {
 
 		// and
 		Expect(nil).To(BeNil())
+	})
+
+	It("reconciles on finalize of PgDatabase", func() {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		// given
+		request := reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Namespace: "default",
+				Name:      "dummy",
+			},
+		}
+		_, err := reconciler.Reconcile(ctx, request)
+		Expect(err).To(BeNil())
+
+		// and
+		database := apiV1.PgDatabase{}
+		err = k8sClient.Get(ctx, request.NamespacedName, &database)
+		Expect(err).To(BeNil())
+		err = k8sClient.Delete(ctx, &database)
+		Expect(err).To(BeNil())
+
+		// when
+		result, err := reconciler.Reconcile(ctx, request)
+
+		// then
+		Expect(err).To(BeNil())
+		Expect(result.RequeueAfter).To(BeZero())
+
+		// and
+		database = apiV1.PgDatabase{}
+		err = k8sClient.Get(ctx, request.NamespacedName, &database)
+		Expect(kErrors.IsNotFound(err)).To(BeTrue())
 	})
 })
