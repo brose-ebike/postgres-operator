@@ -96,3 +96,26 @@ func (p *PgProperty) GetPropertyValue(ctx context.Context, r client.Reader, name
 	}
 	return "", brose_errors.NewMissingPropertyValueError(name, nil)
 }
+
+// PgInstanceRef identifies the PgInstanceConnection which should be used
+type PgInstanceRef struct {
+	// Namespace defines the namespace in which the PgInstanceConnection is located
+	Namespace string `json:"namespace"`
+	// Name identifies the PgInstanceConnection which should be used
+	Name string `json:"name"`
+}
+
+func (i *PgInstanceRef) ToNamespacedName() types.NamespacedName {
+	return types.NamespacedName{
+		Namespace: i.Namespace,
+		Name:      i.Name,
+	}
+}
+
+type PgRemoteStatus string
+
+const (
+	PgRemoteStatusMissing PgRemoteStatus = "missing"
+	PgRemoteStatusCreated PgRemoteStatus = "created"
+	PgRemoteStatusDeleted PgRemoteStatus = "deleted"
+)

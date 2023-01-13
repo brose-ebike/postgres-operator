@@ -1,0 +1,149 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.10.0
+  creationTimestamp: null
+  name: pgdatabases.postgres.brose.bike
+spec:
+  group: postgres.brose.bike
+  names:
+    kind: PgDatabase
+    listKind: PgDatabaseList
+    plural: pgdatabases
+    singular: pgdatabase
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: PgDatabase is the Schema for the pgdatabases API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: PgDatabaseSpec defines the desired state of PgDatabase
+            properties:
+              defaultPrivileges:
+                description: DefaultPrivileges defines the default privileges for
+                  this database
+                items:
+                  properties:
+                    functionPrivileges:
+                      description: FunctionPrivileges specifies the name of the privileges
+                        on tables which should be granted to the roles
+                      items:
+                        type: string
+                      type: array
+                    name:
+                      description: Name specifies the name of the schema for which
+                        the default privileges should be granted.
+                      type: string
+                    roles:
+                      description: Roles specifies the name of the roles for which
+                        the privileges should be granted
+                      items:
+                        type: string
+                      type: array
+                    routinePrivileges:
+                      description: RoutinePrivileges specifies the name of the privileges
+                        on tables which should be granted to the roles
+                      items:
+                        type: string
+                      type: array
+                    sequencePrivileges:
+                      description: SequencePrivileges specifies the name of the privileges
+                        on tables which should be granted to the roles
+                      items:
+                        type: string
+                      type: array
+                    tablePrivileges:
+                      description: TablePrivileges specifies the name of the privileges
+                        on tables which should be granted to the roles
+                      items:
+                        type: string
+                      type: array
+                    typePrivileges:
+                      description: TypePrivileges specifies the name of the privileges
+                        on tables which should be granted to the roles
+                      items:
+                        type: string
+                      type: array
+                  required:
+                  - name
+                  - roles
+                  type: object
+                type: array
+              deletion:
+                description: DeletionBehavior specifies what should happen when the
+                  manifest gets deleted
+                properties:
+                  drop:
+                    description: Drop specifies if the database should be dropped
+                      on deletion (defaults to false)
+                    type: boolean
+                  wait:
+                    description: Wait specifies if the finalizer should wait for the
+                      database to be deleted manually
+                    type: boolean
+                type: object
+              instance:
+                description: Instance identifies the PgInstanceConnection which should
+                  be used
+                properties:
+                  name:
+                    description: Name identifies the PgInstanceConnection which should
+                      be used
+                    type: string
+                  namespace:
+                    description: Namespace defines the namespace in which the PgInstanceConnection
+                      is located
+                    type: string
+                required:
+                - name
+                - namespace
+                type: object
+              publicPrivileges:
+                description: PublicPrivileges revokes and Public stuff in postgres
+                properties:
+                  revoke:
+                    description: Revoke the public privileges from all database object
+                    type: boolean
+                required:
+                - revoke
+                type: object
+              publicSchema:
+                description: PublicSchema dropped
+                properties:
+                  drop:
+                    description: Revoke the public privileges from all database object
+                    type: boolean
+                required:
+                - drop
+                type: object
+            required:
+            - defaultPrivileges
+            - deletion
+            - instance
+            - publicPrivileges
+            - publicSchema
+            type: object
+          status:
+            description: PgDatabaseStatus defines the observed state of PgDatabase
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
