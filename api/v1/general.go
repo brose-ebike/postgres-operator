@@ -111,11 +111,3 @@ func (i *PgInstanceRef) ToNamespacedName() types.NamespacedName {
 		Name:      i.Name,
 	}
 }
-
-type PgRemoteStatus string
-
-const (
-	PgRemoteStatusMissing PgRemoteStatus = "missing"
-	PgRemoteStatusCreated PgRemoteStatus = "created"
-	PgRemoteStatusDeleted PgRemoteStatus = "deleted"
-)
