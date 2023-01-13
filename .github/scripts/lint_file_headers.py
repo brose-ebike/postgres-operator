@@ -20,7 +20,7 @@ for parent,_,files in os.walk("."):
 for file in source_files:
     with open(file, encoding="utf-8") as fp:
         content = fp.read()
-    if content.startswith(header):
+    if content.contains(header):
         continue
     if format:
         with open(file, "w", encoding="utf-8") as fp:
