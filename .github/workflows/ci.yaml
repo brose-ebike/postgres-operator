@@ -54,6 +54,8 @@ jobs:
       - name: "Run go vet"
         run: |
           make vet
+      - name: "Run go vet"
+        run: python3 .github/scripts/lint_file_headers.py
       - name: "Check for changes"
         run: "git status"
 
