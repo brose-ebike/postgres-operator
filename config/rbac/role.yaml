@@ -1,0 +1,41 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: manager-role
+rules:
+- resources:
+  - configmaps
+  verbs:
+  - get
+- resources:
+  - secrets
+  verbs:
+  - get
+- apiGroups:
+  - postgres.brose.bike
+  resources:
+  - pginstances
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - postgres.brose.bike
+  resources:
+  - pginstances/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - postgres.brose.bike
+  resources:
+  - pginstances/status
+  verbs:
+  - get
+  - patch
+  - update
