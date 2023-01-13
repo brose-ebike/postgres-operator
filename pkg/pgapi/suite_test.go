@@ -60,7 +60,7 @@ var _ = BeforeSuite(func() {
 	connectionString, err := ConnectionStringFromContainer(ctx, container)
 	Expect(err).To(BeNil())
 	// Generate PgServerApi Object
-	pgApi, err = NewPgInstanceAPI(ctx, "test", *connectionString)
+	pgApi, err = NewPgInstanceAPI(ctx, "test", connectionString)
 	Expect(err).To(BeNil())
 })
 
