@@ -9,4 +9,21 @@ metadata:
     app.kubernetes.io/created-by: postgres-controller
   name: pgdatabase-sample
 spec:
-  # TODO(user): Add fields here
+  instance:
+    namespace: "default"
+    name: "dummy"
+  deletion:
+    drop: false # optional, default false
+    wait: false # optional, default false
+  defaultPrivileges:
+    - name: "service"
+      roles: ["developer"]
+      tablePrivileges: ["ALL"]
+      sequencePrivileges: ["ALL"]
+      functionPrivileges: ["ALL"]
+      routinePrivileges: ["ALL"]
+      typePrivileges: ["ALL"]
+  publicPrivileges:
+    revoke: false # optional, default false
+  publicSchema:
+    drop: false # optional, default false
