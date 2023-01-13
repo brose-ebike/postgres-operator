@@ -25,7 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-func NewPgInstanceAPI(ctx context.Context, r client.Reader, instance apiV1.PgInstance) (pgapi.PgInstanceAPI, error) {
+func NewPgInstanceAPI(ctx context.Context, r client.Reader, instance *apiV1.PgInstance) (pgapi.PgInstanceAPI, error) {
 	logger := log.FromContext(ctx)
 	namespace := instance.Namespace
 	hostname, err := instance.Spec.GetHostname(ctx, r, namespace)

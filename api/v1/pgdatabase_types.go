@@ -18,6 +18,7 @@ package v1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
@@ -71,8 +72,8 @@ type PgDatabaseSpec struct {
 
 // PgDatabaseStatus defines the observed state of PgDatabase
 type PgDatabaseStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// Conditions represent the current connection state
+	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
 }
 
 //+kubebuilder:object:root=true
@@ -85,6 +86,26 @@ type PgDatabase struct {
 
 	Spec   PgDatabaseSpec   `json:"spec,omitempty"`
 	Status PgDatabaseStatus `json:"status,omitempty"`
+}
+
+func (d *PgDatabase) GetConditions() []metav1.Condition {
+	return d.Status.Conditions
+}
+
+func (d *PgDatabase) SetConditions(conditions []metav1.Condition) {
+	d.Status.Conditions = conditions
+}
+
+func (d *PgDatabase) GetInstanceId() types.NamespacedName {
+	return d.Spec.Instance.ToNamespacedName()
+}
+
+func (d *PgDatabase) GetInstanceIdString() string {
+	return d.Spec.Instance.ToNamespacedName().String()
+}
+
+func (d *PgDatabase) ToNamespacedName() string {
+	return d.Namespace + "/" + d.Name
 }
 
 //+kubebuilder:object:root=true

@@ -18,19 +18,22 @@ package controllers
 
 import (
 	"context"
+	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	postgresv1 "github.com/brose-ebike/postgres-controller/api/v1"
+	apiV1 "github.com/brose-ebike/postgres-controller/api/v1"
 )
 
 // PgDatabaseReconciler reconciles a PgDatabase object
 type PgDatabaseReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+	PgDatabaseAPIFactory
 }
 
 //+kubebuilder:rbac:groups=postgres.brose.bike,resources=pgdatabases,verbs=get;list;watch;create;update;patch;delete
@@ -47,9 +50,71 @@ type PgDatabaseReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.13.0/pkg/reconcile
 func (r *PgDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
+	logger := log.FromContext(ctx)
 
-	// TODO(user): your logic here
+	var database apiV1.PgDatabase
+	exists, err := getResource(ctx, r, req.NamespacedName, &database)
+	if err != nil {
+		logger.Error(err, "Unable to fetch PgDatabase", "database", req.NamespacedName.String())
+		return ctrl.Result{}, err
+	}
+	// Handle deleted
+	if !exists {
+		logger.Info("Deleted PgDatabase", "database", req.NamespacedName.String())
+		return ctrl.Result{}, nil
+	}
+
+	// Create PgServerApi from instance
+	pgApi, err := r.createPgApi(ctx, &database)
+	if err != nil {
+		return ctrl.Result{RequeueAfter: time.Minute}, err
+	}
+
+	// Handle finalizing
+	if database.DeletionTimestamp != nil {
+		if err := r.finalize(ctx, &database, pgApi); err != nil {
+			logger.Info("Unable to finalize", "database", req.NamespacedName.String(), "instance", database.GetInstanceIdString())
+			return ctrl.Result{RequeueAfter: time.Minute}, err
+		}
+		// Exit and do not reconcile anymore
+		return ctrl.Result{}, nil
+	}
+
+	// Create Database if not exist
+	if err := r.createDatabaseIfNotExists(ctx, pgApi, &database); err != nil {
+		logger.Error(err, "Unable to create Database", "database", database.Name, "instance", database.GetInstanceIdString())
+		return ctrl.Result{RequeueAfter: time.Minute}, err
+	}
+
+	// Install Extensions if missing
+	if err := r.handleDefaultPrivileges(ctx, pgApi, &database); err != nil {
+		logger.Error(err, "Unable to update default privileges", "database", database.Name, "instance", database.GetInstanceIdString())
+		return ctrl.Result{RequeueAfter: time.Minute}, err
+	}
+
+	// Revoke Public Privileges if needed
+	if err := r.handlePublicPrivileges(ctx, pgApi, &database); err != nil {
+		logger.Error(err, "Unable to update public privileges", "database", database.ToNamespacedName(), "instance", database.GetInstanceIdString())
+		return ctrl.Result{RequeueAfter: time.Minute}, err
+	}
+
+	// Drop Public Schema if needed
+	if err := r.handlePublicSchema(ctx, pgApi, &database); err != nil {
+		logger.Error(err, "Unable to update public schema", "database", database.ToNamespacedName(), "instance", database.GetInstanceIdString())
+		return ctrl.Result{RequeueAfter: time.Minute}, err
+	}
+
+	// Check if finalizer exists
+	if !controllerutil.ContainsFinalizer(&database, apiV1.DefaultFinalizerPgDatabase) {
+		controllerutil.AddFinalizer(&database, apiV1.DefaultFinalizerPgDatabase)
+		err = r.Update(ctx, &database)
+		if err != nil {
+			logger.Error(err, "Failed to update finalizers", "database", database.ToNamespacedName(), "instance", database.GetInstanceIdString())
+			return ctrl.Result{RequeueAfter: time.Minute}, err
+		}
+	}
+
+	logger.Info("Processed database", "database", database.ToNamespacedName(), "instance", database.GetInstanceIdString())
 
 	return ctrl.Result{}, nil
 }
@@ -57,6 +122,174 @@ func (r *PgDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 // SetupWithManager sets up the controller with the Manager.
 func (r *PgDatabaseReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&postgresv1.PgDatabase{}).
+		For(&apiV1.PgDatabase{}).
 		Complete(r)
+}
+
+func (r *PgDatabaseReconciler) createPgApi(ctx context.Context, database *apiV1.PgDatabase) (PgDatabaseAPI, error) {
+	logger := log.FromContext(ctx)
+
+	// Fetch Instance
+	instanceId := database.GetInstanceId()
+	var instance apiV1.PgInstance
+	exists, err := getResource(ctx, r, instanceId, &instance)
+	if !exists || err != nil {
+		logger.Error(err, "Unable to fetch PgInstance", "instance", instanceId.String())
+		return nil, err
+	}
+
+	// Connect to Instance
+	pgApi, err := r.PgDatabaseAPIFactory(ctx, r, &instance)
+	if err != nil {
+		logger.Error(err, "Unable to connect", "instance", instanceId)
+		// Update connection status
+		if err := setCondition(ctx, r.Status(), database, apiV1.PgConnectedConditionType, false, apiV1.PgConnectedConditionReasonConFailed, err.Error()); err != nil {
+			logger.Error(err, "Unable to update condition", "database", database.ToNamespacedName())
+			return nil, err
+		}
+		return nil, err
+	}
+
+	// Update connection status
+	if err := setCondition(ctx, r.Status(), database, apiV1.PgConnectedConditionType, true, apiV1.PgConnectedConditionReasonConSucceeded, "-"); err != nil {
+		logger.Error(err, "Unable to update condition", "database", database.ToNamespacedName())
+		return nil, err
+	}
+	return pgApi, nil
+}
+
+func (r *PgDatabaseReconciler) finalize(ctx context.Context, database *apiV1.PgDatabase, pgApi PgDatabaseAPI) error {
+	logger := log.FromContext(ctx)
+
+	if database.Spec.DeletionBehavior.Drop {
+		exists, err := pgApi.IsDatabaseExisting(database.Name)
+		if err != nil {
+			logger.Error(err, "Unable to query database", "database", database.Name, "instance", database.GetInstanceIdString())
+			return err
+		}
+		if exists {
+			if err := pgApi.DeleteDatabase(database.Name); err != nil {
+				logger.Error(err, "Unable to remove database", "database", database.Name, "instance", database.GetInstanceIdString())
+				return err
+			}
+		}
+	}
+	if database.Spec.DeletionBehavior.Wait {
+		exists, err := pgApi.IsDatabaseExisting(database.Name)
+		if err != nil {
+			logger.Error(err, "Unable to query database", "database", database.Name)
+			return err
+		}
+		if exists {
+			logger.Info("Database still exists, waiting for database to be dropped", "database", database.Name)
+			return nil
+		}
+	}
+	// Remove finalizer
+	controllerutil.RemoveFinalizer(database, apiV1.DefaultFinalizerPgDatabase)
+	err := r.Update(ctx, database)
+	if err != nil {
+		logger.Error(err, "Failed to update finalizers")
+		return err
+	}
+	logger.Info("Removed finalizer, database resource can now be deleted")
+	// Exit after finalizer was removed
+	return nil
+}
+
+func (r *PgDatabaseReconciler) createDatabaseIfNotExists(ctx context.Context, pgApi PgDatabaseAPI, database *apiV1.PgDatabase) error {
+	logger := log.FromContext(ctx)
+	databaseName := database.Name
+
+	exists, err := pgApi.IsDatabaseExisting(databaseName)
+	if err != nil {
+		logger.Error(err, "Unable to query database"+databaseName)
+		return err
+	}
+
+	// create database
+	if !exists {
+		if err := pgApi.CreateDatabase(databaseName); err != nil {
+			logger.Error(err, "Unable to create database "+databaseName)
+			return err
+		}
+		logger.Info("Created database " + databaseName)
+	}
+	return nil
+}
+
+func (r *PgDatabaseReconciler) handleDefaultPrivileges(ctx context.Context, pgApi PgDatabaseAPI, database *apiV1.PgDatabase) error {
+	for _, schema := range database.Spec.DefaultPrivileges {
+		exists, err := pgApi.IsSchemaInDatabase(database.Name, schema.Name)
+		if err != nil {
+			return err
+		}
+		if !exists {
+			if err := pgApi.CreateSchema(database.Name, schema.Name); err != nil {
+				return err
+			}
+		}
+		for _, role := range schema.Roles {
+			// Update table privileges
+			if err := pgApi.UpdateDefaultPrivileges(database.Name, schema.Name, role, "tables", schema.TablePrivileges); err != nil {
+				return err
+			}
+			// Update sequence privileges
+			if err := pgApi.UpdateDefaultPrivileges(database.Name, schema.Name, role, "sequences", schema.SequencePrivileges); err != nil {
+				return err
+			}
+			// Update function privileges
+			if err := pgApi.UpdateDefaultPrivileges(database.Name, schema.Name, role, "functions", schema.FunctionPrivileges); err != nil {
+				return err
+			}
+			// Update routine privileges
+			if err := pgApi.UpdateDefaultPrivileges(database.Name, schema.Name, role, "routines", schema.RoutinePrivileges); err != nil {
+				return err
+			}
+			// Update type privileges
+			if err := pgApi.UpdateDefaultPrivileges(database.Name, schema.Name, role, "types", schema.TypePrivileges); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (r *PgDatabaseReconciler) handlePublicPrivileges(ctx context.Context, pgApi PgDatabaseAPI, database *apiV1.PgDatabase) error {
+	// TODO update public privileges if needed
+	if !database.Spec.PublicPrivileges.Revoke {
+		return nil
+	}
+	// Revoke all privileges for public on database
+	if err := pgApi.UpdateDatabasePrivileges(database.Name, "public", []string{}); err != nil {
+		return err
+	}
+
+	exists, err := pgApi.IsSchemaInDatabase(database.Name, "public")
+	if err != nil {
+		return err
+	}
+	if exists {
+		// Revoke all privileges for public on schema
+		if err := pgApi.DeleteAllPrivilegesOnSchema(database.Name, "public", "public"); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *PgDatabaseReconciler) handlePublicSchema(ctx context.Context, pgApi PgDatabaseAPI, database *apiV1.PgDatabase) error {
+	if !database.Spec.PublicSchema.Drop {
+		return nil
+	}
+	exists, err := pgApi.IsSchemaInDatabase(database.Name, "public")
+	if err != nil {
+		return err
+	}
+	if exists {
+		if err := pgApi.DeleteSchema(database.Name, "public"); err != nil {
+			return err
+		}
+	}
+	return nil
 }
