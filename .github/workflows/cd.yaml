@@ -40,11 +40,9 @@ jobs:
         with:
           registry: "ghcr.io"
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}         
-      - name: "Build Docker Image"
-        run: make docker-build #docker-push IMG=
-      - name: "Build Controller Binaries and Resource Definitions"
-        run: make release
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: "Build Controller"
+        run: make release "IMG=ghcr.io/brose-ebike/postgres-controller:v${{ steps.params.outputs.version }}"
       ########################################################################################################################
       ########################################### Release#####################################################################
       ########################################################################################################################
