@@ -21,11 +21,11 @@ type PgInstanceAPI interface {
 }
 
 // NewPgInstanceAPI creates an implementation for the PgInstanceAPI interface
-func NewPgInstanceAPI(ctx context.Context, name string, connectionString PgConnectionString) (PgInstanceAPI, error) {
+func NewPgInstanceAPI(ctx context.Context, name string, connectionString *PgConnectionString) (PgInstanceAPI, error) {
 	logger := log.FromContext(ctx)
 	api := pgInstanceAPIImpl{
 		name,
-		connectionString,
+		*connectionString,
 		ctx,
 		nil,
 	}

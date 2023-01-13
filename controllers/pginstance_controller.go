@@ -89,14 +89,16 @@ func (r *PgInstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 // SetupWithManager sets up the controller with the Manager.
 func (r *PgInstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	// Register Factory Method
-	r.PgConnectionFactory = services.NewPgInstanceAPI
+	r.PgConnectionFactory = func(ctx context.Context, r client.Reader, instance apiV1.PgInstance) (pgapi.PgConnector, error) {
+		return services.NewPgInstanceAPI(ctx, r, instance)
+	}
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&apiV1.PgInstance{}).
 		Complete(r)
 }
 
-func (r *PgInstanceReconciler) createPgApi(ctx context.Context, instance *apiV1.PgInstance) (pgapi.PgInstanceAPI, error) {
+func (r *PgInstanceReconciler) createPgApi(ctx context.Context, instance *apiV1.PgInstance) (pgapi.PgConnector, error) {
 	logger := log.FromContext(ctx)
 
 	// Connect to Instance

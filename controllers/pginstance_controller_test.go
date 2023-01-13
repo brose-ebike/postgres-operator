@@ -31,29 +31,37 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-type pgInstanceAPIMock struct {
+type pgConnectorMock struct {
 }
 
-func (a *pgInstanceAPIMock) TestConnection() error {
+func (a *pgConnectorMock) IsConnected() bool {
+	return true
+}
+
+func (a *pgConnectorMock) TestConnection() error {
 	return nil
+}
+
+func (a *pgConnectorMock) ConnectionString() pgapi.PgConnectionString {
+	return pgapi.PgConnectionString{}
 }
 
 var _ = Describe("PgInstanceReconciler", func() {
 
-	var pgApiMock pgapi.PgInstanceAPI
+	var pgApiMock pgapi.PgConnector
 	var reconciler *PgInstanceReconciler
 
 	BeforeEach(func() {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		// Create ApiMock
-		pgApiMock = &pgInstanceAPIMock{}
+		pgApiMock = &pgConnectorMock{}
 
 		// Create Reconciler
 		reconciler = &PgInstanceReconciler{
 			k8sClient,
 			nil,
-			func(ctx context.Context, r client.Reader, instance apiV1.PgInstance) (pgapi.PgInstanceAPI, error) {
+			func(ctx context.Context, r client.Reader, instance apiV1.PgInstance) (pgapi.PgConnector, error) {
 				if instance.Name == "failure" {
 					return nil, errors.New("Connection Failure")
 				}
