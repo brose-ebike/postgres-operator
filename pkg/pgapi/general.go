@@ -48,8 +48,13 @@ func NewPgInstanceAPI(ctx context.Context, name string, connectionString PgConne
 type pgInstanceAPIImpl struct {
 	name             string
 	connectionString PgConnectionString
-	ctx              context.Context
-	instance         *sql.DB
+	// ctx is the global context in which the PgInstanceAPI is available
+	// It is current best practice to utilize context as arguments, see https://go.dev/blog/context-and-structs
+	// but in this struct should only be available until the request context finishes.
+	// Therefore the same context would be used in all calls.
+	// If the clients need to set other contexts we need to refactor this struct and all methods!
+	ctx      context.Context
+	instance *sql.DB
 }
 
 // isMember determines if roleA is a member of roleB

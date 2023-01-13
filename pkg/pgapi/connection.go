@@ -77,11 +77,7 @@ func (s *pgInstanceAPIImpl) TestConnection() error {
 		return err
 	}
 
-	err = s.disconnect()
-	if err != nil {
-		return err
-	}
-	return nil
+	return s.disconnect()
 }
 
 func (s *pgInstanceAPIImpl) newConnection() (*sql.Conn, error) {
