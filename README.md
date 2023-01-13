@@ -1,5 +1,5 @@
 # postgres-controller
-A simple k8s controller to create PostgresSQL databases and users (LoginRoles). Once you install the controller and point it at your existing PostgresSQL database instance, you can create `PgDatabase` or `PgLoginRole` resource in k8s 
+A simple k8s controller to create PostgresSQL databases and users. Once you install the controller and point it at your existing PostgresSQL database instance, you can create `PgDatabase` or `PgUser` resource in k8s 
 and the controller will create a database or a role with password in your PostgresSQL instance. 
 Create a role that with access to this Postgres Instance and optionally update privileges.
 

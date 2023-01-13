@@ -34,7 +34,7 @@ nav:
     - Introduction: usage/index.md
     - Create Instance: usage/instance.md
     - Create Database: usage/database.md
-    - Create LoginRole: usage/login_role.md
+    - Create User: usage/user.md
   - Contribution: contribution.md
 extra:
   latest_version: 0.0.1

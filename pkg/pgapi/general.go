@@ -42,10 +42,10 @@ import (
 // PgInstanceAPI represents the full functionality of the API to a postgres instance of a cluster
 // The implementation for this interface can be created by NewPgInstanceAPI
 // Instead of using this interface directly a client should implement its own interfaces or use one of the provided interfaces like
-// PgConnector, PgLoginRoleAPI, PgDatabaseAPI or PgSchemaAPI
+// PgConnector, PgRoleAPI, PgDatabaseAPI or PgSchemaAPI
 type PgInstanceAPI interface {
 	PgConnector
-	PgLoginRoleAPI
+	PgRoleAPI
 	PgDatabaseAPI
 	PgSchemaAPI
 }
