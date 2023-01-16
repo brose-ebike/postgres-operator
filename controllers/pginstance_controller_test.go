@@ -61,7 +61,7 @@ var _ = Describe("PgInstanceReconciler", func() {
 		reconciler = &PgInstanceReconciler{
 			k8sClient,
 			nil,
-			func(ctx context.Context, r client.Reader, instance apiV1.PgInstance) (pgapi.PgConnector, error) {
+			func(ctx context.Context, r client.Reader, instance *apiV1.PgInstance) (pgapi.PgConnector, error) {
 				if instance.Name == "failure" {
 					return nil, errors.New("Connection Failure")
 				}

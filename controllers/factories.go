@@ -24,4 +24,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type PgConnectionFactory = func(ctx context.Context, r client.Reader, instance apiV1.PgInstance) (pgapi.PgConnector, error)
+type PgConnectionFactory = func(ctx context.Context, r client.Reader, instance *apiV1.PgInstance) (pgapi.PgConnector, error)
+
+type PgDatabaseAPI interface {
+	pgapi.PgDatabaseAPI
+	pgapi.PgSchemaAPI
+}
+
+type PgDatabaseAPIFactory = func(ctx context.Context, r client.Reader, instance *apiV1.PgInstance) (PgDatabaseAPI, error)

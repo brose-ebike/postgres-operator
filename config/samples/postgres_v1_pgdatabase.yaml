@@ -1,0 +1,29 @@
+apiVersion: postgres.brose.bike/v1
+kind: PgDatabase
+metadata:
+  labels:
+    app.kubernetes.io/name: pgdatabase
+    app.kubernetes.io/instance: pgdatabase-sample
+    app.kubernetes.io/part-of: postgres-controller
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: postgres-controller
+  name: pgdatabase-sample
+spec:
+  instance:
+    namespace: "default"
+    name: "dummy"
+  deletion:
+    drop: false # optional, default false
+    wait: false # optional, default false
+  defaultPrivileges:
+    - name: "service"
+      roles: ["developer"]
+      tablePrivileges: ["ALL"]
+      sequencePrivileges: ["ALL"]
+      functionPrivileges: ["ALL"]
+      routinePrivileges: ["ALL"]
+      typePrivileges: ["ALL"]
+  publicPrivileges:
+    revoke: false # optional, default false
+  publicSchema:
+    drop: false # optional, default false

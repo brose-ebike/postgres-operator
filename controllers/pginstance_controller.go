@@ -83,13 +83,16 @@ func (r *PgInstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		}
 		return ctrl.Result{RequeueAfter: time.Minute}, err
 	}
+
+	logger.Info("Processed instance", "instance", req.NamespacedName.String())
+
 	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *PgInstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	// Register Factory Method
-	r.PgConnectionFactory = func(ctx context.Context, r client.Reader, instance apiV1.PgInstance) (pgapi.PgConnector, error) {
+	r.PgConnectionFactory = func(ctx context.Context, r client.Reader, instance *apiV1.PgInstance) (pgapi.PgConnector, error) {
 		return services.NewPgInstanceAPI(ctx, r, instance)
 	}
 
@@ -102,7 +105,7 @@ func (r *PgInstanceReconciler) createPgApi(ctx context.Context, instance *apiV1.
 	logger := log.FromContext(ctx)
 
 	// Connect to Instance
-	pgApi, err := r.PgConnectionFactory(ctx, r, *instance)
+	pgApi, err := r.PgConnectionFactory(ctx, r, instance)
 	if err != nil {
 		logger.Error(err, "Unable to connect", "instance", instance.Namespace+"/"+instance.Name)
 		// Update connection status

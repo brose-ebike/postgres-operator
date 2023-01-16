@@ -20,7 +20,7 @@ error = False
 for file in source_files:
     with open(file, encoding="utf-8") as fp:
         content = fp.read()
-    if header in content:
+    if "Copyright 2023 Brose Fahrzeugteile SE & Co. KG, Bamberg." in content:
         continue
     if format:
         with open(file, "w", encoding="utf-8") as fp:
@@ -29,7 +29,7 @@ for file in source_files:
             fp.write(content)
     else:
         error = True
-        print(file, "does not start with header")
+        print(file, "does not contain header")
 
 
 if error:

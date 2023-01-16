@@ -16,6 +16,32 @@ rules:
 - apiGroups:
   - postgres.brose.bike
   resources:
+  - pgdatabases
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - postgres.brose.bike
+  resources:
+  - pgdatabases/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - postgres.brose.bike
+  resources:
+  - pgdatabases/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - postgres.brose.bike
+  resources:
   - pginstances
   verbs:
   - create
