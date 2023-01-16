@@ -21,7 +21,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+// DefaultFinalizerPgDatabase contains the name for the default finalizer
+// of the PgDatabase resource
 const DefaultFinalizerPgDatabase = "postgres.brose.bike/pgdatabase"
 
 type PgDatabaseDeletion struct {
