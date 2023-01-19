@@ -39,6 +39,8 @@ type PgDatabaseReconciler struct {
 //+kubebuilder:rbac:groups=postgres.brose.bike,resources=pgdatabases,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=postgres.brose.bike,resources=pgdatabases/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=postgres.brose.bike,resources=pgdatabases/finalizers,verbs=update
+//+kubebuilder:rbac:groups=,resources=secrets,verbs=get
+//+kubebuilder:rbac:groups=,resources=configmaps,verbs=get
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
