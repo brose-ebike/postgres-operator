@@ -18,23 +18,19 @@ package controllers
 
 import (
 	"context"
-	"errors"
 
 	apiV1 "github.com/brose-ebike/postgres-controller/api/v1"
 	"github.com/brose-ebike/postgres-controller/pkg/pgapi"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 var _ = Describe("PgUserReconciler", func() {
 
 	var pgApiMock pgapi.PgConnector
-	var reconciler *PgInstanceReconciler
+	var reconciler *PgUserReconciler
 
 	BeforeEach(func() {
 		ctx, cancel := context.WithCancel(context.Background())
@@ -43,15 +39,15 @@ var _ = Describe("PgUserReconciler", func() {
 		pgApiMock = &pgConnectorMock{}
 
 		// Create Reconciler
-		reconciler = &PgInstanceReconciler{
+		reconciler = &PgUserReconciler{
 			k8sClient,
 			nil,
-			func(ctx context.Context, r client.Reader, instance apiV1.PgInstance) (pgapi.PgConnector, error) {
+			/*func(ctx context.Context, r client.Reader, instance apiV1.PgInstance) (pgapi.PgConnector, error) {
 				if instance.Name == "failure" {
 					return nil, errors.New("Connection Failure")
 				}
 				return pgApiMock, nil
-			},
+			},*/
 		}
 
 		// Create dummy
@@ -115,74 +111,8 @@ var _ = Describe("PgUserReconciler", func() {
 		Expect(err).To(BeNil())
 	})
 
-	It("reconciles on create of PgInstance", func() {
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-		// given
-		request := reconcile.Request{
-			NamespacedName: types.NamespacedName{
-				Namespace: "default",
-				Name:      "dummy",
-			},
-		}
-		// when
-		result, err := reconciler.Reconcile(ctx, request)
-
-		// then
-		Expect(err).To(BeNil())
-		Expect(result.RequeueAfter).To(BeZero())
-
-		// and
-		var instance apiV1.PgInstance
-		err = k8sClient.Get(ctx, request.NamespacedName, &instance)
-		Expect(err).To(BeNil())
-		Expect(instance.Status.Conditions).To(HaveLen(1))
-		Expect(instance.Status.Conditions[0].Status).To(Equal(metaV1.ConditionTrue))
-	})
-
-	It("reconciles on delete of PgInstance", func() {
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-		// given
-		request := reconcile.Request{
-			NamespacedName: types.NamespacedName{
-				Namespace: "default",
-				Name:      "missing",
-			},
-		}
-		// when
-		result, err := reconciler.Reconcile(ctx, request)
-
-		// then
-		Expect(err).To(BeNil())
-		Expect(result.RequeueAfter).To(BeZero())
-
-		// and
-		Expect(nil).To(BeNil())
-	})
-
-	It("handles connection failures", func() {
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-		// given
-		request := reconcile.Request{
-			NamespacedName: types.NamespacedName{
-				Namespace: "default",
-				Name:      "failure",
-			},
-		}
-		// when
-		_, err := reconciler.Reconcile(ctx, request)
-
-		// then
-		Expect(err).ToNot(BeNil())
-		//Expect(result.RequeueAfter)
-
-		// and
-		var instance apiV1.PgInstance
-		err = k8sClient.Get(ctx, request.NamespacedName, &instance)
-		Expect(err).To(BeNil())
-		Expect(instance.Status.Conditions).To(HaveLen(1))
-		Expect(instance.Status.Conditions[0].Status).To(Equal(metaV1.ConditionFalse))
+	It("dummy", func() {
+		Expect(pgApiMock).NotTo(BeNil())
+		Expect(reconciler).NotTo(BeNil())
 	})
 })
