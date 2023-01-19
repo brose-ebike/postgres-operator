@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"errors"
 
 	apiV1 "github.com/brose-ebike/postgres-controller/api/v1"
 	"github.com/brose-ebike/postgres-controller/pkg/pgapi"
@@ -27,27 +28,45 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+type pgRoleMock struct{}
+
+func (r *pgRoleMock) IsRoleExisting(roleName string) (bool, error) {
+	return false, nil
+}
+
+func (r *pgRoleMock) CreateRole(name string) error {
+	return nil
+}
+
+func (r *pgRoleMock) DeleteRole(name string) error {
+	return nil
+}
+
+func (r *pgRoleMock) UpdateUserPassword(name string, password string) error {
+	return nil
+}
+
 var _ = Describe("PgUserReconciler", func() {
 
-	var pgApiMock pgapi.PgConnector
+	var pgApiMock pgapi.PgRoleAPI
 	var reconciler *PgUserReconciler
 
 	BeforeEach(func() {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		// Create ApiMock
-		pgApiMock = &pgConnectorMock{}
+		pgApiMock = &pgRoleMock{}
 
 		// Create Reconciler
 		reconciler = &PgUserReconciler{
 			k8sClient,
 			nil,
-			/*func(ctx context.Context, r client.Reader, instance apiV1.PgInstance) (pgapi.PgConnector, error) {
+			func(ctx context.Context, r client.Reader, instance *apiV1.PgInstance) (pgapi.PgRoleAPI, error) {
 				if instance.Name == "failure" {
 					return nil, errors.New("Connection Failure")
 				}
 				return pgApiMock, nil
-			},*/
+			},
 		}
 
 		// Create dummy

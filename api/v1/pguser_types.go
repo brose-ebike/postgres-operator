@@ -18,6 +18,7 @@ package v1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 const DefaultFinalizerPgUser = "postgres.brose.bike/pgloginrole"
@@ -69,6 +70,26 @@ type PgUser struct {
 
 	Spec   PgUserSpec   `json:"spec,omitempty"`
 	Status PgUserStatus `json:"status,omitempty"`
+}
+
+func (u *PgUser) GetConditions() []metav1.Condition {
+	return u.Status.Conditions
+}
+
+func (u *PgUser) SetConditions(conditions []metav1.Condition) {
+	u.Status.Conditions = conditions
+}
+
+func (u *PgUser) GetInstanceId() types.NamespacedName {
+	return u.Spec.Instance.ToNamespacedName()
+}
+
+func (u *PgUser) GetInstanceIdString() string {
+	return u.Spec.Instance.ToNamespacedName().String()
+}
+
+func (u *PgUser) ToNamespacedName() string {
+	return u.Namespace + "/" + u.Name
 }
 
 //+kubebuilder:object:root=true
