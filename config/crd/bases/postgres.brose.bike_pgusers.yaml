@@ -35,10 +35,52 @@ spec:
           spec:
             description: PgUserSpec defines the desired state of PgUser
             properties:
-              foo:
-                description: Foo is an example field of PgUser. Edit pguser_types.go
-                  to remove/update
-                type: string
+              databases:
+                description: Databases is an example field of PgLoginRole
+                items:
+                  description: TODO
+                  properties:
+                    name:
+                      description: TODO
+                      type: string
+                    owner:
+                      description: TODO
+                      type: boolean
+                    privileges:
+                      description: TODO
+                      items:
+                        type: string
+                      type: array
+                  required:
+                  - privileges
+                  type: object
+                type: array
+              instance:
+                description: Instance identifies the PgInstanceConnection which should
+                  be used
+                properties:
+                  name:
+                    description: Name identifies the PgInstanceConnection which should
+                      be used
+                    type: string
+                  namespace:
+                    description: Namespace defines the namespace in which the PgInstanceConnection
+                      is located
+                    type: string
+                required:
+                - name
+                - namespace
+                type: object
+              secret:
+                description: Secret is an example field of PgLoginRole
+                properties:
+                  name:
+                    description: Name identifies the PgLoginRoleSecret which should
+                      be used
+                    type: string
+                type: object
+            required:
+            - instance
             type: object
           status:
             description: PgUserStatus defines the observed state of PgUser

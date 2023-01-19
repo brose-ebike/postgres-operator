@@ -20,22 +20,43 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+const DefaultFinalizerPgUser = "postgres.brose.bike/pgloginrole"
+const PgUserExistsConditionType string = "postgres.brose.bike/login-role-exists"
+
+// PgLoginRoleSecret identifies the PgLoginRoleSecret which should be used
+type PgUserSecret struct {
+	// Name identifies the PgLoginRoleSecret which should be used
+	Name string `json:"name,omitempty"`
+}
+
+// TODO
+type PgUserDatabase struct {
+	// TODO
+	Name string `json:"name,omitempty"`
+	// TODO
+	Owner bool `json:"owner,omitempty"`
+	// TODO
+	Privileges []string `json:"privileges"`
+	// TODO add schemas, tables, etc.
+}
 
 // PgUserSpec defines the desired state of PgUser
 type PgUserSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	// Foo is an example field of PgUser. Edit pguser_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// Instance identifies the PgInstanceConnection which should be used
+	Instance PgInstanceRef `json:"instance"`
+	// Secret is an example field of PgLoginRole
+	Secret *PgUserSecret `json:"secret,omitempty"`
+	// Databases is an example field of PgLoginRole
+	Databases []PgUserDatabase `json:"databases,omitempty"`
 }
 
 // PgUserStatus defines the observed state of PgUser
 type PgUserStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// Conditions represent the current connection state
+	// Supported Condition Types:
+	// - postgres.brose.bike/login-role-exists true if login role exists false if not
+	// - postgres.brose.bike/connected true if the instance is reachable false if not
+	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
 }
 
 //+kubebuilder:object:root=true
