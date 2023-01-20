@@ -46,9 +46,49 @@ func (r *pgRoleMock) UpdateUserPassword(name string, password string) error {
 	return nil
 }
 
+func (r *pgRoleMock) ConnectionString() pgapi.PgConnectionString {
+	return pgapi.PgConnectionString{}
+}
+
+func (r *pgRoleMock) TestConnection() error {
+	return nil
+}
+
+func (r *pgRoleMock) IsConnected() bool {
+	return false
+}
+
+func (r *pgRoleMock) CreateDatabase(name string) error {
+	return nil
+}
+
+func (r *pgRoleMock) DeleteDatabase(name string) error {
+	return nil
+}
+
+func (r *pgRoleMock) GetDatabaseOwner(name string) (string, error) {
+	return "", nil
+}
+
+func (r *pgRoleMock) IsDatabaseExisting(name string) (bool, error) {
+	return false, nil
+}
+
+func (r *pgRoleMock) ResetDatabaseOwner(name string) error {
+	return nil
+}
+
+func (r *pgRoleMock) UpdateDatabaseOwner(name string, owner string) error {
+	return nil
+}
+
+func (r *pgRoleMock) UpdateDatabasePrivileges(databaseName string, roleName string, privileges []string) error {
+	return nil
+}
+
 var _ = Describe("PgUserReconciler", func() {
 
-	var pgApiMock pgapi.PgRoleAPI
+	var pgApiMock PgRoleAPI
 	var reconciler *PgUserReconciler
 
 	BeforeEach(func() {
@@ -61,7 +101,7 @@ var _ = Describe("PgUserReconciler", func() {
 		reconciler = &PgUserReconciler{
 			k8sClient,
 			nil,
-			func(ctx context.Context, r client.Reader, instance *apiV1.PgInstance) (pgapi.PgRoleAPI, error) {
+			func(ctx context.Context, r client.Reader, instance *apiV1.PgInstance) (PgRoleAPI, error) {
 				if instance.Name == "failure" {
 					return nil, errors.New("Connection Failure")
 				}
