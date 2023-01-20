@@ -306,7 +306,7 @@ var _ = Describe("PgInstanceReconciler", func() {
 		request := reconcile.Request{
 			NamespacedName: types.NamespacedName{
 				Namespace: "default",
-				Name:      "dummy",
+				Name:      "missing",
 			},
 		}
 		// when
