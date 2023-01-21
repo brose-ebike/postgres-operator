@@ -30,7 +30,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	postgresv1 "github.com/brose-ebike/postgres-controller/api/v1"
+	postgresv1 "github.com/brose-ebike/postgres-operator/api/v1"
 	//+kubebuilder:scaffold:imports
 )
 

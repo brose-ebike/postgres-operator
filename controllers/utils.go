@@ -20,7 +20,7 @@ import (
 	"context"
 	"time"
 
-	apiV1 "github.com/brose-ebike/postgres-controller/api/v1"
+	apiV1 "github.com/brose-ebike/postgres-operator/api/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"

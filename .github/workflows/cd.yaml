@@ -42,7 +42,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: "Build Controller"
-        run: make release "IMG=ghcr.io/brose-ebike/postgres-controller:v${{ steps.params.outputs.version }}"
+        run: make release "IMG=ghcr.io/brose-ebike/postgres-operator:v${{ steps.params.outputs.version }}"
       ########################################################################################################################
       ########################################### Release#####################################################################
       ########################################################################################################################

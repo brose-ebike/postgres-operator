@@ -20,8 +20,8 @@ import (
 	"context"
 	"errors"
 
-	apiV1 "github.com/brose-ebike/postgres-controller/api/v1"
-	"github.com/brose-ebike/postgres-controller/pkg/pgapi"
+	apiV1 "github.com/brose-ebike/postgres-operator/api/v1"
+	"github.com/brose-ebike/postgres-operator/pkg/pgapi"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	kErrors "k8s.io/apimachinery/pkg/api/errors"

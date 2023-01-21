@@ -6,8 +6,8 @@ metadata:
     app.kubernetes.io/name: clusterrole
     app.kubernetes.io/instance: pgdatabase-viewer-role
     app.kubernetes.io/component: rbac
-    app.kubernetes.io/created-by: postgres-controller
-    app.kubernetes.io/part-of: postgres-controller
+    app.kubernetes.io/created-by: postgres-operator
+    app.kubernetes.io/part-of: postgres-operator
     app.kubernetes.io/managed-by: kustomize
   name: pgdatabase-viewer-role
 rules:

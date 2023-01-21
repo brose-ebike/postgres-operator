@@ -25,9 +25,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	apiV1 "github.com/brose-ebike/postgres-controller/api/v1"
-	"github.com/brose-ebike/postgres-controller/pkg/pgapi"
-	"github.com/brose-ebike/postgres-controller/pkg/services"
+	apiV1 "github.com/brose-ebike/postgres-operator/api/v1"
+	"github.com/brose-ebike/postgres-operator/pkg/pgapi"
+	"github.com/brose-ebike/postgres-operator/pkg/services"
 )
 
 // PgInstanceReconciler reconciles a PgInstance object

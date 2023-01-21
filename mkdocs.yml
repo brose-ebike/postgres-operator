@@ -13,8 +13,8 @@ theme:
   font: false
   #logo: 'assets/logo.svg'
   #favicon: 'assets/logo.ico'
-repo_name: 'postgres-controller'
-repo_url: 'https://github.com/brose-ebike/postgres-controller'
+repo_name: 'postgres-operator'
+repo_url: 'https://github.com/brose-ebike/postgres-operator'
 markdown_extensions:
   - pymdownx.tabbed:
       alternate_style: true 

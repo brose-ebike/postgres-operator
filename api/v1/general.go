@@ -19,7 +19,7 @@ package v1
 import (
 	"context"
 
-	"github.com/brose-ebike/postgres-controller/pkg/brose_errors"
+	"github.com/brose-ebike/postgres-operator/pkg/brose_errors"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"

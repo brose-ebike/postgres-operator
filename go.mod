@@ -1,4 +1,4 @@
-module github.com/brose-ebike/postgres-controller
+module github.com/brose-ebike/postgres-operator
 
 go 1.19
 

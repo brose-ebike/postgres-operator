@@ -6,8 +6,8 @@ metadata:
     app.kubernetes.io/name: role
     app.kubernetes.io/instance: leader-election-role
     app.kubernetes.io/component: rbac
-    app.kubernetes.io/created-by: postgres-controller
-    app.kubernetes.io/part-of: postgres-controller
+    app.kubernetes.io/created-by: postgres-operator
+    app.kubernetes.io/part-of: postgres-operator
     app.kubernetes.io/managed-by: kustomize
   name: leader-election-role
 rules:

@@ -31,9 +31,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	apiV1 "github.com/brose-ebike/postgres-controller/api/v1"
-	"github.com/brose-ebike/postgres-controller/pkg/pgapi"
-	"github.com/brose-ebike/postgres-controller/pkg/security"
+	apiV1 "github.com/brose-ebike/postgres-operator/api/v1"
+	"github.com/brose-ebike/postgres-operator/pkg/pgapi"
+	"github.com/brose-ebike/postgres-operator/pkg/security"
 
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
