@@ -26,7 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	apiV1 "github.com/brose-ebike/postgres-controller/api/v1"
+	apiV1 "github.com/brose-ebike/postgres-operator/api/v1"
 )
 
 // PgDatabaseReconciler reconciles a PgDatabase object

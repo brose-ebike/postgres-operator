@@ -20,7 +20,7 @@ import (
 	"context"
 	"testing"
 
-	tc "github.com/brose-ebike/postgres-controller/pkg/tcpostgres"
+	tc "github.com/brose-ebike/postgres-operator/pkg/tcpostgres"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 

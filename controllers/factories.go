@@ -19,8 +19,8 @@ package controllers
 import (
 	"context"
 
-	apiV1 "github.com/brose-ebike/postgres-controller/api/v1"
-	"github.com/brose-ebike/postgres-controller/pkg/pgapi"
+	apiV1 "github.com/brose-ebike/postgres-operator/api/v1"
+	"github.com/brose-ebike/postgres-operator/pkg/pgapi"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 

@@ -1,13 +1,13 @@
 # Contribution
 
 ## Contributors
-The list of all [Contributors](https://github.com/brose-ebike/postgres-controller/graphs/contributors) can be found on [Github](https://github.com/brose-ebike/postgres-controller/graphs/contributors).
+The list of all [Contributors](https://github.com/brose-ebike/postgres-operator/graphs/contributors) can be found on [Github](https://github.com/brose-ebike/postgres-operator/graphs/contributors).
 
 ## General
 
-* Star the project on [Github](https://github.com/brose-ebike/postgres-controller) and help spread the word :)
-* [Post an issue](https://github.com/brose-ebike/postgres-controller/issues) if you find any bugs
-* Contribute improvements or fixes using a [Pull Request](https://github.com/brose-ebike/postgres-controller/pulls). 
+* Star the project on [Github](https://github.com/brose-ebike/postgres-operator) and help spread the word :)
+* [Post an issue](https://github.com/brose-ebike/postgres-operator/issues) if you find any bugs
+* Contribute improvements or fixes using a [Pull Request](https://github.com/brose-ebike/postgres-operator/pulls). 
   If you're going to contribute, thank you! Please just be sure to:
   * discuss with the authors on an issue ticket prior to doing anything big.
   * follow the style, naming and structure conventions of the rest of the project.
@@ -55,13 +55,13 @@ kubectl apply -f config/samples/
 3. Build and push your image to the location specified by `IMG`:
 	
 ```sh
-make docker-build docker-push IMG=<some-registry>/postgres-controller:tag
+make docker-build docker-push IMG=<some-registry>/postgres-operator:tag
 ```
 	
 4. Deploy the controller to the cluster with the image specified by `IMG`:
 
 ```sh
-make deploy IMG=<some-registry>/postgres-controller:tag
+make deploy IMG=<some-registry>/postgres-operator:tag
 ```
 
 ### Running locally

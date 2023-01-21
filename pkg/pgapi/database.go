@@ -19,7 +19,7 @@ package pgapi
 import (
 	"strings"
 
-	"github.com/brose-ebike/postgres-controller/pkg/brose_errors"
+	"github.com/brose-ebike/postgres-operator/pkg/brose_errors"
 	_ "github.com/lib/pq"
 )
 

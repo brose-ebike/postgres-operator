@@ -4,9 +4,9 @@ metadata:
   labels:
     app.kubernetes.io/name: pgdatabase
     app.kubernetes.io/instance: pgdatabase-sample
-    app.kubernetes.io/part-of: postgres-controller
+    app.kubernetes.io/part-of: postgres-operator
     app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/created-by: postgres-controller
+    app.kubernetes.io/created-by: postgres-operator
   name: pgdatabase-sample
 spec:
   instance:
