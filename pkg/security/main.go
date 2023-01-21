@@ -17,21 +17,25 @@ limitations under the License.
 package security
 
 import (
-	"math/rand"
-	"time"
+	"crypto/rand"
+	"math/big"
 )
 
 const letterBytes = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-func init() {
-	rand.Seed(time.Now().UnixNano())
+func randomInt(max int) int {
+	n, err := rand.Int(rand.Reader, big.NewInt(int64(max)))
+	if err != nil {
+		panic(err)
+	}
+	return int(n.Int64())
 }
 
 func GeneratePassword() string {
-	n := 24 + rand.Intn(8)
-	b := make([]byte, n)
+	length := 24 + randomInt(8)
+	b := make([]byte, length)
 	for i := range b {
-		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+		b[i] = letterBytes[randomInt(len(letterBytes))]
 	}
 	return string(b)
 }

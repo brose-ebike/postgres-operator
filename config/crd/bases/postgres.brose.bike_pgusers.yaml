@@ -38,16 +38,20 @@ spec:
               databases:
                 description: Databases is an example field of PgLoginRole
                 items:
-                  description: TODO
+                  description: PgUserDatabase represents the database a user would
+                    like to connect to
                   properties:
                     name:
-                      description: TODO
+                      description: Name contains the Database Name on the postgres
+                        instance
                       type: string
                     owner:
-                      description: TODO
+                      description: Owner is the optional value which allows to set
+                        this user as owner of a database
                       type: boolean
                     privileges:
-                      description: TODO
+                      description: Privileges contains the names of the privileges
+                        the user needs on the database
                       items:
                         type: string
                       type: array
