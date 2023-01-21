@@ -25,4 +25,13 @@ resources:
   kind: PgDatabase
   path: github.com/brose-ebike/postgres-controller/api/v1
   version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: brose.bike
+  group: postgres
+  kind: PgUser
+  path: github.com/brose-ebike/postgres-controller/api/v1
+  version: v1
 version: "3"

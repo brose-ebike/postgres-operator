@@ -2,4 +2,5 @@
 resources:
 - postgres_v1_pginstance.yaml
 - postgres_v1_pgdatabase.yaml
+- postgres_v1_pguser.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples

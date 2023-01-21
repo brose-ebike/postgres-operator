@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package pgapi
 
 import (
@@ -49,7 +50,7 @@ var _ = Describe("PostgresAPI Database Handling", func() {
 		newOwnerName := "dummy_db_2_owner"
 		databaseName := "dummy_db_2"
 		// Create new role
-		err := pgApi.CreateLoginRole(newOwnerName)
+		err := pgApi.CreateRole(newOwnerName)
 		Expect(err).To(BeNil())
 		// Create new database
 		err = pgApi.CreateDatabase(databaseName)
@@ -71,7 +72,7 @@ var _ = Describe("PostgresAPI Database Handling", func() {
 		roleName := "dummy_role_3"
 		databaseName := "dummy_db_3"
 		// Create new role
-		err := pgApi.CreateLoginRole(roleName)
+		err := pgApi.CreateRole(roleName)
 		Expect(err).To(BeNil())
 		// Create new database
 		err = pgApi.CreateDatabase(databaseName)
@@ -85,7 +86,7 @@ var _ = Describe("PostgresAPI Database Handling", func() {
 		roleName := "dummy_role_4"
 		databaseName := "dummy_db_4"
 		// Create new role
-		err := pgApi.CreateLoginRole(roleName)
+		err := pgApi.CreateRole(roleName)
 		Expect(err).To(BeNil())
 		// Create new database
 		err = pgApi.CreateDatabase(databaseName)

@@ -31,4 +31,12 @@ type PgDatabaseAPI interface {
 	pgapi.PgSchemaAPI
 }
 
+type PgRoleAPI interface {
+	pgapi.PgConnector
+	pgapi.PgRoleAPI
+	pgapi.PgDatabaseAPI
+}
+
 type PgDatabaseAPIFactory = func(ctx context.Context, r client.Reader, instance *apiV1.PgInstance) (PgDatabaseAPI, error)
+
+type PgRoleAPIFactory = func(ctx context.Context, r client.Reader, instance *apiV1.PgInstance) (PgRoleAPI, error)

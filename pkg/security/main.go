@@ -1,14 +1,4 @@
-# postgres-controller
-A simple k8s controller to create PostgresSQL databases and users. Once you install the controller and point it at your existing PostgresSQL database instance, you can create `PgDatabase` or `PgUser` resource in k8s 
-and the controller will create a database or a role with password in your PostgresSQL instance. 
-Create a role that with access to this Postgres Instance and optionally update privileges.
-
-## Description
-// TODO(user): An in-depth paragraph about your project and overview of use
-
-
-## License
-
+/*
 Copyright 2023 Brose Fahrzeugteile SE & Co. KG, Bamberg.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,4 +12,30 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+*/
 
+package security
+
+import (
+	"crypto/rand"
+	"math/big"
+)
+
+const letterBytes = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+func randomInt(max int) int {
+	n, err := rand.Int(rand.Reader, big.NewInt(int64(max)))
+	if err != nil {
+		panic(err)
+	}
+	return int(n.Int64())
+}
+
+func GeneratePassword() string {
+	length := 24 + randomInt(8)
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = letterBytes[randomInt(len(letterBytes))]
+	}
+	return string(b)
+}

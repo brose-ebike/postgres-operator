@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package pgapi
 
 import (
@@ -21,20 +22,20 @@ import (
 	_ "github.com/lib/pq"
 )
 
-// PgLoginRoleAPI provides functionality to check and manipulate login roles (role with login)
-type PgLoginRoleAPI interface {
-	// IsLoginRoleExisting returns true if a role
+// PgRoleAPI provides functionality to check and manipulate login roles (role with login)
+type PgRoleAPI interface {
+	// IsRoleExisting returns true if a role
 	// with the given name exists on the connected instance and false if not.
-	IsLoginRoleExisting(roleName string) (bool, error)
-	// CreateLoginRole creates the given role on the connected instance
-	CreateLoginRole(name string) error
-	// DeleteLoginRole drops the given role from the connected instance
-	DeleteLoginRole(name string) error
-	// UpdateLoginRolePassword changes the password for the given role
-	UpdateLoginRolePassword(name string, password string) error
+	IsRoleExisting(roleName string) (bool, error)
+	// CreateRole creates the given role on the connected instance
+	CreateRole(name string) error
+	// DeleteRole drops the given role from the connected instance
+	DeleteRole(name string) error
+	// UpdateUserPassword changes the password for the given role
+	UpdateUserPassword(name string, password string) error
 }
 
-func (s *pgInstanceAPIImpl) IsLoginRoleExisting(roleName string) (bool, error) {
+func (s *pgInstanceAPIImpl) IsRoleExisting(roleName string) (bool, error) {
 	// Connect to Database Server
 	conn, err := s.newConnection()
 	if err != nil {
@@ -49,7 +50,7 @@ func (s *pgInstanceAPIImpl) IsLoginRoleExisting(roleName string) (bool, error) {
 	return exists, nil
 }
 
-func (s *pgInstanceAPIImpl) CreateLoginRole(name string) error {
+func (s *pgInstanceAPIImpl) CreateRole(name string) error {
 	// Connect to Database Server
 	conn, err := s.newConnection()
 	if err != nil {
@@ -61,7 +62,7 @@ func (s *pgInstanceAPIImpl) CreateLoginRole(name string) error {
 	return err
 }
 
-func (s *pgInstanceAPIImpl) DeleteLoginRole(name string) error {
+func (s *pgInstanceAPIImpl) DeleteRole(name string) error {
 	// Connect to Database Server
 	conn, err := s.newConnection()
 	if err != nil {
@@ -90,7 +91,7 @@ func (s *pgInstanceAPIImpl) DeleteLoginRole(name string) error {
 	return err
 }
 
-func (s *pgInstanceAPIImpl) UpdateLoginRolePassword(name string, password string) error {
+func (s *pgInstanceAPIImpl) UpdateUserPassword(name string, password string) error {
 	// Connect to Database Server
 	conn, err := s.newConnection()
 	if err != nil {
