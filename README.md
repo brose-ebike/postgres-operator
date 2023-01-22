@@ -12,7 +12,7 @@ Create a role that with access to this Postgres Instance and optionally update p
 Copyright 2023 Brose Fahrzeugteile SE & Co. KG, Bamberg.
 
 Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
+you may not use this writing and software except in compliance with the License.
 You may obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
