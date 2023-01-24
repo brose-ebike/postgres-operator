@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	apiV1 "github.com/brose-ebike/postgres-operator/api/v1"
+	"github.com/brose-ebike/postgres-operator/pkg/services"
 )
 
 // PgDatabaseReconciler reconciles a PgDatabase object
@@ -39,8 +40,8 @@ type PgDatabaseReconciler struct {
 //+kubebuilder:rbac:groups=postgres.brose.bike,resources=pgdatabases,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=postgres.brose.bike,resources=pgdatabases/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=postgres.brose.bike,resources=pgdatabases/finalizers,verbs=update
-//+kubebuilder:rbac:groups=,resources=secrets,verbs=get
-//+kubebuilder:rbac:groups=,resources=configmaps,verbs=get
+//+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
+//+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -123,6 +124,11 @@ func (r *PgDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *PgDatabaseReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	// Register Factory Method
+	r.PgDatabaseAPIFactory = func(ctx context.Context, r client.Reader, instance *apiV1.PgInstance) (PgDatabaseAPI, error) {
+		return services.NewPgInstanceAPI(ctx, r, instance)
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&apiV1.PgDatabase{}).
 		Complete(r)

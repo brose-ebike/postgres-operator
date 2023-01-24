@@ -7,50 +7,30 @@ metadata:
     app.kubernetes.io/part-of: postgres-operator
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/created-by: postgres-operator
-  name: pginstance-sample
+  name: my-instance
 spec:
   host:
-    value: "localhost"
-    configMapKeyRef:
-      name: "my-config-map"
-      key: "hostname"
-      optional: false
     secretKeyRef: 
       name: "my-secret"
       key: "hostname"
-      optional: false
   port:
-    value: "5432"
-    configMapKeyRef:
-      name: "my-config-map"
-      key: "port"
-      optional: false
     secretKeyRef: 
       name: "my-secret"
       key: "port"
-      optional: false
   username:
-    value: "admin"
-    configMapKeyRef:
-      name: "my-config-map"
-      key: "username"
-      optional: false
     secretKeyRef: 
       name: "my-secret"
-      key: "username"
-      optional: false
+      key: "user"
   password:
-    value: "password"
-    configMapKeyRef:
-      name: "my-config-map"
-      key: "password"
-      optional: false
     secretKeyRef: 
       name: "my-secret"
       key: "password"
-      optional: false
   database:
-    value: "postgres"
+    secretKeyRef: 
+      name: "my-secret"
+      key: "dbname"
   sslMode:
-    value: "require"
+    secretKeyRef: 
+      name: "my-secret"
+      key: "sslmode"
     

@@ -7,22 +7,15 @@ metadata:
     app.kubernetes.io/part-of: postgres-operator
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/created-by: postgres-operator
-  name: pgdatabase-sample
+  name: mydb
 spec:
   instance:
     namespace: "default"
-    name: "dummy"
+    name: "my-instance"
   deletion:
     drop: false # optional, default false
     wait: false # optional, default false
-  defaultPrivileges:
-    - name: "service"
-      roles: ["developer"]
-      tablePrivileges: ["ALL"]
-      sequencePrivileges: ["ALL"]
-      functionPrivileges: ["ALL"]
-      routinePrivileges: ["ALL"]
-      typePrivileges: ["ALL"]
+  defaultPrivileges: []
   publicPrivileges:
     revoke: false # optional, default false
   publicSchema:
