@@ -1,0 +1,30 @@
+apiVersion: postgres.brose.bike/v1
+kind: PgInstance
+metadata:
+  name: my-instance
+spec:
+  host:
+    configMapKeyRef:
+      name: "my-config-map"
+      key: "hostname"
+  port:
+    configMapKeyRef:
+      name: "my-config-map"
+      key: "port"
+  username:
+    configMapKeyRef:
+      name: "my-config-map"
+      key: "user"
+  password:
+    configMapKeyRef:
+      name: "my-config-map"
+      key: "password"
+  database:
+    configMapKeyRef:
+      name: "my-config-map"
+      key: "dbname"
+  sslMode:
+    configMapKeyRef:
+      name: "my-config-map"
+      key: "sslmode"
+    
