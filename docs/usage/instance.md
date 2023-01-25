@@ -1,5 +1,6 @@
 # PgInstance
 
+## Resource Definition
 To manage databases and users on an instance, the `PgInstance` resource has to be created at first.
 The `PgInstance` allows the operator to connect to the postgres instance.
 The connection details can be provided as secret, config map or directly in the `value` field.
