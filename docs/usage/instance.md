@@ -1,8 +1,3 @@
-!!! warning "Work in Progress"
-
-    This page is still work in progress and will be updated as soon as possible.<br />
-    Feel free to create a [Pull Request](https://github.com/brose-ebike/postgres-operator/pulls) for this page.
-
 # PgInstance
 
 To manage databases and users on an instance, the `PgInstance` resource has to be created at first.
