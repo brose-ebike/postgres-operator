@@ -27,4 +27,3 @@ spec:
     configMapKeyRef:
       name: "my-config-map"
       key: "sslmode"
-    
