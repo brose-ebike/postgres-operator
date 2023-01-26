@@ -18,7 +18,7 @@ package services
 
 import (
 	"context"
-	"net"
+	"strconv"
 
 	apiV1 "github.com/brose-ebike/postgres-operator/api/v1"
 	. "github.com/onsi/ginkgo/v2"
@@ -49,23 +49,29 @@ var _ = Describe("NewPgInstanceAPI", func() {
 		// given:
 		ctx := context.TODO()
 		r := mockReader{}
+
+		// and:
+		hostname, _ := container.Hostname(ctx)
+		port, _ := container.Port(ctx)
+
+		// and:
 		instance := apiV1.PgInstance{
 			Spec: apiV1.PgInstanceSpec{
-				Hostname: apiV1.PgProperty{Value: "localhost"},
-				Port:     apiV1.PgProperty{Value: "5432"},
-				Username: apiV1.PgProperty{Value: "admin"},
-				Password: apiV1.PgProperty{Value: "admin"},
-				Database: apiV1.PgProperty{Value: "postgres"},
-				SSLMode:  apiV1.PgProperty{Value: "none"},
+				Hostname: apiV1.PgProperty{Value: hostname},
+				Port:     apiV1.PgProperty{Value: strconv.Itoa(port)},
+				Username: apiV1.PgProperty{Value: container.Username()},
+				Password: apiV1.PgProperty{Value: container.Password()},
+				Database: apiV1.PgProperty{Value: container.Database()},
+				SSLMode:  apiV1.PgProperty{Value: "disable"},
 			},
 		}
 
 		// when:
-		_, err := NewPgInstanceAPI(ctx, &r, &instance)
+		pgApi, err := NewPgInstanceAPI(ctx, &r, &instance)
 
 		// then: OpError with tcp connect failed, because not database is running
-		Expect(err).ToNot(BeNil())
-		Expect(err).To(BeAssignableToTypeOf(&net.OpError{}))
+		Expect(err).To(BeNil())
+		Expect(pgApi.IsConnected()).To(BeTrue())
 	})
 
 })
