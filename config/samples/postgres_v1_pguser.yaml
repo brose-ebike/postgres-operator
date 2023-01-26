@@ -7,18 +7,16 @@ metadata:
     app.kubernetes.io/part-of: postgres-operator
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/created-by: postgres-operator
-  name: pguser-sample
+  name: myuser
 spec:
   instance:
     namespace: "default"
-    name: "bra-pgdev"
-    # TODO(label): Add filter instance by label
-  # TODO(password): Add password rule section
+    name: "my-instance"
   secret: # optional value
     name: "dummy" # optional value
   databases: 
   # case 1: role is db owner
-    - name: "cashcowdb"
+    - name: "mydb"
       owner: true # optional,  default=false
       privileges: ["CONNECT", "CREATE"]
   # case 2: loginrole has specific privs
@@ -35,3 +33,5 @@ spec:
   #            owner: true # optional,  default=false
   #          - name: "rides"
   #            privileges: ["SELECT", "INSERT", "UPDATE", "DELETE", "TRUNCATE"]
+    # TODO(label): Add filter instance by label
+  # TODO(password): Add password rule section

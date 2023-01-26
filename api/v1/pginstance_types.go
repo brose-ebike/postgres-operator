@@ -67,11 +67,11 @@ func (s *PgInstanceSpec) GetPassword(ctx context.Context, r client.Reader, names
 }
 
 func (s *PgInstanceSpec) GetDatabase(ctx context.Context, r client.Reader, namespace string) (string, error) {
-	return s.Password.GetPropertyValueWithDefault(ctx, r, namespace, "database", "postgres")
+	return s.Database.GetPropertyValueWithDefault(ctx, r, namespace, "database", "postgres")
 }
 
 func (s *PgInstanceSpec) GetSSLMode(ctx context.Context, r client.Reader, namespace string) (string, error) {
-	return s.Password.GetPropertyValueWithDefault(ctx, r, namespace, "sslMode", "none")
+	return s.SSLMode.GetPropertyValueWithDefault(ctx, r, namespace, "sslMode", "none")
 }
 
 // PgInstanceStatus defines the observed state of PgInstance

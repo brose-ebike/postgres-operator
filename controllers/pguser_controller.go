@@ -34,6 +34,7 @@ import (
 	apiV1 "github.com/brose-ebike/postgres-operator/api/v1"
 	"github.com/brose-ebike/postgres-operator/pkg/pgapi"
 	"github.com/brose-ebike/postgres-operator/pkg/security"
+	"github.com/brose-ebike/postgres-operator/pkg/services"
 
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -48,8 +49,8 @@ type PgUserReconciler struct {
 //+kubebuilder:rbac:groups=postgres.brose.bike,resources=pgusers,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=postgres.brose.bike,resources=pgusers/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=postgres.brose.bike,resources=pgusers/finalizers,verbs=update
-//+kubebuilder:rbac:groups=,resources=secrets,verbs=get
-//+kubebuilder:rbac:groups=,resources=configmaps,verbs=get
+//+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -133,6 +134,11 @@ func (r *PgUserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *PgUserReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	// Register Factory Method
+	r.PgRoleAPIFactory = func(ctx context.Context, r client.Reader, instance *apiV1.PgInstance) (PgRoleAPI, error) {
+		return services.NewPgInstanceAPI(ctx, r, instance)
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&apiV1.PgUser{}).
 		Complete(r)

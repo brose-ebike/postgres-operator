@@ -4,6 +4,7 @@
     Feel free to create a [Pull Request](https://github.com/brose-ebike/postgres-operator/pulls) for this page.
 
 # PgDatabase
+## Resource Definition
 
 The `PgDatabase` resource manages a database on the referenced instance.
 
@@ -34,3 +35,5 @@ spec:
 
 When creating the resource a deletion strategy can be specified.
 This allows the database resource to be deleted, without deleting the actual database in the Postgres Instance.
+
+## Attribute Description

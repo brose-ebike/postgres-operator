@@ -4,6 +4,8 @@
     Feel free to create a [Pull Request](https://github.com/brose-ebike/postgres-operator/pulls) for this page.
 
 # PgUser
+## Resource Definition
+
 The `PgUser` resource manages a role with login (user) on the referenced instance.
 
 ```yaml
@@ -22,3 +24,5 @@ spec:
       owner: true
       privileges: ["CONNECT", "CREATE"]
 ```
+
+## Attribute Description

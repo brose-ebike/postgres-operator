@@ -4,7 +4,7 @@ plugins:
   - markdownextradata
 #  - mkdocs_pymdownx_material_extras
   - codeinclude:
-      title_mode: pymdownx.tabbed
+      title_mode: none #pymdownx.tabbed
 theme:
   name: 'material'
   palette:
@@ -18,6 +18,8 @@ repo_url: 'https://github.com/brose-ebike/postgres-operator'
 markdown_extensions:
   - pymdownx.tabbed:
       alternate_style: true 
+  - pymdownx.emoji:
+      emoji_index: !!python/name:materialx.emoji.twemoji
   - pymdownx.highlight
   - pymdownx.inlinehilite
   - pymdownx.snippets
