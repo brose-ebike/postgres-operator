@@ -3,6 +3,13 @@ A simple k8s operator to create PostgresSQL databases and users. Once you instal
 and the operator will create a database or a role with password in your PostgresSQL instance. 
 Create a role that with access to this Postgres Instance and optionally update privileges.
 
+## Installation
+The default static configuration can be installed as follows:
+
+```bash
+kubectl apply -f https://github.com/brose-ebike/postgres-operator/releases/download/latest/install.yaml
+```
+
 ## Description
 The Brose E-Bike Postgres Operator manages Postgres Databases and Users on existing instances.
 If you want to create Postgres instances in K8s checkout the [Zalando Postgres Operator](https://github.com/zalando/postgres-operator). When using this operator you need a user with `superuser` like privileges.
