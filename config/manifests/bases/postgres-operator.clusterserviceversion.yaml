@@ -1,0 +1,71 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: '[]'
+    capabilities: Basic Install
+  name: postgres-operator.v0.0.1
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: PgDatabase is the Schema for the pgdatabases API
+      displayName: Pg Database
+      kind: PgDatabase
+      name: pgdatabases.postgres.brose.bike
+      version: v1
+    - description: PgInstance is the Schema for the pginstances API
+      displayName: Pg Instance
+      kind: PgInstance
+      name: pginstances.postgres.brose.bike
+      version: v1
+    - description: PgUser is the Schema for the pgusers API
+      displayName: Pg User
+      kind: PgUser
+      name: pgusers.postgres.brose.bike
+      version: v1
+  description: The Brose Postgres Operator allows the management of databases and
+    users on multiple postgres instances. The Postgres Instances need to be provisioned
+    externally or by another operator.
+  displayName: Brose Postgres Operator
+  icon:
+  - base64data: ""
+    mediatype: ""
+  install:
+    spec:
+      deployments: null
+    strategy: ""
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - postgres
+  - postgresql
+  - user
+  - users
+  - role
+  - roles
+  - database
+  - databases
+  - privilege
+  - privileges
+  links:
+  - name: Postgres Operator
+    url: https://postgres-operator.domain
+  maintainers:
+  - email: 10846939+raynigon@users.noreply.github.com
+    name: Simon Schneider
+  - email: lucas.duerksen@brose.com
+    name: Lucas Dürksen
+  maturity: alpha
+  provider:
+    name: Brose Fahrzeugteile SE & Co. KG, Bamberg
+    url: https://www.brose.com/
+  version: 0.0.1
