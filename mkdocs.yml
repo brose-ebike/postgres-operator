@@ -37,6 +37,7 @@ nav:
     - Create Instance: usage/instance.md
     - Create Database: usage/database.md
     - Create User: usage/user.md
+    - ArgoCD: usage/argocd.md
   - Contribution: contribution.md
 extra:
   latest_version: 0.0.1
