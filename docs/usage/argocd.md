@@ -8,10 +8,15 @@ This operator can be used with ArgoCD.
 Additional informations can be found below.
 
 ## Styling
-When this operator is used in ArgoCD the following styles can be used to enhance the experience in ArgoCD.
-The Logo is used from [Wikimedia](https://upload.wikimedia.org/wikipedia/commons/2/29/Postgresql_elephant.svg) and included as inline svg.
+When this operator is used in ArgoCD the css styles below can be used to enhance the experience in ArgoCD.
 
 ![Screenshot from ArgoCD with the Postgres Logo](../assets/screenshot-argocd-icon.png)
+
+
+The Logo is used from [Wikimedia](https://upload.wikimedia.org/wikipedia/commons/2/29/Postgresql_elephant.svg) and included as inline svg.
+The CSS styles have to be copied to the ArgoCD configuration,
+either into the referenced css file or into the `argo-styles-cm` Config Map.
+See [here](https://argo-cd.readthedocs.io/en/stable/operator-manual/custom-styles/) for more Inforation.
 
 ```css
     .application-resource-tree__node--pguser .application-resource-tree__node-kind-icon div:first-child,
