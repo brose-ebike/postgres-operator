@@ -1,11 +1,6 @@
-!!! warning "Work in Progress"
-
-    This page is still work in progress and will be updated as soon as possible.<br />
-    Feel free to create a [Pull Request](https://github.com/brose-ebike/postgres-operator/pulls) for this page.
-
 # ArgoCD
 This operator can be used with ArgoCD.
-Additional informations can be found below.
+In the following sections additional integrations with ArgoCD are described.
 
 ## Styling
 When this operator is used in ArgoCD the css styles below can be used to enhance the experience in ArgoCD.
