@@ -190,6 +190,18 @@ func (r *PgUserReconciler) finalize(ctx context.Context, user *apiV1.PgUser, pgA
 		return err
 	}
 
+	// Delete Secret
+	roleSecret := coreV1.Secret{
+		ObjectMeta: metaV1.ObjectMeta{
+			Namespace: user.Namespace,
+			Name:      user.Spec.Secret.Name,
+		},
+	}
+	if err := r.Delete(ctx, &roleSecret); err != nil {
+		logger.Error(err, "Unable to delete Secret")
+		return err
+	}
+
 	// Remove finalizer
 	controllerutil.RemoveFinalizer(user, apiV1.DefaultFinalizerPgUser)
 	err := r.Update(ctx, user)
@@ -242,6 +254,16 @@ func (r *PgUserReconciler) createOrUpdateSecret(ctx context.Context, pgApi PgRol
 			ObjectMeta: metaV1.ObjectMeta{
 				Namespace: secretKey.Namespace,
 				Name:      secretKey.Name,
+				OwnerReferences: []metaV1.OwnerReference{
+					{
+						APIVersion:         apiV1.GroupVersion.String(),
+						BlockOwnerDeletion: &cTrue,
+						Controller:         &cTrue,
+						Kind:               apiV1.PgUserKind(),
+						Name:               user.Name,
+						UID:                user.UID,
+					},
+				},
 			},
 			Data: r.generateSecretData(pgApi, user, password),
 		}
@@ -250,6 +272,18 @@ func (r *PgUserReconciler) createOrUpdateSecret(ctx context.Context, pgApi PgRol
 			return "", err
 		}
 	} else { // Update Secret
+		// Update Owner Reference
+		roleSecret.ObjectMeta.OwnerReferences = []metaV1.OwnerReference{
+			{
+				APIVersion:         apiV1.GroupVersion.String(),
+				BlockOwnerDeletion: &cTrue,
+				Controller:         &cTrue,
+				Kind:               apiV1.PgUserKind(),
+				Name:               user.Name,
+				UID:                user.UID,
+			},
+		}
+		// Update Data
 		password = string(roleSecret.Data["password"])
 		roleSecret.Data = r.generateSecretData(pgApi, user, password)
 		err = r.Update(ctx, &roleSecret)
