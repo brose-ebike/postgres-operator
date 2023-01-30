@@ -30,7 +30,7 @@ var _ = Describe("PgUserDatabase", func() {
 		instanceSpec := PgUserDatabase{
 			Name:       "mydb",
 			Owner:      nil,
-			Privileges: []string{"CONNECT"},
+			Privileges: []DatabasePrivilege{"CONNECT"},
 		}
 		// when:
 		data, err := json.Marshal(instanceSpec)
@@ -47,7 +47,7 @@ var _ = Describe("PgUserDatabase", func() {
 		instanceSpec := PgUserDatabase{
 			Name:       "mydb",
 			Owner:      &cTrue,
-			Privileges: []string{"CONNECT"},
+			Privileges: []DatabasePrivilege{"CONNECT"},
 		}
 		// when:
 		data, err := json.Marshal(instanceSpec)
@@ -64,7 +64,7 @@ var _ = Describe("PgUserDatabase", func() {
 		instanceSpec := PgUserDatabase{
 			Name:       "mydb",
 			Owner:      &cFalse,
-			Privileges: []string{"CONNECT"},
+			Privileges: []DatabasePrivilege{"CONNECT"},
 		}
 		// when:
 		data, err := json.Marshal(instanceSpec)
@@ -82,17 +82,17 @@ var _ = Describe("PgUserDatabase", func() {
 		instanceSpec0 := PgUserDatabase{
 			Name:       "mydb",
 			Owner:      nil,
-			Privileges: []string{"CONNECT"},
+			Privileges: []DatabasePrivilege{"CONNECT"},
 		}
 		instanceSpec1 := PgUserDatabase{
 			Name:       "mydb",
 			Owner:      &cFalse,
-			Privileges: []string{"CONNECT"},
+			Privileges: []DatabasePrivilege{"CONNECT"},
 		}
 		instanceSpec2 := PgUserDatabase{
 			Name:       "mydb",
 			Owner:      &cTrue,
-			Privileges: []string{"CONNECT"},
+			Privileges: []DatabasePrivilege{"CONNECT"},
 		}
 		// then:
 		Expect(instanceSpec0.IsOwner()).To(BeFalse())

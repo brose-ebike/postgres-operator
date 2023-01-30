@@ -4,5 +4,5 @@ resources:
 - manager.yaml
 images:
 - name: controller
-  newName: ghcr.io/brose-ebike/postgres-operator
-  newTag: v0.0.1
+  newName: sschneidbrose/postgres-controller
+  newTag: 0.0.71

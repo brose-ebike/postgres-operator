@@ -26,6 +26,17 @@ import (
 const DefaultFinalizerPgUser = "postgres.brose.bike/pgloginrole"
 const PgUserExistsConditionType string = "postgres.brose.bike/login-role-exists"
 
+// +kubebuilder:validation:Enum=CONNECT;CREATE
+type DatabasePrivilege string
+
+const (
+	// Allows the grantee to connect to the database. This privilege is checked at connection startup (in addition to checking any restrictions imposed by pg_hba.conf).
+	ConnectDatabasePrivilege DatabasePrivilege = "CONNECT"
+
+	// Allows new schemas and publications to be created within the database, and allows trusted extensions to be installed within the database.
+	CreateDatabasePrivilege DatabasePrivilege = "CREATE"
+)
+
 // PgLoginRoleSecret identifies the PgLoginRoleSecret which should be used
 type PgUserSecret struct {
 	// Name identifies the PgLoginRoleSecret which should be used
@@ -37,9 +48,10 @@ type PgUserDatabase struct {
 	// Name contains the Database Name on the postgres instance
 	Name string `json:"name,omitempty"`
 	// Owner is the optional value which allows to set this user as owner of a database
+	// +optional
 	Owner *bool `json:"owner,omitempty"`
 	// Privileges contains the names of the privileges the user needs on the database
-	Privileges []string `json:"privileges"`
+	Privileges []DatabasePrivilege `json:"privileges"`
 	// TODO add schemas, tables, etc.
 }
 
