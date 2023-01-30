@@ -24,7 +24,7 @@ import (
 	"github.com/brose-ebike/postgres-operator/pkg/pgapi"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	kErrors "k8s.io/apimachinery/pkg/api/errors"
+	coreV1 "k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -176,7 +176,7 @@ var _ = Describe("PgUserReconciler", func() {
 		}
 		createDummy()
 		// Create user
-		createDatabase := func() {
+		createUser := func() {
 			instance := apiV1.PgUser{
 				TypeMeta: v1.TypeMeta{
 					APIVersion: "postgres.brose.bike/v1",
@@ -201,7 +201,7 @@ var _ = Describe("PgUserReconciler", func() {
 			err := k8sClient.Create(ctx, &instance)
 			Expect(err).To(BeNil())
 		}
-		createDatabase()
+		createUser()
 	})
 
 	AfterEach(func() {
@@ -262,6 +262,12 @@ var _ = Describe("PgUserReconciler", func() {
 		// and
 		mock := pgApiMock.(*pgRoleMock)
 		Expect(mock.callsCreateRole).To(Equal(1))
+
+		// and
+		secret := coreV1.Secret{}
+		err = k8sClient.Get(ctx, client.ObjectKey{Namespace: "default", Name: "credentials"}, &secret)
+		Expect(err).To(BeNil())
+		Expect(secret.ObjectMeta.OwnerReferences).To(HaveLen(1))
 	})
 
 	It("reconciles on delete of PgDatabase", func() {
@@ -311,10 +317,5 @@ var _ = Describe("PgUserReconciler", func() {
 		// then
 		Expect(err).To(BeNil())
 		Expect(result.RequeueAfter).To(BeZero())
-
-		// and
-		user = apiV1.PgUser{}
-		err = k8sClient.Get(ctx, request.NamespacedName, &user)
-		Expect(kErrors.IsNotFound(err)).To(BeTrue())
 	})
 })

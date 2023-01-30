@@ -27,6 +27,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+var cTrue = true
+var cFalse = false
+
 // getResource fetches the resource and writes it to the given reference
 // if the resource exists, true is returned, false if not
 func getResource(ctx context.Context, r client.Reader, name client.ObjectKey, obj client.Object, opts ...client.GetOption) (bool, error) {
