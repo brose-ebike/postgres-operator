@@ -53,6 +53,8 @@ type PgDatabaseReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.13.0/pkg/reconcile
 func (r *PgDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	logger := log.FromContext(ctx)
 
 	var database apiV1.PgDatabase
