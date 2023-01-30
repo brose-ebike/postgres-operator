@@ -17,6 +17,8 @@ limitations under the License.
 package v1
 
 import (
+	"reflect"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -74,6 +76,15 @@ type PgUser struct {
 
 	Spec   PgUserSpec   `json:"spec,omitempty"`
 	Status PgUserStatus `json:"status,omitempty"`
+}
+
+func PgUserKind() string {
+	obj := &PgUser{}
+	t := reflect.TypeOf(obj)
+	if t.Kind() != reflect.Pointer {
+		panic("All types must be pointers to structs.")
+	}
+	return t.Elem().Name()
 }
 
 func (u *PgUser) GetConditions() []metav1.Condition {
