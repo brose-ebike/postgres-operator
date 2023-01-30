@@ -69,12 +69,12 @@ func (r *PgUserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	var user apiV1.PgUser
 	exists, err := getResource(ctx, r, req.NamespacedName, &user)
 	if err != nil {
-		logger.Error(err, "Unable to fetch PgDatabase", "database", req.NamespacedName.String())
+		logger.Error(err, "Unable to fetch PgUser", "user", req.NamespacedName.String())
 		return ctrl.Result{}, err
 	}
 	// Handle deleted
 	if !exists {
-		logger.Info("Deleted PgDatabase", "database", req.NamespacedName.String())
+		logger.Info("Deleted PgUser", "user", req.NamespacedName.String())
 		return ctrl.Result{}, nil
 	}
 
@@ -87,7 +87,7 @@ func (r *PgUserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	// Handle finalizing
 	if user.DeletionTimestamp != nil {
 		if err := r.finalize(ctx, &user, pgApi); err != nil {
-			logger.Info("Unable to finalize", "database", req.NamespacedName.String(), "instance", user.GetInstanceIdString())
+			logger.Info("Unable to finalize", "user", req.NamespacedName.String(), "instance", user.GetInstanceIdString())
 			return ctrl.Result{RequeueAfter: time.Minute}, err
 		}
 		// Exit and do not reconcile anymore
@@ -129,7 +129,7 @@ func (r *PgUserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		}
 	}
 
-	logger.Info("Processed user", "database", user.ToNamespacedName(), "instance", user.GetInstanceIdString())
+	logger.Info("Processed user", "user", user.ToNamespacedName(), "instance", user.GetInstanceIdString())
 
 	return ctrl.Result{}, nil
 }
