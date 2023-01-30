@@ -340,12 +340,12 @@ func (r *PgUserReconciler) updateDatabaseOwnershipAndPrivileges(ctx context.Cont
 		}
 		// Case 1: Login Role should be owner of database and is currently owner of database  => Do nothing
 		// Case 2: Login Role should not be owner of database and is currently not owner of database => Do nothing
-		if currentOwner != user.Name && database.Owner { // Case 3: Login Role should be owner of database and is currently not owner of database
+		if currentOwner != user.Name && database.IsOwner() { // Case 3: Login Role should be owner of database and is currently not owner of database
 			if err := pgApi.UpdateDatabaseOwner(database.Name, user.Name); err != nil {
 				logger.Error(err, "Unable to update database owner")
 				return err
 			}
-		} else if currentOwner == user.Name && !database.Owner { // Case 4: Login Role should not be owner of database and is currently owner of database
+		} else if currentOwner == user.Name && !database.IsOwner() { // Case 4: Login Role should not be owner of database and is currently owner of database
 			// Reset owner on database to admin
 			err = pgApi.ResetDatabaseOwner(database.Name)
 			if err != nil {
@@ -355,7 +355,7 @@ func (r *PgUserReconciler) updateDatabaseOwnershipAndPrivileges(ctx context.Cont
 		}
 
 		// Update database privileges
-		if !database.Owner {
+		if !database.IsOwner() {
 			if err := pgApi.UpdateDatabasePrivileges(database.Name, user.Name, database.Privileges); err != nil {
 				logger.Error(err, "Unable to update database privileges")
 				return err

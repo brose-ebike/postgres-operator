@@ -41,13 +41,21 @@ var _ = Describe("PgInstanceSpec", func() {
 		ctx := context.TODO()
 		r := mockReader{}
 
+		// and:
+		hostname, _ := instanceSpec.GetHostname(ctx, &r, "default")
+		port, _ := instanceSpec.GetPort(ctx, &r, "default")
+		username, _ := instanceSpec.GetUsername(ctx, &r, "default")
+		password, _ := instanceSpec.GetPassword(ctx, &r, "default")
+		database, _ := instanceSpec.GetDatabase(ctx, &r, "default")
+		sslmode, _ := instanceSpec.GetSSLMode(ctx, &r, "default")
+
 		// then:
-		Expect(instanceSpec.GetHostname(ctx, &r, "default")).To(Equal("hostname"))
-		Expect(instanceSpec.GetPort(ctx, &r, "default")).To(Equal("1234"))
-		Expect(instanceSpec.GetUsername(ctx, &r, "default")).To(Equal("username"))
-		Expect(instanceSpec.GetPassword(ctx, &r, "default")).To(Equal("password"))
-		Expect(instanceSpec.GetDatabase(ctx, &r, "default")).To(Equal("database"))
-		Expect(instanceSpec.GetSSLMode(ctx, &r, "default")).To(Equal("sslmode"))
+		Expect(hostname).To(Equal("hostname"))
+		Expect(port).To(Equal(1234))
+		Expect(username).To(Equal("username"))
+		Expect(password).To(Equal("password"))
+		Expect(database).To(Equal("database"))
+		Expect(sslmode).To(Equal("sslmode"))
 	})
 
 	It("get from secret returns the secret values", func() {
@@ -81,16 +89,24 @@ var _ = Describe("PgInstanceSpec", func() {
 			return nil
 		}
 
+		// when:
+		hostname, _ := instanceSpec.GetHostname(ctx, &r, "default")
+		port, _ := instanceSpec.GetPort(ctx, &r, "default")
+		username, _ := instanceSpec.GetUsername(ctx, &r, "default")
+		password, _ := instanceSpec.GetPassword(ctx, &r, "default")
+		database, _ := instanceSpec.GetDatabase(ctx, &r, "default")
+		sslmode, _ := instanceSpec.GetSSLMode(ctx, &r, "default")
+
 		// then:
 		Expect(r.callsGet).To(Equal(6))
 
 		// and:
-		Expect(instanceSpec.GetHostname(ctx, &r, "default")).To(Equal("hostname+hash"))
-		Expect(instanceSpec.GetPort(ctx, &r, "default")).To(Equal("1234"))
-		Expect(instanceSpec.GetUsername(ctx, &r, "default")).To(Equal("username+hash"))
-		Expect(instanceSpec.GetPassword(ctx, &r, "default")).To(Equal("password+hash"))
-		Expect(instanceSpec.GetDatabase(ctx, &r, "default")).To(Equal("database+hash"))
-		Expect(instanceSpec.GetSSLMode(ctx, &r, "default")).To(Equal("sslmode+hash"))
+		Expect(hostname).To(Equal("hostname+hash"))
+		Expect(port).To(Equal(1234))
+		Expect(username).To(Equal("username+hash"))
+		Expect(password).To(Equal("password+hash"))
+		Expect(database).To(Equal("database+hash"))
+		Expect(sslmode).To(Equal("sslmode+hash"))
 	})
 
 	It("get from config map returns the config map entries", func() {
@@ -124,15 +140,23 @@ var _ = Describe("PgInstanceSpec", func() {
 			return nil
 		}
 
+		// when:
+		hostname, _ := instanceSpec.GetHostname(ctx, &r, "default")
+		port, _ := instanceSpec.GetPort(ctx, &r, "default")
+		username, _ := instanceSpec.GetUsername(ctx, &r, "default")
+		password, _ := instanceSpec.GetPassword(ctx, &r, "default")
+		database, _ := instanceSpec.GetDatabase(ctx, &r, "default")
+		sslmode, _ := instanceSpec.GetSSLMode(ctx, &r, "default")
+
 		// then:
 		Expect(r.callsGet).To(Equal(6))
 
 		// and:
-		Expect(instanceSpec.GetHostname(ctx, &r, "default")).To(Equal("hostname+hash"))
-		Expect(instanceSpec.GetPort(ctx, &r, "default")).To(Equal("1234"))
-		Expect(instanceSpec.GetUsername(ctx, &r, "default")).To(Equal("username+hash"))
-		Expect(instanceSpec.GetPassword(ctx, &r, "default")).To(Equal("password+hash"))
-		Expect(instanceSpec.GetDatabase(ctx, &r, "default")).To(Equal("database+hash"))
-		Expect(instanceSpec.GetSSLMode(ctx, &r, "default")).To(Equal("sslmode+hash"))
+		Expect(hostname).To(Equal("hostname+hash"))
+		Expect(port).To(Equal(1234))
+		Expect(username).To(Equal("username+hash"))
+		Expect(password).To(Equal("password+hash"))
+		Expect(database).To(Equal("database+hash"))
+		Expect(sslmode).To(Equal("sslmode+hash"))
 	})
 })

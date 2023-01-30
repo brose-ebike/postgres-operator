@@ -37,10 +37,14 @@ type PgUserDatabase struct {
 	// Name contains the Database Name on the postgres instance
 	Name string `json:"name,omitempty"`
 	// Owner is the optional value which allows to set this user as owner of a database
-	Owner bool `json:"owner,omitempty"`
+	Owner *bool `json:"owner,omitempty"`
 	// Privileges contains the names of the privileges the user needs on the database
 	Privileges []string `json:"privileges"`
 	// TODO add schemas, tables, etc.
+}
+
+func (d *PgUserDatabase) IsOwner() bool {
+	return d.Owner != nil && *d.Owner
 }
 
 // PgUserSpec defines the desired state of PgUser
