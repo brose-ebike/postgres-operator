@@ -356,7 +356,13 @@ func (r *PgUserReconciler) updateDatabaseOwnershipAndPrivileges(ctx context.Cont
 
 		// Update database privileges
 		if !database.IsOwner() {
-			if err := pgApi.UpdateDatabasePrivileges(database.Name, user.Name, database.Privileges); err != nil {
+			// convert to string slice
+			privileges := make([]string, len(database.Privileges))
+			for i := range database.Privileges {
+				privileges[i] = string(database.Privileges[i])
+			}
+			// update privileges
+			if err := pgApi.UpdateDatabasePrivileges(database.Name, user.Name, privileges); err != nil {
 				logger.Error(err, "Unable to update database privileges")
 				return err
 			}

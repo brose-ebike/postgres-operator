@@ -403,7 +403,7 @@ func (in *PgUserDatabase) DeepCopyInto(out *PgUserDatabase) {
 	}
 	if in.Privileges != nil {
 		in, out := &in.Privileges, &out.Privileges
-		*out = make([]string, len(*in))
+		*out = make([]DatabasePrivilege, len(*in))
 		copy(*out, *in)
 	}
 }
