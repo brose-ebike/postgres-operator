@@ -24,7 +24,8 @@ import (
 )
 
 const DefaultFinalizerPgUser = "postgres.brose.bike/pgloginrole"
-const PgUserExistsConditionType string = "postgres.brose.bike/login-role-exists"
+const PgUserExistsConditionType string = "pguser.postgres.brose.bike/exists"
+const PgUserDatabaseExistsConditionTypePrefix string = "pguser.postgres.brose.bike/database-"
 
 // +kubebuilder:validation:Enum=CONNECT;CREATE
 type DatabasePrivilege string

@@ -25,6 +25,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	coreV1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -138,7 +139,14 @@ var _ = Describe("PgUserReconciler", func() {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		// Create ApiMock
-		pgApiMock = &pgRoleMock{}
+		pgApiMock = &pgRoleMock{
+			databases: map[string]dummyDB{
+				"testdb": {
+					owner:   "pgadmin",
+					schemas: make(map[string]string),
+				},
+			},
+		}
 
 		// Create Reconciler
 		reconciler = &PgUserReconciler{
@@ -194,7 +202,13 @@ var _ = Describe("PgUserReconciler", func() {
 					Secret: &apiV1.PgUserSecret{
 						Name: "credentials",
 					},
-					Databases: []apiV1.PgUserDatabase{},
+					Databases: []apiV1.PgUserDatabase{
+						{
+							Name:       "testdb",
+							Owner:      &cFalse,
+							Privileges: []apiV1.DatabasePrivilege{},
+						},
+					},
 				},
 				Status: apiV1.PgUserStatus{},
 			}
@@ -250,8 +264,16 @@ var _ = Describe("PgUserReconciler", func() {
 		var user apiV1.PgUser
 		err = k8sClient.Get(ctx, request.NamespacedName, &user)
 		Expect(err).To(BeNil())
-		Expect(user.Status.Conditions).To(HaveLen(1))
-		Expect(user.Status.Conditions[0].Status).To(Equal(metaV1.ConditionTrue))
+		Expect(user.Status.Conditions).To(HaveLen(3))
+		// and connection is true
+		connectionCondition := meta.FindStatusCondition(user.Status.Conditions, apiV1.PgConnectedConditionType)
+		Expect(connectionCondition.Status).To(Equal(metaV1.ConditionTrue))
+		// and user is true
+		userCondition := meta.FindStatusCondition(user.Status.Conditions, apiV1.PgUserExistsConditionType)
+		Expect(userCondition.Status).To(Equal(metaV1.ConditionTrue))
+		// and database is true
+		databaseCondition := meta.FindStatusCondition(user.Status.Conditions, apiV1.PgUserDatabaseExistsConditionTypePrefix+"testdb")
+		Expect(databaseCondition.Status).To(Equal(metaV1.ConditionTrue))
 
 		// and
 		user = apiV1.PgUser{}

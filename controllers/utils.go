@@ -20,7 +20,6 @@ import (
 	"context"
 	"time"
 
-	apiV1 "github.com/brose-ebike/postgres-operator/api/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -68,7 +67,7 @@ func setCondition(
 		return nil
 	}
 	condition := metaV1.Condition{
-		Type:               apiV1.PgConnectedConditionType,
+		Type:               conditionType,
 		Status:             statusString,
 		ObservedGeneration: obj.GetGeneration(),
 		LastTransitionTime: metaV1.Time{Time: time.Time{}},
@@ -76,6 +75,19 @@ func setCondition(
 		Message:            message,
 	}
 	meta.SetStatusCondition(&conditions, condition)
+	obj.SetConditions(conditions)
+	return r.Update(ctx, obj)
+}
+
+// setCondition
+func removeCondition(
+	ctx context.Context,
+	r client.StatusWriter,
+	obj ObjectWithConditions,
+	conditionType string,
+) error {
+	conditions := obj.GetConditions()
+	meta.RemoveStatusCondition(&conditions, conditionType)
 	obj.SetConditions(conditions)
 	return r.Update(ctx, obj)
 }
