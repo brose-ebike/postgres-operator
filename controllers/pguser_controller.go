@@ -122,7 +122,7 @@ func (r *PgUserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{RequeueAfter: time.Minute}, err
 	} else if !existing {
 		// Return if any database is missing
-		return ctrl.Result{RequeueAfter: time.Minute}, nil
+		return ctrl.Result{RequeueAfter: time.Second}, nil
 	}
 
 	// update ownership and permissions for databases
@@ -135,7 +135,7 @@ func (r *PgUserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		controllerutil.AddFinalizer(&user, apiV1.DefaultFinalizerPgUser)
 		err = r.Update(ctx, &user)
 		if err != nil {
-			return ctrl.Result{RequeueAfter: time.Minute}, err
+			return ctrl.Result{RequeueAfter: time.Second}, err
 		}
 	}
 

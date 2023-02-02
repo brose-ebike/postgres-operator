@@ -5,4 +5,4 @@ resources:
 images:
 - name: controller
   newName: sschneidbrose/postgres-controller
-  newTag: 0.0.75
+  newTag: 0.0.76

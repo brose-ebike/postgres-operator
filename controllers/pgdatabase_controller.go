@@ -91,6 +91,11 @@ func (r *PgDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{RequeueAfter: time.Minute}, err
 	}
 
+	// Update Database Exists Condition
+	if err := setCondition(ctx, r.Status(), &database, apiV1.PgDatabaseExistsConditionType, false, "DatabaseExists", "-"); err != nil {
+		return ctrl.Result{RequeueAfter: time.Minute}, err
+	}
+
 	// Install Extensions if missing
 	if err := r.handleDefaultPrivileges(ctx, pgApi, &database); err != nil {
 		logger.Error(err, "Unable to update default privileges", "database", database.Name, "instance", database.GetInstanceIdString())
@@ -115,7 +120,7 @@ func (r *PgDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		err = r.Update(ctx, &database)
 		if err != nil {
 			logger.Error(err, "Failed to update finalizers", "database", database.ToNamespacedName(), "instance", database.GetInstanceIdString())
-			return ctrl.Result{RequeueAfter: time.Minute}, err
+			return ctrl.Result{RequeueAfter: time.Second}, err
 		}
 	}
 
@@ -182,6 +187,10 @@ func (r *PgDatabaseReconciler) finalize(ctx context.Context, database *apiV1.PgD
 				logger.Error(err, "Unable to remove database", "database", database.Name, "instance", database.GetInstanceIdString())
 				return err
 			}
+		}
+		// Update Database Exists Condition
+		if err := setCondition(ctx, r.Status(), database, apiV1.PgDatabaseExistsConditionType, false, "DatabaseExists", "Database was deleted"); err != nil {
+			return err
 		}
 	}
 	if database.Spec.DeletionBehavior.Wait {
