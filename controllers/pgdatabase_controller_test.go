@@ -235,6 +235,7 @@ var _ = Describe("PgInstanceReconciler", func() {
 						Namespace: "default",
 						Name:      "instance",
 					},
+					Extensions:        []string{},
 					DefaultPrivileges: []apiV1.PgDatabaseDefaultPrivileges{},
 					DeletionBehavior: apiV1.PgDatabaseDeletion{
 						Drop: false,
