@@ -64,6 +64,8 @@ type PgDatabaseSpec struct {
 	Instance PgInstanceRef `json:"instance"`
 	// DeletionBehavior specifies what should happen when the manifest gets deleted
 	DeletionBehavior PgDatabaseDeletion `json:"deletion"`
+	// Extensions which should exist in this database
+	Extensions []string `json:"extensions"`
 	// DefaultPrivileges defines the default privileges for this database
 	DefaultPrivileges []PgDatabaseDefaultPrivileges `json:"defaultPrivileges"`
 	// PublicPrivileges revokes and Public stuff in postgres

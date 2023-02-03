@@ -92,11 +92,17 @@ func (r *PgDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	// Update Database Exists Condition
-	if err := setCondition(ctx, r.Status(), &database, apiV1.PgDatabaseExistsConditionType, false, "DatabaseExists", "-"); err != nil {
+	if err := setCondition(ctx, r.Status(), &database, apiV1.PgDatabaseExistsConditionType, true, "DatabaseExists", "-"); err != nil {
 		return ctrl.Result{RequeueAfter: time.Minute}, err
 	}
 
 	// Install Extensions if missing
+	if err := r.handleExtensions(ctx, pgApi, &database); err != nil {
+		logger.Error(err, "Unable to create extensions", "database", database.Name, "instance", database.GetInstanceIdString())
+		return ctrl.Result{RequeueAfter: time.Minute}, err
+	}
+
+	// Update Default Privileges
 	if err := r.handleDefaultPrivileges(ctx, pgApi, &database); err != nil {
 		logger.Error(err, "Unable to update default privileges", "database", database.Name, "instance", database.GetInstanceIdString())
 		return ctrl.Result{RequeueAfter: time.Minute}, err
@@ -233,6 +239,22 @@ func (r *PgDatabaseReconciler) createDatabaseIfNotExists(ctx context.Context, pg
 			return err
 		}
 		logger.Info("Created database " + databaseName)
+	}
+	return nil
+}
+
+func (r *PgDatabaseReconciler) handleExtensions(ctx context.Context, pgApi PgDatabaseAPI, database *apiV1.PgDatabase) error {
+	for _, extension := range database.Spec.Extensions {
+		exists, err := pgApi.IsDatabaseExtensionPresent(database.Name, extension)
+		if err != nil {
+			return err
+		}
+		if exists {
+			continue
+		}
+		if err := pgApi.CreateDatabaseExtension(database.Name, extension); err != nil {
+			return err
+		}
 	}
 	return nil
 }

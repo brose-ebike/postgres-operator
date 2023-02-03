@@ -69,7 +69,7 @@ var _ = Describe("PostgresAPI Database Handling", func() {
 	})
 
 	It("can update database privileges", func() {
-		roleName := "dummy_role_3"
+		roleName := "dummy_role_10"
 		databaseName := "dummy_db_3"
 		// Create new role
 		err := pgApi.CreateRole(roleName)
@@ -83,7 +83,7 @@ var _ = Describe("PostgresAPI Database Handling", func() {
 	})
 
 	It("can reset database privileges", func() {
-		roleName := "dummy_role_4"
+		roleName := "dummy_role_11"
 		databaseName := "dummy_db_4"
 		// Create new role
 		err := pgApi.CreateRole(roleName)
@@ -99,4 +99,7 @@ var _ = Describe("PostgresAPI Database Handling", func() {
 		Expect(err).To(BeNil())
 	})
 
+	It("can create extensions", func() {
+		// TODO
+	})
 })

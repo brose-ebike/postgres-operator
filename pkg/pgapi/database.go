@@ -41,6 +41,10 @@ type PgDatabaseAPI interface {
 	ResetDatabaseOwner(databaseName string) error
 	// UpdateDatabasePrivileges changes the given privileges on the given database for the given role
 	UpdateDatabasePrivileges(databaseName string, roleName string, privileges []string) error
+	// IsDatabaseExtensionPresent checks if the given extension is created in the database
+	IsDatabaseExtensionPresent(databaseName string, extension string) (bool, error)
+	// CreateDatabaseExtension creates the given extension in the database
+	CreateDatabaseExtension(databaseName string, extension string) error
 }
 
 func (s *pgInstanceAPIImpl) IsDatabaseExisting(databaseName string) (bool, error) {
@@ -170,4 +174,31 @@ func (s *pgInstanceAPIImpl) ResetDatabaseOwner(databaseName string) error {
 		_, err = conn.ExecContext(s.ctx, formatQueryObj(query, databaseName, s.connectionString.username))
 		return err
 	})
+}
+
+func (s *pgInstanceAPIImpl) IsDatabaseExtensionPresent(databaseName string, extension string) (bool, error) {
+	// Connect to Database Server
+	conn, err := s.newConnection()
+	if err != nil {
+		return false, err
+	}
+	var exists bool
+	const query = "select exists(SELECT * FROM pg_extension where extname = $1);"
+	err = conn.QueryRowContext(s.ctx, query, databaseName).Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+	return exists, nil
+}
+
+func (s *pgInstanceAPIImpl) CreateDatabaseExtension(databaseName string, extension string) error {
+	// Connect to Database Server
+	conn, err := s.newConnection()
+	if err != nil {
+		return err
+	}
+	// Execute Query
+	const query = "create extension %s;"
+	_, err = conn.ExecContext(s.ctx, formatQueryObj(query, databaseName))
+	return err
 }

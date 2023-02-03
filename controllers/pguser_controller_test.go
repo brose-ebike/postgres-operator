@@ -34,22 +34,24 @@ import (
 )
 
 type pgRoleMock struct {
-	databases                     map[string]dummyDB
-	roles                         map[string]bool
-	callsIsRoleExisting           int
-	callsCreateRole               int
-	callsDeleteRole               int
-	callsUpdateUserPassword       int
-	callsConnectionString         int
-	callsTestConnection           int
-	callsIsConnected              int
-	callsCreateDatabase           int
-	callsDeleteDatabase           int
-	callsGetDatabaseOwner         int
-	callsIsDatabaseExisting       int
-	callsResetDatabaseOwner       int
-	callsUpdateDatabaseOwner      int
-	callsUpdateDatabasePrivileges int
+	databases                       map[string]dummyDB
+	roles                           map[string]bool
+	callsIsRoleExisting             int
+	callsCreateRole                 int
+	callsDeleteRole                 int
+	callsUpdateUserPassword         int
+	callsConnectionString           int
+	callsTestConnection             int
+	callsIsConnected                int
+	callsCreateDatabase             int
+	callsDeleteDatabase             int
+	callsGetDatabaseOwner           int
+	callsIsDatabaseExisting         int
+	callsResetDatabaseOwner         int
+	callsUpdateDatabaseOwner        int
+	callsUpdateDatabasePrivileges   int
+	callsIsDatabaseExtensionPresent int
+	callsCreateDatabaseExtension    int
 }
 
 func (r *pgRoleMock) IsRoleExisting(roleName string) (bool, error) {
@@ -127,6 +129,16 @@ func (r *pgRoleMock) UpdateDatabaseOwner(name string, owner string) error {
 
 func (r *pgRoleMock) UpdateDatabasePrivileges(databaseName string, roleName string, privileges []string) error {
 	r.callsUpdateDatabasePrivileges += 1
+	return nil
+}
+
+func (m *pgRoleMock) IsDatabaseExtensionPresent(databaseName string, extension string) (bool, error) {
+	m.callsIsDatabaseExtensionPresent += 1
+	return true, nil
+}
+
+func (m *pgRoleMock) CreateDatabaseExtension(databaseName string, extension string) error {
+	m.callsCreateDatabaseExtension += 1
 	return nil
 }
 

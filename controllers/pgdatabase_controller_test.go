@@ -51,6 +51,8 @@ type pgDatabaseMock struct {
 	callsDeleteSchema                int
 	callsUpdateDefaultPrivileges     int
 	callsDeleteAllPrivilegesOnSchema int
+	callsIsDatabaseExtensionPresent  int
+	callsCreateDatabaseExtension     int
 }
 
 func (m *pgDatabaseMock) IsDatabaseExisting(databaseName string) (bool, error) {
@@ -156,6 +158,16 @@ func (m *pgDatabaseMock) DeleteAllPrivilegesOnSchema(databaseName string, schema
 	if !exists {
 		return errors.New("Database does not exist")
 	}
+	return nil
+}
+
+func (m *pgDatabaseMock) IsDatabaseExtensionPresent(databaseName string, extension string) (bool, error) {
+	m.callsIsDatabaseExtensionPresent += 1
+	return true, nil
+}
+
+func (m *pgDatabaseMock) CreateDatabaseExtension(databaseName string, extension string) error {
+	m.callsCreateDatabaseExtension += 1
 	return nil
 }
 
@@ -285,8 +297,9 @@ var _ = Describe("PgInstanceReconciler", func() {
 		var database apiV1.PgDatabase
 		err = k8sClient.Get(ctx, request.NamespacedName, &database)
 		Expect(err).To(BeNil())
-		Expect(database.Status.Conditions).To(HaveLen(1))
+		Expect(database.Status.Conditions).To(HaveLen(2))
 		Expect(database.Status.Conditions[0].Status).To(Equal(metaV1.ConditionTrue))
+		Expect(database.Status.Conditions[1].Status).To(Equal(metaV1.ConditionTrue))
 
 		// and
 		database = apiV1.PgDatabase{}
