@@ -26,7 +26,6 @@ import (
 	. "github.com/onsi/gomega"
 	coreV1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
-	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -279,13 +278,13 @@ var _ = Describe("PgUserReconciler", func() {
 		Expect(user.Status.Conditions).To(HaveLen(3))
 		// and connection is true
 		connectionCondition := meta.FindStatusCondition(user.Status.Conditions, apiV1.PgConnectedConditionType)
-		Expect(connectionCondition.Status).To(Equal(metaV1.ConditionTrue))
+		Expect(connectionCondition.Status).To(Equal(v1.ConditionTrue))
 		// and user is true
 		userCondition := meta.FindStatusCondition(user.Status.Conditions, apiV1.PgUserExistsConditionType)
-		Expect(userCondition.Status).To(Equal(metaV1.ConditionTrue))
+		Expect(userCondition.Status).To(Equal(v1.ConditionTrue))
 		// and database is true
 		databaseCondition := meta.FindStatusCondition(user.Status.Conditions, apiV1.PgUserDatabasesExistsConditionType)
-		Expect(databaseCondition.Status).To(Equal(metaV1.ConditionTrue))
+		Expect(databaseCondition.Status).To(Equal(v1.ConditionTrue))
 
 		// and
 		user = apiV1.PgUser{}

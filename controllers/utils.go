@@ -79,7 +79,7 @@ func setCondition(
 	return r.Update(ctx, obj)
 }
 
-// setCondition
+// removeCondition removes the condition with the given type from the given object
 func removeCondition(
 	ctx context.Context,
 	r client.StatusWriter,

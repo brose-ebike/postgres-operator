@@ -195,7 +195,7 @@ func (r *PgDatabaseReconciler) finalize(ctx context.Context, database *apiV1.PgD
 			}
 		}
 		// Update Database Exists Condition
-		if err := setCondition(ctx, r.Status(), database, apiV1.PgDatabaseExistsConditionType, false, "DatabaseExists", "Database was deleted"); err != nil {
+		if err := setCondition(ctx, r.Status(), database, apiV1.PgDatabaseExistsConditionType, false, "DatabaseMissing", "Database was deleted"); err != nil {
 			return err
 		}
 	}

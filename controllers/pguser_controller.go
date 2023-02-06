@@ -197,7 +197,7 @@ func (r *PgUserReconciler) finalize(ctx context.Context, user *apiV1.PgUser, pgA
 	}
 
 	// Update Login Role Exists Condition
-	if err := setCondition(ctx, r.Status(), user, apiV1.PgUserExistsConditionType, false, "UserIsMissing", "-"); err != nil {
+	if err := setCondition(ctx, r.Status(), user, apiV1.PgUserExistsConditionType, false, "MissingUser", "-"); err != nil {
 		logger.Error(err, "Unable to update condition")
 		return err
 	}
@@ -337,8 +337,7 @@ func (r *PgUserReconciler) checkIfDatabasesExist(ctx context.Context, pgApi PgRo
 		}
 		databaseNames[item.Name] = exists
 	}
-	allDatabasesExist := true
-	reason := "success"
+	reason := "DatabasesExist"
 	message := "All databases exist"
 	missingDBs := make([]string, 0)
 	for name, exist := range databaseNames {
@@ -346,10 +345,11 @@ func (r *PgUserReconciler) checkIfDatabasesExist(ctx context.Context, pgApi PgRo
 			continue
 		}
 		missingDBs = append(missingDBs, name)
-		allDatabasesExist = allDatabasesExist && exist
 	}
+	// evaluate collected informations
+	allDatabasesExist := len(missingDBs) == 0
 	if len(missingDBs) > 0 {
-		reason = "missing-databases"
+		reason = "DatabasesMissing"
 		message = "The instance does not contain the databases: " + strings.Join(missingDBs, ",")
 	}
 	if err := setCondition(ctx, r.Status(), user, apiV1.PgUserDatabasesExistsConditionType, allDatabasesExist, reason, message); err != nil {
