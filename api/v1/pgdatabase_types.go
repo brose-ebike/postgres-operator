@@ -25,6 +25,7 @@ import (
 // of the PgDatabase resource
 const DefaultFinalizerPgDatabase = "postgres.brose.bike/pgdatabase"
 const PgDatabaseExistsConditionType string = "pgdatabase.postgres.brose.bike/exists"
+const PgDatabaseExtensionsConditionType string = "pgdatabase.postgres.brose.bike/extensions"
 
 type PgDatabaseDeletion struct {
 	// Drop specifies if the database should be dropped on deletion (defaults to false)
@@ -64,6 +65,8 @@ type PgDatabaseSpec struct {
 	Instance PgInstanceRef `json:"instance"`
 	// DeletionBehavior specifies what should happen when the manifest gets deleted
 	DeletionBehavior PgDatabaseDeletion `json:"deletion"`
+	// Extensions which should exist in this database
+	Extensions []string `json:"extensions"`
 	// DefaultPrivileges defines the default privileges for this database
 	DefaultPrivileges []PgDatabaseDefaultPrivileges `json:"defaultPrivileges"`
 	// PublicPrivileges revokes and Public stuff in postgres

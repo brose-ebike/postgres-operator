@@ -111,6 +111,37 @@ func (s *pgInstanceAPIImpl) runAs(con *sql.Conn, role string, runner func() erro
 	return err
 }
 
+func (s *pgInstanceAPIImpl) runIn(database string, runner func(ctx context.Context, conn *sql.Conn) error) error {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Use new connection string
+	conStr := s.connectionString.copy()
+	conStr.database = database
+
+	// Start SQL Database
+	db, err := sql.Open("postgres", conStr.toString())
+	if err != nil {
+		return err
+	}
+
+	// Connect to Database Server
+	conn, err := db.Conn(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Execute commands
+	err = runner(ctx, conn)
+
+	// Close connection
+	if err := conn.Close(); err != nil {
+		return err
+	}
+
+	return err
+}
+
 func (s *pgInstanceAPIImpl) runInDatabase(database string, runner func(ctx context.Context, conn *sql.Conn) error) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

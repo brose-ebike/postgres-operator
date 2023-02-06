@@ -59,4 +59,17 @@ var _ = Describe("PostgresAPI Login Role Handling", func() {
 		Expect(err).To(BeNil())
 	})
 
+	It("can check if a role exists", func() {
+		// Check if role exists
+		exists, err := pgApi.IsRoleExisting("dummy_role_3")
+		Expect(err).To(BeNil())
+		Expect(exists).To(BeFalse())
+		// Create new role
+		err = pgApi.CreateRole("dummy_role_3")
+		Expect(err).To(BeNil())
+		// Check if role exists
+		exists, err = pgApi.IsRoleExisting("dummy_role_3")
+		Expect(err).To(BeNil())
+		Expect(exists).To(BeTrue())
+	})
 })
