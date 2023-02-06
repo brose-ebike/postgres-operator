@@ -17,6 +17,8 @@ limitations under the License.
 package pgapi
 
 import (
+	"context"
+	"database/sql"
 	"strings"
 
 	"github.com/brose-ebike/postgres-operator/pkg/brose_errors"
@@ -177,28 +179,20 @@ func (s *pgInstanceAPIImpl) ResetDatabaseOwner(databaseName string) error {
 }
 
 func (s *pgInstanceAPIImpl) IsDatabaseExtensionPresent(databaseName string, extension string) (bool, error) {
-	// Connect to Database Server
-	conn, err := s.newConnection()
-	if err != nil {
-		return false, err
-	}
 	var exists bool
-	const query = "select exists(SELECT * FROM pg_extension where extname = $1);"
-	err = conn.QueryRowContext(s.ctx, query, databaseName).Scan(&exists)
-	if err != nil {
-		return false, err
-	}
-	return exists, nil
+	// Execute Query
+	err := s.runIn(databaseName, func(ctx context.Context, conn *sql.Conn) error {
+		const query = "select exists(SELECT * FROM pg_extension where extname = $1);"
+		return conn.QueryRowContext(s.ctx, query, extension).Scan(&exists)
+	})
+	return exists, err
 }
 
 func (s *pgInstanceAPIImpl) CreateDatabaseExtension(databaseName string, extension string) error {
-	// Connect to Database Server
-	conn, err := s.newConnection()
-	if err != nil {
-		return err
-	}
 	// Execute Query
-	const query = "create extension %s;"
-	_, err = conn.ExecContext(s.ctx, formatQueryObj(query, databaseName))
-	return err
+	return s.runIn(databaseName, func(ctx context.Context, conn *sql.Conn) error {
+		const query = "create extension %s;"
+		_, err := conn.ExecContext(s.ctx, formatQueryObj(query, extension))
+		return err
+	})
 }
