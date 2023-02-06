@@ -24,6 +24,7 @@ import (
 // DefaultFinalizerPgDatabase contains the name for the default finalizer
 // of the PgDatabase resource
 const DefaultFinalizerPgDatabase = "postgres.brose.bike/pgdatabase"
+const PgDatabaseExistsConditionType string = "pgdatabase.postgres.brose.bike/exists"
 
 type PgDatabaseDeletion struct {
 	// Drop specifies if the database should be dropped on deletion (defaults to false)
