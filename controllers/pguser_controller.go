@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"strconv"
+	"strings"
 	"time"
 
 	coreV1 "k8s.io/api/core/v1"
@@ -99,7 +100,7 @@ func (r *PgUserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{RequeueAfter: time.Minute}, err
 	}
 	// Update Login Role Exists Condition
-	if err := setCondition(ctx, r, &user, apiV1.PgUserExistsConditionType, true, "-", "-"); err != nil {
+	if err := setCondition(ctx, r.Status(), &user, apiV1.PgUserExistsConditionType, true, "UserExists", "-"); err != nil {
 		return ctrl.Result{RequeueAfter: time.Minute}, err
 	}
 
@@ -115,6 +116,15 @@ func (r *PgUserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{RequeueAfter: time.Minute}, err
 	}
 
+	// Check if databases exist
+	existing, err := r.checkIfDatabasesExist(ctx, pgApi, &user)
+	if err != nil {
+		return ctrl.Result{RequeueAfter: time.Minute}, err
+	} else if !existing {
+		// Return if any database is missing
+		return ctrl.Result{RequeueAfter: time.Second}, nil
+	}
+
 	// update ownership and permissions for databases
 	if err := r.updateDatabaseOwnershipAndPrivileges(ctx, pgApi, &user); err != nil {
 		return ctrl.Result{RequeueAfter: time.Minute}, err
@@ -125,7 +135,7 @@ func (r *PgUserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		controllerutil.AddFinalizer(&user, apiV1.DefaultFinalizerPgUser)
 		err = r.Update(ctx, &user)
 		if err != nil {
-			return ctrl.Result{RequeueAfter: time.Minute}, err
+			return ctrl.Result{RequeueAfter: time.Second}, err
 		}
 	}
 
@@ -187,7 +197,7 @@ func (r *PgUserReconciler) finalize(ctx context.Context, user *apiV1.PgUser, pgA
 	}
 
 	// Update Login Role Exists Condition
-	if err := setCondition(ctx, r, user, apiV1.PgUserExistsConditionType, false, "-", "-"); err != nil {
+	if err := setCondition(ctx, r.Status(), user, apiV1.PgUserExistsConditionType, false, "MissingUser", "-"); err != nil {
 		logger.Error(err, "Unable to update condition")
 		return err
 	}
@@ -316,6 +326,36 @@ func (r *PgUserReconciler) generateSecretData(pgApi PgRoleAPI, user *apiV1.PgUse
 		binaryData[key] = []byte(element)
 	}
 	return binaryData
+}
+
+func (r *PgUserReconciler) checkIfDatabasesExist(ctx context.Context, pgApi PgRoleAPI, user *apiV1.PgUser) (bool, error) {
+	databaseNames := make(map[string]bool)
+	for _, item := range user.Spec.Databases {
+		exists, err := pgApi.IsDatabaseExisting(item.Name)
+		if err != nil {
+			return false, err
+		}
+		databaseNames[item.Name] = exists
+	}
+	reason := "DatabasesExist"
+	message := "All databases exist"
+	missingDBs := make([]string, 0)
+	for name, exist := range databaseNames {
+		if exist {
+			continue
+		}
+		missingDBs = append(missingDBs, name)
+	}
+	// evaluate collected informations
+	allDatabasesExist := len(missingDBs) == 0
+	if len(missingDBs) > 0 {
+		reason = "DatabasesMissing"
+		message = "The instance does not contain the databases: " + strings.Join(missingDBs, ",")
+	}
+	if err := setCondition(ctx, r.Status(), user, apiV1.PgUserDatabasesExistsConditionType, allDatabasesExist, reason, message); err != nil {
+		return false, err
+	}
+	return allDatabasesExist, nil
 }
 
 func (r *PgUserReconciler) updateDatabaseOwnershipAndPrivileges(ctx context.Context, pgApi PgRoleAPI, user *apiV1.PgUser) error {

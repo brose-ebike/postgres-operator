@@ -285,7 +285,7 @@ var _ = Describe("PgInstanceReconciler", func() {
 		var database apiV1.PgDatabase
 		err = k8sClient.Get(ctx, request.NamespacedName, &database)
 		Expect(err).To(BeNil())
-		Expect(database.Status.Conditions).To(HaveLen(1))
+		Expect(database.Status.Conditions).To(HaveLen(2))
 		Expect(database.Status.Conditions[0].Status).To(Equal(metaV1.ConditionTrue))
 
 		// and

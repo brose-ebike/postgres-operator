@@ -25,7 +25,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	coreV1 "k8s.io/api/core/v1"
-	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -250,8 +250,16 @@ var _ = Describe("PgUserReconciler", func() {
 		var user apiV1.PgUser
 		err = k8sClient.Get(ctx, request.NamespacedName, &user)
 		Expect(err).To(BeNil())
-		Expect(user.Status.Conditions).To(HaveLen(1))
-		Expect(user.Status.Conditions[0].Status).To(Equal(metaV1.ConditionTrue))
+		Expect(user.Status.Conditions).To(HaveLen(3))
+		// and connection is true
+		connectionCondition := meta.FindStatusCondition(user.Status.Conditions, apiV1.PgConnectedConditionType)
+		Expect(connectionCondition.Status).To(Equal(v1.ConditionTrue))
+		// and user is true
+		userCondition := meta.FindStatusCondition(user.Status.Conditions, apiV1.PgUserExistsConditionType)
+		Expect(userCondition.Status).To(Equal(v1.ConditionTrue))
+		// and database is true
+		databaseCondition := meta.FindStatusCondition(user.Status.Conditions, apiV1.PgUserDatabasesExistsConditionType)
+		Expect(databaseCondition.Status).To(Equal(v1.ConditionTrue))
 
 		// and
 		user = apiV1.PgUser{}
