@@ -64,27 +64,22 @@ func (in *PgDatabaseDefaultPrivileges) DeepCopyInto(out *PgDatabaseDefaultPrivil
 	}
 	if in.TablePrivileges != nil {
 		in, out := &in.TablePrivileges, &out.TablePrivileges
-		*out = make([]string, len(*in))
+		*out = make([]TablePrivilege, len(*in))
 		copy(*out, *in)
 	}
 	if in.SequencePrivileges != nil {
 		in, out := &in.SequencePrivileges, &out.SequencePrivileges
-		*out = make([]string, len(*in))
+		*out = make([]SequencePrivilege, len(*in))
 		copy(*out, *in)
 	}
 	if in.FunctionPrivileges != nil {
 		in, out := &in.FunctionPrivileges, &out.FunctionPrivileges
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	}
-	if in.RoutinePrivileges != nil {
-		in, out := &in.RoutinePrivileges, &out.RoutinePrivileges
-		*out = make([]string, len(*in))
+		*out = make([]FunctionPrivilege, len(*in))
 		copy(*out, *in)
 	}
 	if in.TypePrivileges != nil {
 		in, out := &in.TypePrivileges, &out.TypePrivileges
-		*out = make([]string, len(*in))
+		*out = make([]TypePrivilege, len(*in))
 		copy(*out, *in)
 	}
 }
