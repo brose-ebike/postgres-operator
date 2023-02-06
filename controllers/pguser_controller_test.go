@@ -284,7 +284,7 @@ var _ = Describe("PgUserReconciler", func() {
 		userCondition := meta.FindStatusCondition(user.Status.Conditions, apiV1.PgUserExistsConditionType)
 		Expect(userCondition.Status).To(Equal(metaV1.ConditionTrue))
 		// and database is true
-		databaseCondition := meta.FindStatusCondition(user.Status.Conditions, apiV1.PgUserDatabaseExistsConditionTypePrefix+"testdb")
+		databaseCondition := meta.FindStatusCondition(user.Status.Conditions, apiV1.PgUserDatabasesExistsConditionType)
 		Expect(databaseCondition.Status).To(Equal(metaV1.ConditionTrue))
 
 		// and

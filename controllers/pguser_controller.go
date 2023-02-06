@@ -329,36 +329,31 @@ func (r *PgUserReconciler) generateSecretData(pgApi PgRoleAPI, user *apiV1.PgUse
 }
 
 func (r *PgUserReconciler) checkIfDatabasesExist(ctx context.Context, pgApi PgRoleAPI, user *apiV1.PgUser) (bool, error) {
-	allDatabasesExist := true
 	databaseNames := make(map[string]bool)
 	for _, item := range user.Spec.Databases {
 		exists, err := pgApi.IsDatabaseExisting(item.Name)
 		if err != nil {
 			return false, err
 		}
-		status := true
-		reason := "ExistingDatabase"
-		message := "Database " + item.Name + " exists"
-		if !exists {
-			status = false
-			reason = "MissingDatabase"
-			message = "Database " + item.Name + " does not exist"
-		}
-		if err := setCondition(ctx, r.Status(), user, apiV1.PgUserDatabaseExistsConditionTypePrefix+item.Name, status, reason, message); err != nil {
-			return false, err
-		}
-		databaseNames[item.Name] = true
-		allDatabasesExist = allDatabasesExist && status
+		databaseNames[item.Name] = exists
 	}
-	// Remove outdated Conditions
-	for _, condition := range user.Status.Conditions {
-		if !strings.HasPrefix(condition.Type, apiV1.PgUserDatabaseExistsConditionTypePrefix) {
+	allDatabasesExist := true
+	reason := "success"
+	message := "All databases exist"
+	missingDBs := make([]string, 0)
+	for name, exist := range databaseNames {
+		if exist {
 			continue
 		}
-		databaseName := strings.TrimPrefix(condition.Type, apiV1.PgUserDatabaseExistsConditionTypePrefix)
-		if _, exists := databaseNames[databaseName]; !exists {
-			removeCondition(ctx, r.Status(), user, condition.Type)
-		}
+		missingDBs = append(missingDBs, name)
+		allDatabasesExist = allDatabasesExist && exist
+	}
+	if len(missingDBs) > 0 {
+		reason = "missing-databases"
+		message = "The instance does not contain the databases: " + strings.Join(missingDBs, ",")
+	}
+	if err := setCondition(ctx, r.Status(), user, apiV1.PgUserDatabasesExistsConditionType, allDatabasesExist, reason, message); err != nil {
+		return false, err
 	}
 	return allDatabasesExist, nil
 }
