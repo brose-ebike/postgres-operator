@@ -51,6 +51,8 @@ type pgDatabaseMock struct {
 	callsDeleteSchema                int
 	callsUpdateDefaultPrivileges     int
 	callsDeleteAllPrivilegesOnSchema int
+	callsIsDatabaseExtensionPresent  int
+	callsCreateDatabaseExtension     int
 }
 
 func (m *pgDatabaseMock) IsDatabaseExisting(databaseName string) (bool, error) {
@@ -159,6 +161,16 @@ func (m *pgDatabaseMock) DeleteAllPrivilegesOnSchema(databaseName string, schema
 	return nil
 }
 
+func (m *pgDatabaseMock) IsDatabaseExtensionPresent(databaseName string, extension string) (bool, error) {
+	m.callsIsDatabaseExtensionPresent += 1
+	return true, nil
+}
+
+func (m *pgDatabaseMock) CreateDatabaseExtension(databaseName string, extension string) error {
+	m.callsCreateDatabaseExtension += 1
+	return nil
+}
+
 var _ = Describe("PgInstanceReconciler", func() {
 
 	var pgApiMock PgDatabaseAPI
@@ -224,6 +236,7 @@ var _ = Describe("PgInstanceReconciler", func() {
 						Name:      "instance",
 					},
 					DefaultPrivileges: []apiV1.PgDatabaseDefaultPrivileges{},
+					Extensions:        []string{},
 					DeletionBehavior: apiV1.PgDatabaseDeletion{
 						Drop: false,
 						Wait: false,
@@ -287,6 +300,7 @@ var _ = Describe("PgInstanceReconciler", func() {
 		Expect(err).To(BeNil())
 		Expect(database.Status.Conditions).To(HaveLen(2))
 		Expect(database.Status.Conditions[0].Status).To(Equal(metaV1.ConditionTrue))
+		Expect(database.Status.Conditions[1].Status).To(Equal(metaV1.ConditionTrue))
 
 		// and
 		database = apiV1.PgDatabase{}
