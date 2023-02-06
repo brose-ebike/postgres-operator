@@ -176,6 +176,11 @@ func (in *PgDatabaseSpec) DeepCopyInto(out *PgDatabaseSpec) {
 	*out = *in
 	out.Instance = in.Instance
 	out.DeletionBehavior = in.DeletionBehavior
+	if in.Extensions != nil {
+		in, out := &in.Extensions, &out.Extensions
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.DefaultPrivileges != nil {
 		in, out := &in.DefaultPrivileges, &out.DefaultPrivileges
 		*out = make([]PgDatabaseDefaultPrivileges, len(*in))

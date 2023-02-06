@@ -33,22 +33,24 @@ import (
 )
 
 type pgRoleMock struct {
-	databases                     map[string]dummyDB
-	roles                         map[string]bool
-	callsIsRoleExisting           int
-	callsCreateRole               int
-	callsDeleteRole               int
-	callsUpdateUserPassword       int
-	callsConnectionString         int
-	callsTestConnection           int
-	callsIsConnected              int
-	callsCreateDatabase           int
-	callsDeleteDatabase           int
-	callsGetDatabaseOwner         int
-	callsIsDatabaseExisting       int
-	callsResetDatabaseOwner       int
-	callsUpdateDatabaseOwner      int
-	callsUpdateDatabasePrivileges int
+	databases                       map[string]dummyDB
+	roles                           map[string]bool
+	callsIsRoleExisting             int
+	callsCreateRole                 int
+	callsDeleteRole                 int
+	callsUpdateUserPassword         int
+	callsConnectionString           int
+	callsTestConnection             int
+	callsIsConnected                int
+	callsCreateDatabase             int
+	callsDeleteDatabase             int
+	callsGetDatabaseOwner           int
+	callsIsDatabaseExisting         int
+	callsResetDatabaseOwner         int
+	callsUpdateDatabaseOwner        int
+	callsUpdateDatabasePrivileges   int
+	callsIsDatabaseExtensionPresent int
+	callsCreateDatabaseExtension    int
 }
 
 func (r *pgRoleMock) IsRoleExisting(roleName string) (bool, error) {
@@ -129,6 +131,16 @@ func (r *pgRoleMock) UpdateDatabasePrivileges(databaseName string, roleName stri
 	return nil
 }
 
+func (m *pgRoleMock) IsDatabaseExtensionPresent(databaseName string, extension string) (bool, error) {
+	m.callsIsDatabaseExtensionPresent += 1
+	return true, nil
+}
+
+func (m *pgRoleMock) CreateDatabaseExtension(databaseName string, extension string) error {
+	m.callsCreateDatabaseExtension += 1
+	return nil
+}
+
 var _ = Describe("PgUserReconciler", func() {
 
 	var pgApiMock PgRoleAPI
@@ -138,7 +150,14 @@ var _ = Describe("PgUserReconciler", func() {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		// Create ApiMock
-		pgApiMock = &pgRoleMock{}
+		pgApiMock = &pgRoleMock{
+			databases: map[string]dummyDB{
+				"testdb": {
+					owner:   "pgadmin",
+					schemas: make(map[string]string),
+				},
+			},
+		}
 
 		// Create Reconciler
 		reconciler = &PgUserReconciler{
@@ -194,7 +213,13 @@ var _ = Describe("PgUserReconciler", func() {
 					Secret: &apiV1.PgUserSecret{
 						Name: "credentials",
 					},
-					Databases: []apiV1.PgUserDatabase{},
+					Databases: []apiV1.PgUserDatabase{
+						{
+							Name:       "testdb",
+							Owner:      &cFalse,
+							Privileges: []apiV1.DatabasePrivilege{},
+						},
+					},
 				},
 				Status: apiV1.PgUserStatus{},
 			}

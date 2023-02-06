@@ -17,6 +17,8 @@ limitations under the License.
 package pgapi
 
 import (
+	"context"
+	"database/sql"
 	"strings"
 
 	"github.com/brose-ebike/postgres-operator/pkg/brose_errors"
@@ -41,6 +43,10 @@ type PgDatabaseAPI interface {
 	ResetDatabaseOwner(databaseName string) error
 	// UpdateDatabasePrivileges changes the given privileges on the given database for the given role
 	UpdateDatabasePrivileges(databaseName string, roleName string, privileges []string) error
+	// IsDatabaseExtensionPresent checks if the given extension is created in the database
+	IsDatabaseExtensionPresent(databaseName string, extension string) (bool, error)
+	// CreateDatabaseExtension creates the given extension in the database
+	CreateDatabaseExtension(databaseName string, extension string) error
 }
 
 func (s *pgInstanceAPIImpl) IsDatabaseExisting(databaseName string) (bool, error) {
@@ -168,6 +174,25 @@ func (s *pgInstanceAPIImpl) ResetDatabaseOwner(databaseName string) error {
 	return s.runAs(conn, oldOwner, func() error {
 		const query = "alter database %s owner to %s;"
 		_, err = conn.ExecContext(s.ctx, formatQueryObj(query, databaseName, s.connectionString.username))
+		return err
+	})
+}
+
+func (s *pgInstanceAPIImpl) IsDatabaseExtensionPresent(databaseName string, extension string) (bool, error) {
+	var exists bool
+	// Execute Query
+	err := s.runIn(databaseName, func(ctx context.Context, conn *sql.Conn) error {
+		const query = "select exists(SELECT * FROM pg_extension where extname = $1);"
+		return conn.QueryRowContext(s.ctx, query, extension).Scan(&exists)
+	})
+	return exists, err
+}
+
+func (s *pgInstanceAPIImpl) CreateDatabaseExtension(databaseName string, extension string) error {
+	// Execute Query
+	return s.runIn(databaseName, func(ctx context.Context, conn *sql.Conn) error {
+		const query = "create extension %s;"
+		_, err := conn.ExecContext(s.ctx, formatQueryObj(query, extension))
 		return err
 	})
 }

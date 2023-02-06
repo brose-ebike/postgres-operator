@@ -23,7 +23,7 @@ import (
 
 var _ = Describe("PostgresAPI Schema Handling", func() {
 	It("can create schema", func() {
-		databaseName := "dummy_db_5"
+		databaseName := "dummy_db_11"
 		schemaName := "service"
 		// Create new database
 		err := pgApi.CreateDatabase(databaseName)
@@ -42,7 +42,7 @@ var _ = Describe("PostgresAPI Schema Handling", func() {
 	})
 
 	It("can delete schema", func() {
-		databaseName := "dummy_db_6"
+		databaseName := "dummy_db_12"
 		schemaName := "service"
 		// Create new database
 		err := pgApi.CreateDatabase(databaseName)
@@ -65,7 +65,7 @@ var _ = Describe("PostgresAPI Schema Handling", func() {
 
 	It("can update default privileges", func() {
 		roleName := "dummy_role_7"
-		databaseName := "dummy_db_7"
+		databaseName := "dummy_db_13"
 		schemaName := "service"
 		// Create new role
 		err := pgApi.CreateRole(roleName)
@@ -83,7 +83,7 @@ var _ = Describe("PostgresAPI Schema Handling", func() {
 
 	It("can delete privileges on schema", func() {
 		roleName := "dummy_role_8"
-		databaseName := "dummy_db_8"
+		databaseName := "dummy_db_14"
 		schemaName := "service"
 		// Create new role
 		err := pgApi.CreateRole(roleName)

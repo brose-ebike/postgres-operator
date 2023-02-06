@@ -108,6 +108,11 @@ spec:
                       database to be deleted manually
                     type: boolean
                 type: object
+              extensions:
+                description: Extensions which should exist in this database
+                items:
+                  type: string
+                type: array
               instance:
                 description: Instance identifies the PgInstanceConnection which should
                   be used
@@ -145,6 +150,7 @@ spec:
             required:
             - defaultPrivileges
             - deletion
+            - extensions
             - instance
             - publicPrivileges
             - publicSchema
