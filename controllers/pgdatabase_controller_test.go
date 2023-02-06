@@ -25,7 +25,7 @@ import (
 	apiV1 "github.com/brose-ebike/postgres-operator/api/v1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -298,9 +298,16 @@ var _ = Describe("PgInstanceReconciler", func() {
 		var database apiV1.PgDatabase
 		err = k8sClient.Get(ctx, request.NamespacedName, &database)
 		Expect(err).To(BeNil())
-		Expect(database.Status.Conditions).To(HaveLen(2))
-		Expect(database.Status.Conditions[0].Status).To(Equal(metaV1.ConditionTrue))
-		Expect(database.Status.Conditions[1].Status).To(Equal(metaV1.ConditionTrue))
+		Expect(database.Status.Conditions).To(HaveLen(3))
+		// and Connected Condition is true
+		connectionCondition := meta.FindStatusCondition(database.Status.Conditions, apiV1.PgConnectedConditionType)
+		Expect(connectionCondition.Status).To(Equal(v1.ConditionTrue))
+		// and Database Exists Condition is true
+		databaseCondition := meta.FindStatusCondition(database.Status.Conditions, apiV1.PgDatabaseExistsConditionType)
+		Expect(databaseCondition.Status).To(Equal(v1.ConditionTrue))
+		// and Extensions Exists Condition is true
+		extensionCondition := meta.FindStatusCondition(database.Status.Conditions, apiV1.PgDatabaseExtensionsConditionType)
+		Expect(extensionCondition.Status).To(Equal(v1.ConditionTrue))
 
 		// and
 		database = apiV1.PgDatabase{}

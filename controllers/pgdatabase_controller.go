@@ -253,10 +253,14 @@ func (r *PgDatabaseReconciler) handleExtensions(ctx context.Context, pgApi PgDat
 			continue
 		}
 		if err := pgApi.CreateDatabaseExtension(database.Name, extension); err != nil {
+			reason := "MissingExtension-" + extension
+			message := "The database extension " + extension + " cannot be created\n" + err.Error()
+			setCondition(ctx, r.Status(), database, apiV1.PgDatabaseExtensionsConditionType, false, reason, message)
 			return err
 		}
 	}
-	return nil
+	// Update Database Extension Exists Condition
+	return setCondition(ctx, r.Status(), database, apiV1.PgDatabaseExtensionsConditionType, true, "AllExtensionsArePresent", "-")
 }
 
 func (r *PgDatabaseReconciler) handleDefaultPrivileges(ctx context.Context, pgApi PgDatabaseAPI, database *apiV1.PgDatabase) error {
