@@ -337,7 +337,6 @@ func (r *PgUserReconciler) checkIfDatabasesExist(ctx context.Context, pgApi PgRo
 		}
 		databaseNames[item.Name] = exists
 	}
-	allDatabasesExist := true
 	reason := "DatabasesExist"
 	message := "All databases exist"
 	missingDBs := make([]string, 0)
@@ -346,8 +345,9 @@ func (r *PgUserReconciler) checkIfDatabasesExist(ctx context.Context, pgApi PgRo
 			continue
 		}
 		missingDBs = append(missingDBs, name)
-		allDatabasesExist = allDatabasesExist && exist
 	}
+	// evaluate collected informations
+	allDatabasesExist := len(missingDBs) == 0
 	if len(missingDBs) > 0 {
 		reason = "DatabasesMissing"
 		message = "The instance does not contain the databases: " + strings.Join(missingDBs, ",")
