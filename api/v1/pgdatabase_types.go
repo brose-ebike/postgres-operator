@@ -26,6 +26,18 @@ import (
 const DefaultFinalizerPgDatabase = "postgres.brose.bike/pgdatabase"
 const PgDatabaseExistsConditionType string = "pgdatabase.postgres.brose.bike/exists"
 
+// +kubebuilder:validation:Enum=SELECT;INSERT;UPDATE;DELETE;TRUNCATE;REFERENCES;TRIGGER
+type TablePrivilege string
+
+// +kubebuilder:validation:Enum=SELECT;UPDATE;USAGE
+type SequencePrivilege string
+
+// +kubebuilder:validation:Enum=EXECUTE
+type FunctionPrivilege string
+
+// +kubebuilder:validation:Enum=USAGE
+type TypePrivilege string
+
 type PgDatabaseDeletion struct {
 	// Drop specifies if the database should be dropped on deletion (defaults to false)
 	Drop bool `json:"drop,omitempty"`
@@ -39,16 +51,47 @@ type PgDatabaseDefaultPrivileges struct {
 	// Name specifies the name of the schema for which the default privileges should be granted.
 	Name string `json:"name"`
 	// TablePrivileges specifies the name of the privileges on tables which should be granted to the roles
-	TablePrivileges []string `json:"tablePrivileges,omitempty"`
+	TablePrivileges []TablePrivilege `json:"tablePrivileges,omitempty"`
 	// SequencePrivileges specifies the name of the privileges on tables which should be granted to the roles
-	SequencePrivileges []string `json:"sequencePrivileges,omitempty"`
+	SequencePrivileges []SequencePrivilege `json:"sequencePrivileges,omitempty"`
 	// FunctionPrivileges specifies the name of the privileges on tables which should be granted to the roles
-	FunctionPrivileges []string `json:"functionPrivileges,omitempty"`
-	// RoutinePrivileges specifies the name of the privileges on tables which should be granted to the roles
-	RoutinePrivileges []string `json:"routinePrivileges,omitempty"`
+	FunctionPrivileges []FunctionPrivilege `json:"functionPrivileges,omitempty"`
 	// TypePrivileges specifies the name of the privileges on tables which should be granted to the roles
-	TypePrivileges []string `json:"typePrivileges,omitempty"`
+	TypePrivileges []TypePrivilege `json:"typePrivileges,omitempty"`
 }
+
+func (dp *PgDatabaseDefaultPrivileges) TablePrivilegesStr() []string {
+	privileges := make([]string, len(dp.TablePrivileges))
+	for i := range dp.TablePrivileges {
+		privileges[i] = string(dp.TablePrivileges[i])
+	}
+	return privileges
+}
+
+func (dp *PgDatabaseDefaultPrivileges) SequencePrivilegesStr() []string {
+	privileges := make([]string, len(dp.SequencePrivileges))
+	for i := range dp.SequencePrivileges {
+		privileges[i] = string(dp.SequencePrivileges[i])
+	}
+	return privileges
+}
+
+func (dp *PgDatabaseDefaultPrivileges) FunctionPrivilegesStr() []string {
+	privileges := make([]string, len(dp.FunctionPrivileges))
+	for i := range dp.FunctionPrivileges {
+		privileges[i] = string(dp.FunctionPrivileges[i])
+	}
+	return privileges
+}
+
+func (dp *PgDatabaseDefaultPrivileges) TypePrivilegesStr() []string {
+	privileges := make([]string, len(dp.TypePrivileges))
+	for i := range dp.TypePrivileges {
+		privileges[i] = string(dp.TypePrivileges[i])
+	}
+	return privileges
+}
+
 type PgDatabasePublicPrivileges struct {
 	// Revoke the public privileges from all database object
 	Revoke bool `json:"revoke"`

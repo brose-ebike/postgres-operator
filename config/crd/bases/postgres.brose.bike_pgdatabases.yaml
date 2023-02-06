@@ -44,6 +44,8 @@ spec:
                       description: FunctionPrivileges specifies the name of the privileges
                         on tables which should be granted to the roles
                       items:
+                        enum:
+                        - EXECUTE
                         type: string
                       type: array
                     name:
@@ -56,28 +58,36 @@ spec:
                       items:
                         type: string
                       type: array
-                    routinePrivileges:
-                      description: RoutinePrivileges specifies the name of the privileges
-                        on tables which should be granted to the roles
-                      items:
-                        type: string
-                      type: array
                     sequencePrivileges:
                       description: SequencePrivileges specifies the name of the privileges
                         on tables which should be granted to the roles
                       items:
+                        enum:
+                        - SELECT
+                        - UPDATE
+                        - USAGE
                         type: string
                       type: array
                     tablePrivileges:
                       description: TablePrivileges specifies the name of the privileges
                         on tables which should be granted to the roles
                       items:
+                        enum:
+                        - SELECT
+                        - INSERT
+                        - UPDATE
+                        - DELETE
+                        - TRUNCATE
+                        - REFERENCES
+                        - TRIGGER
                         type: string
                       type: array
                     typePrivileges:
                       description: TypePrivileges specifies the name of the privileges
                         on tables which should be granted to the roles
                       items:
+                        enum:
+                        - USAGE
                         type: string
                       type: array
                   required:

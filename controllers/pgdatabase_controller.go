@@ -250,23 +250,19 @@ func (r *PgDatabaseReconciler) handleDefaultPrivileges(ctx context.Context, pgAp
 		}
 		for _, role := range schema.Roles {
 			// Update table privileges
-			if err := pgApi.UpdateDefaultPrivileges(database.Name, schema.Name, role, "tables", schema.TablePrivileges); err != nil {
+			if err := pgApi.UpdateDefaultPrivileges(database.Name, schema.Name, role, "tables", schema.TablePrivilegesStr()); err != nil {
 				return err
 			}
 			// Update sequence privileges
-			if err := pgApi.UpdateDefaultPrivileges(database.Name, schema.Name, role, "sequences", schema.SequencePrivileges); err != nil {
+			if err := pgApi.UpdateDefaultPrivileges(database.Name, schema.Name, role, "sequences", schema.SequencePrivilegesStr()); err != nil {
 				return err
 			}
 			// Update function privileges
-			if err := pgApi.UpdateDefaultPrivileges(database.Name, schema.Name, role, "functions", schema.FunctionPrivileges); err != nil {
-				return err
-			}
-			// Update routine privileges
-			if err := pgApi.UpdateDefaultPrivileges(database.Name, schema.Name, role, "routines", schema.RoutinePrivileges); err != nil {
+			if err := pgApi.UpdateDefaultPrivileges(database.Name, schema.Name, role, "functions", schema.FunctionPrivilegesStr()); err != nil {
 				return err
 			}
 			// Update type privileges
-			if err := pgApi.UpdateDefaultPrivileges(database.Name, schema.Name, role, "types", schema.TypePrivileges); err != nil {
+			if err := pgApi.UpdateDefaultPrivileges(database.Name, schema.Name, role, "types", schema.TypePrivilegesStr()); err != nil {
 				return err
 			}
 		}
