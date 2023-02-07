@@ -2,6 +2,89 @@
 This operator can be used with ArgoCD.
 In the following sections additional integrations with ArgoCD are described.
 
+## Health Checks
+Its possible to add health checks to custom resources.
+When this operator is used in ArgoCD the configuration below can be used to enhance the experience in ArgoCD.
+See [ArgoCD Documentation](https://argo-cd.readthedocs.io/en/stable/operator-manual/health/#custom-health-checks) for more details.
+
+```yaml
+data:
+    resource.customizations.health.postgres.brose.bike_PgInstance: |
+        hs = {}
+        if obj.status ~= nil then
+            if obj.status.conditions ~= nil then
+                for i, condition in ipairs(obj.status.conditions) do
+                    if condition.type ~= nil then
+                        if condition.type == "postgres.brose.bike/connected" and condition.status == "False" then
+                            hs.status = "Progressing"
+                            hs.message = condition.message
+                            return hs
+                        end
+                    end
+                end
+            end
+        end
+
+        hs.status = "Healthy"
+        return hs
+    resource.customizations.health.postgres.brose.bike_PgUser: |
+        hs = {}
+        if obj.status ~= nil then
+            if obj.status.conditions ~= nil then
+                for i, condition in ipairs(obj.status.conditions) do
+                    if condition.type ~= nil then
+                        if condition.type == "postgres.brose.bike/connected" and condition.status == "False" then
+                            hs.status = "Progressing"
+                            hs.message = condition.message
+                            return hs
+                        end        
+                        if condition.type == "pguser.postgres.brose.bike/exists" and condition.status == "False" then
+                            hs.status = "Progressing"
+                            hs.message = condition.message
+                            return hs
+                        end  
+                        if condition.type == "pguser.postgres.brose.bike/databases" and condition.status == "False" then
+                            hs.status = "Degraded"
+                            hs.message = condition.message
+                            return hs
+                        end
+                    end
+                end
+            end
+        end
+
+        hs.status = "Healthy"
+        return hs
+    resource.customizations.health.postgres.brose.bike_PgDatabase: |
+        hs = {}
+        if obj.status ~= nil then
+            if obj.status.conditions ~= nil then
+                for i, condition in ipairs(obj.status.conditions) do
+                    if condition.type ~= nil then
+                        if condition.type == "postgres.brose.bike/connected" and condition.status == "False" then
+                            hs.status = "Progressing"
+                            hs.message = condition.message
+                            return hs
+                        end        
+                        if condition.type == "pgdatabase.postgres.brose.bike/exists" and condition.status == "False" then
+                            hs.status = "Progressing"
+                            hs.message = condition.message
+                            return hs
+                        end
+                        if condition.type == "pgdatabase.postgres.brose.bike/extensions" and condition.status == "False" then
+                            hs.status = "Degraded"
+                            hs.message = condition.message
+                            return hs
+                        end  
+                    end
+                end
+            end
+        end
+
+        hs.status = "Healthy"
+        return hs  
+```
+
 ## Styling
 When this operator is used in ArgoCD the css styles below can be used to enhance the experience in ArgoCD.
 
