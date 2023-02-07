@@ -100,6 +100,16 @@ var _ = Describe("PostgresAPI Database Handling", func() {
 	})
 
 	It("can create extensions", func() {
-		// TODO
+		databaseName := "dummy_db_5"
+		// Create new database
+		err := pgApi.CreateDatabase(databaseName)
+		Expect(err).To(BeNil())
+		// Create Extension
+		err = pgApi.CreateDatabaseExtension(databaseName, "uuid-ossp")
+		Expect(err).To(BeNil())
+		// Create Extension
+		exists, err := pgApi.IsDatabaseExtensionPresent(databaseName, "uuid-ossp")
+		Expect(exists).To(BeTrue())
+		Expect(err).To(BeNil())
 	})
 })

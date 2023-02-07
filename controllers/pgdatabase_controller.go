@@ -253,10 +253,14 @@ func (r *PgDatabaseReconciler) handleExtensions(ctx context.Context, pgApi PgDat
 			continue
 		}
 		if err := pgApi.CreateDatabaseExtension(database.Name, extension); err != nil {
+			reason := "MissingExtension-" + extension
+			message := "The database extension " + extension + " cannot be created\n" + err.Error()
+			setCondition(ctx, r.Status(), database, apiV1.PgDatabaseExtensionsConditionType, false, reason, message)
 			return err
 		}
 	}
-	return nil
+	// Update Database Extension Exists Condition
+	return setCondition(ctx, r.Status(), database, apiV1.PgDatabaseExtensionsConditionType, true, "AllExtensionsArePresent", "-")
 }
 
 func (r *PgDatabaseReconciler) handleDefaultPrivileges(ctx context.Context, pgApi PgDatabaseAPI, database *apiV1.PgDatabase) error {
@@ -272,23 +276,19 @@ func (r *PgDatabaseReconciler) handleDefaultPrivileges(ctx context.Context, pgAp
 		}
 		for _, role := range schema.Roles {
 			// Update table privileges
-			if err := pgApi.UpdateDefaultPrivileges(database.Name, schema.Name, role, "tables", schema.TablePrivileges); err != nil {
+			if err := pgApi.UpdateDefaultPrivileges(database.Name, schema.Name, role, "TABLES", schema.TablePrivilegesStr()); err != nil {
 				return err
 			}
 			// Update sequence privileges
-			if err := pgApi.UpdateDefaultPrivileges(database.Name, schema.Name, role, "sequences", schema.SequencePrivileges); err != nil {
+			if err := pgApi.UpdateDefaultPrivileges(database.Name, schema.Name, role, "SEQUENCES", schema.SequencePrivilegesStr()); err != nil {
 				return err
 			}
 			// Update function privileges
-			if err := pgApi.UpdateDefaultPrivileges(database.Name, schema.Name, role, "functions", schema.FunctionPrivileges); err != nil {
-				return err
-			}
-			// Update routine privileges
-			if err := pgApi.UpdateDefaultPrivileges(database.Name, schema.Name, role, "routines", schema.RoutinePrivileges); err != nil {
+			if err := pgApi.UpdateDefaultPrivileges(database.Name, schema.Name, role, "FUNCTIONS", schema.FunctionPrivilegesStr()); err != nil {
 				return err
 			}
 			// Update type privileges
-			if err := pgApi.UpdateDefaultPrivileges(database.Name, schema.Name, role, "types", schema.TypePrivileges); err != nil {
+			if err := pgApi.UpdateDefaultPrivileges(database.Name, schema.Name, role, "TYPES", schema.TypePrivilegesStr()); err != nil {
 				return err
 			}
 		}
