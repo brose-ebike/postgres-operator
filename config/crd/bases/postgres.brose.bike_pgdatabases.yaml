@@ -52,6 +52,15 @@ spec:
                       description: Name specifies the name of the schema for which
                         the default privileges should be granted.
                       type: string
+                    privileges:
+                      description: SchemaPrivileges specifies the privileges on this
+                        schema which should be granted to the roles
+                      items:
+                        enum:
+                        - USAGE
+                        - CREATE
+                        type: string
+                      type: array
                     roles:
                       description: Roles specifies the name of the roles for which
                         the privileges should be granted
@@ -148,9 +157,7 @@ spec:
                 - drop
                 type: object
             required:
-            - defaultPrivileges
             - deletion
-            - extensions
             - instance
             - publicPrivileges
             - publicSchema

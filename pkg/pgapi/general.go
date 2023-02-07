@@ -19,7 +19,6 @@ package pgapi
 import (
 	"context"
 	"database/sql"
-	"fmt"
 
 	_ "github.com/lib/pq"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -93,7 +92,7 @@ func (s *pgInstanceAPIImpl) runAs(con *sql.Conn, role string, runner func() erro
 	// Grant role to myRole
 	if !isMember {
 		const queryG = "grant %s to %s;"
-		_, err := con.ExecContext(s.ctx, fmt.Sprintf(queryG, role, myRole))
+		_, err := con.ExecContext(s.ctx, formatQueryObj(queryG, role, myRole))
 		if err != nil {
 			return err
 		}
@@ -103,7 +102,7 @@ func (s *pgInstanceAPIImpl) runAs(con *sql.Conn, role string, runner func() erro
 	// Revoke role to myRole
 	if !isMember {
 		const queryR = "revoke %s from %s;"
-		_, err := con.ExecContext(s.ctx, fmt.Sprintf(queryR, role, myRole))
+		_, err := con.ExecContext(s.ctx, formatQueryObj(queryR, role, myRole))
 		if err != nil {
 			return err
 		}
@@ -133,6 +132,59 @@ func (s *pgInstanceAPIImpl) runIn(database string, runner func(ctx context.Conte
 
 	// Execute commands
 	err = runner(ctx, conn)
+
+	// Close connection
+	if err := conn.Close(); err != nil {
+		return err
+	}
+
+	return err
+}
+
+func (s *pgInstanceAPIImpl) runInAs(database string, role string, runner func(ctx context.Context, conn *sql.Conn) error) error {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Use new connection string
+	conStr := s.connectionString.copy()
+	conStr.database = database
+
+	// Start SQL Database
+	db, err := sql.Open("postgres", conStr.toString())
+	if err != nil {
+		return err
+	}
+
+	// Connect to Database Server
+	conn, err := db.Conn(ctx)
+	if err != nil {
+		return err
+	}
+
+	myRole := s.connectionString.username
+	isMember, err := s.isMember(conn, myRole, role)
+	if err != nil {
+		return err
+	}
+	// Grant role to myRole
+	if !isMember {
+		const queryG = "grant %s to %s;"
+		_, err := conn.ExecContext(s.ctx, formatQueryObj(queryG, role, myRole))
+		if err != nil {
+			return err
+		}
+	}
+	// Execute runner
+	err = runner(ctx, conn)
+
+	// Revoke role to myRole
+	if !isMember {
+		const queryR = "revoke %s from %s;"
+		_, err := conn.ExecContext(s.ctx, formatQueryObj(queryR, role, myRole))
+		if err != nil {
+			return err
+		}
+	}
 
 	// Close connection
 	if err := conn.Close(); err != nil {

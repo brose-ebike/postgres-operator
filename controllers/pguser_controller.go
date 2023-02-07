@@ -191,9 +191,18 @@ func (r *PgUserReconciler) createPgApi(ctx context.Context, user *apiV1.PgUser) 
 func (r *PgUserReconciler) finalize(ctx context.Context, user *apiV1.PgUser, pgApi pgapi.PgRoleAPI) error {
 	logger := log.FromContext(ctx)
 
-	if err := pgApi.DeleteRole(user.Name); err != nil {
-		logger.Error(err, "Unable to remove login role "+user.Name+" from "+user.GetInstanceIdString())
+	// Delete only if user exists
+	exists, err := pgApi.IsRoleExisting(user.Name)
+	if err != nil {
+		logger.Error(err, "Unable to check users existence "+user.Name+" from "+user.GetInstanceIdString())
 		return err
+	}
+
+	if exists {
+		if err := pgApi.DeleteRole(user.Name); err != nil {
+			logger.Error(err, "Unable to remove login role "+user.Name+" from "+user.GetInstanceIdString())
+			return err
+		}
 	}
 
 	// Update Login Role Exists Condition
@@ -216,7 +225,7 @@ func (r *PgUserReconciler) finalize(ctx context.Context, user *apiV1.PgUser, pgA
 
 	// Remove finalizer
 	controllerutil.RemoveFinalizer(user, apiV1.DefaultFinalizerPgUser)
-	err := r.Update(ctx, user)
+	err = r.Update(ctx, user)
 	if err != nil {
 		return err
 	}
