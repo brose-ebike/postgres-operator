@@ -209,16 +209,11 @@ func (s *pgInstanceAPIImpl) MakeSchemaUseable(databaseName string, schemaName st
 }
 
 func (s *pgInstanceAPIImpl) GetSchemaOwner(databaseName string, schemaName string) (string, error) {
-	// Connect to Database Server
-	conn, err := s.newConnection()
-	if err != nil {
-		return "", err
-	}
 	var schemaOwner string
-	const query = "select r.rolname as schema_owner from pg_namespace ns join pg_roles r on ns.nspowner = r.oid where nspname=$1;"
-	err = conn.QueryRowContext(s.ctx, query, databaseName).Scan(&schemaOwner)
-	if err != nil {
-		return "", WrapSqlExecutionError(err, query, databaseName)
-	}
-	return schemaOwner, nil
+	err := s.runIn(databaseName, func(ctx context.Context, conn *sql.Conn) error {
+		const query = "select r.rolname as schema_owner from pg_namespace ns join pg_roles r on ns.nspowner = r.oid where nspname=$1;"
+		err := conn.QueryRowContext(s.ctx, query, schemaName).Scan(&schemaOwner)
+		return WrapSqlExecutionError(err, query, schemaName)
+	})
+	return schemaOwner, err
 }
