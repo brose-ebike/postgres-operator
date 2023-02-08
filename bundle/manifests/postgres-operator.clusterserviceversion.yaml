@@ -115,8 +115,8 @@ metadata:
         }
       ]
     capabilities: Basic Install
-    createdAt: "2023-01-27T08:24:37Z"
-    operators.operatorframework.io/builder: operator-sdk-v1.26.0
+    createdAt: "2023-02-08T20:11:36Z"
+    operators.operatorframework.io/builder: operator-sdk-v1.27.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
   name: postgres-operator.v0.0.1
   namespace: placeholder
@@ -330,7 +330,7 @@ spec:
                 - --leader-elect
                 command:
                 - /manager
-                image: controller:latest
+                image: ghcr.io/brose-ebike/postgres-operator:v0.0.2
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -419,9 +419,9 @@ spec:
   - name: Postgres Operator
     url: https://postgres-operator.domain
   maintainers:
-  - email: simon.schneider@brose.com
+  - email: 10846939+raynigon@users.noreply.github.com
     name: Simon Schneider
-  - email: Lucas.Duerksen@brose.com
+  - email: lucas.duerksen@brose.com
     name: Lucas Dürksen
   maturity: alpha
   provider:
