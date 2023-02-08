@@ -17,6 +17,8 @@ limitations under the License.
 package pgapi
 
 import (
+	"errors"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -111,5 +113,20 @@ var _ = Describe("PostgresAPI Database Handling", func() {
 		exists, err := pgApi.IsDatabaseExtensionPresent(databaseName, "uuid-ossp")
 		Expect(exists).To(BeTrue())
 		Expect(err).To(BeNil())
+	})
+
+	It("cannot create a database twice", func() {
+		// Create new database
+		err := pgApi.CreateDatabase("dummy_db_6")
+		Expect(err).To(BeNil())
+		// Check if database exists
+		exists, err := pgApi.IsDatabaseExisting("dummy_db_6")
+		Expect(err).To(BeNil())
+		Expect(exists).To(BeTrue())
+		// Create the database twice
+		err = pgApi.CreateDatabase("dummy_db_6")
+		Expect(err).ToNot(BeNil())
+		Expect(err.Error()).To(Equal("Unable to execute query 'create database %s;' with arguments 'dummy_db_6'\npq: database \"dummy_db_6\" already exists"))
+		Expect(errors.Unwrap(err).Error()).To(Equal("pq: database \"dummy_db_6\" already exists"))
 	})
 })

@@ -45,7 +45,7 @@ func (s *pgInstanceAPIImpl) IsRoleExisting(roleName string) (bool, error) {
 	const query = "select exists(select * from pg_catalog.pg_user where usename = $1);"
 	err = conn.QueryRowContext(s.ctx, query, roleName).Scan(&exists)
 	if err != nil {
-		return false, err
+		return false, WrapSqlExecutionError(err, query, roleName)
 	}
 	return exists, nil
 }
@@ -59,7 +59,7 @@ func (s *pgInstanceAPIImpl) CreateRole(name string) error {
 	// Execute Query
 	const query = "create user %s;"
 	_, err = conn.ExecContext(s.ctx, formatQueryObj(query, name))
-	return err
+	return WrapSqlExecutionError(err, query, name)
 }
 
 func (s *pgInstanceAPIImpl) DeleteRole(name string) error {
@@ -74,12 +74,12 @@ func (s *pgInstanceAPIImpl) DeleteRole(name string) error {
 		const queryR = "reassign owned by %s to %s;"
 		_, err = conn.ExecContext(s.ctx, formatQueryObj(queryR, name, s.connectionString.username))
 		if err != nil {
-			return err
+			return WrapSqlExecutionError(err, queryR, name)
 		}
 		// drop all existing privileges
 		const queryD = "drop owned by %s;"
 		_, err = conn.ExecContext(s.ctx, formatQueryObj(queryD, name))
-		return err
+		return WrapSqlExecutionError(err, queryD, name)
 	})
 	if err != nil {
 		return err
@@ -88,7 +88,7 @@ func (s *pgInstanceAPIImpl) DeleteRole(name string) error {
 	// Execute Drop User
 	const queryD = "drop user %s;"
 	_, err = conn.ExecContext(s.ctx, formatQueryObj(queryD, name))
-	return err
+	return WrapSqlExecutionError(err, queryD, name)
 }
 
 func (s *pgInstanceAPIImpl) UpdateUserPassword(name string, password string) error {
@@ -101,5 +101,5 @@ func (s *pgInstanceAPIImpl) UpdateUserPassword(name string, password string) err
 	password = strings.ReplaceAll(password, "'", "\\'")
 	query := "alter user %s with password '" + password + "' login;"
 	_, err = conn.ExecContext(s.ctx, formatQueryObj(query, name))
-	return err
+	return WrapSqlExecutionError(err, query, name)
 }

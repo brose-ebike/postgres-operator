@@ -59,7 +59,7 @@ func (s *pgInstanceAPIImpl) IsDatabaseExisting(databaseName string) (bool, error
 	const query = "select exists(select * from pg_catalog.pg_database where datname = $1);"
 	err = conn.QueryRowContext(s.ctx, query, databaseName).Scan(&exists)
 	if err != nil {
-		return false, err
+		return false, WrapSqlExecutionError(err, query, databaseName)
 	}
 	return exists, nil
 }
@@ -73,7 +73,7 @@ func (s *pgInstanceAPIImpl) CreateDatabase(databaseName string) error {
 	// Execute Query
 	const query = "create database %s;"
 	_, err = conn.ExecContext(s.ctx, formatQueryObj(query, databaseName))
-	return err
+	return WrapSqlExecutionError(err, query, databaseName)
 }
 
 func (s *pgInstanceAPIImpl) DeleteDatabase(databaseName string) error {
@@ -86,7 +86,7 @@ func (s *pgInstanceAPIImpl) DeleteDatabase(databaseName string) error {
 		// Execute Query
 		const query = "drop database %s;"
 		_, err = conn.ExecContext(s.ctx, formatQueryObj(query, databaseName))
-		return err
+		return WrapSqlExecutionError(err, query, databaseName)
 	})
 }
 
@@ -100,18 +100,18 @@ func (s *pgInstanceAPIImpl) UpdateDatabaseOwner(databaseName string, roleName st
 	const queryG = "grant %s to %s;"
 	_, err = conn.ExecContext(s.ctx, formatQueryObj(queryG, roleName, s.connectionString.username))
 	if err != nil {
-		return err
+		return WrapSqlExecutionError(err, queryG, databaseName, s.connectionString.username)
 	}
 	// Execute Query
 	const queryA = "alter database %s owner to %s;"
 	_, err = conn.ExecContext(s.ctx, formatQueryObj(queryA, databaseName, roleName))
 	if err != nil {
-		return err
+		return WrapSqlExecutionError(err, queryA, databaseName, roleName)
 	}
 	// Execute Query
 	const queryR = "revoke %s from %s;"
 	_, err = conn.ExecContext(s.ctx, formatQueryObj(queryR, roleName, s.connectionString.username))
-	return err
+	return WrapSqlExecutionError(err, queryR, databaseName, s.connectionString.username)
 }
 
 func (s *pgInstanceAPIImpl) UpdateDatabasePrivileges(databaseName string, roleName string, privileges []string) error {
@@ -133,7 +133,7 @@ func (s *pgInstanceAPIImpl) UpdateDatabasePrivileges(databaseName string, roleNa
 	const queryR = "revoke all on database %s from %s;"
 	_, err = conn.ExecContext(s.ctx, formatQueryObj(queryR, databaseName, roleName))
 	if err != nil {
-		return err
+		return WrapSqlExecutionError(err, queryR, databaseName, roleName)
 	}
 	// no privileges need to be granted
 	if len(privileges) == 0 {
@@ -143,7 +143,7 @@ func (s *pgInstanceAPIImpl) UpdateDatabasePrivileges(databaseName string, roleNa
 	// grant all privileges
 	queryG := "grant " + joinedPrivileges + " on database %s to %s;"
 	_, err = conn.ExecContext(s.ctx, formatQueryObj(queryG, databaseName, roleName))
-	return err
+	return WrapSqlExecutionError(err, queryG, databaseName, roleName)
 }
 
 func (s *pgInstanceAPIImpl) GetDatabaseOwner(databaseName string) (string, error) {
@@ -156,7 +156,7 @@ func (s *pgInstanceAPIImpl) GetDatabaseOwner(databaseName string) (string, error
 	const query = "select pg_catalog.pg_get_userbyid(d.datdba) as owner from pg_catalog.pg_database as d where d.datname = $1;"
 	err = conn.QueryRowContext(s.ctx, query, databaseName).Scan(&databaseOwner)
 	if err != nil {
-		return "", err
+		return "", WrapSqlExecutionError(err, query, databaseName)
 	}
 	return databaseOwner, nil
 }
@@ -174,7 +174,7 @@ func (s *pgInstanceAPIImpl) ResetDatabaseOwner(databaseName string) error {
 	return s.runAs(conn, oldOwner, func() error {
 		const query = "alter database %s owner to %s;"
 		_, err = conn.ExecContext(s.ctx, formatQueryObj(query, databaseName, s.connectionString.username))
-		return err
+		return WrapSqlExecutionError(err, query, databaseName, s.connectionString.username)
 	})
 }
 
@@ -183,7 +183,8 @@ func (s *pgInstanceAPIImpl) IsDatabaseExtensionPresent(databaseName string, exte
 	// Execute Query
 	err := s.runIn(databaseName, func(ctx context.Context, conn *sql.Conn) error {
 		const query = "select exists(SELECT * FROM pg_extension where extname = $1);"
-		return conn.QueryRowContext(s.ctx, query, extension).Scan(&exists)
+		err := conn.QueryRowContext(s.ctx, query, extension).Scan(&exists)
+		return WrapSqlExecutionError(err, query, extension)
 	})
 	return exists, err
 }
@@ -193,6 +194,6 @@ func (s *pgInstanceAPIImpl) CreateDatabaseExtension(databaseName string, extensi
 	return s.runIn(databaseName, func(ctx context.Context, conn *sql.Conn) error {
 		const query = "create extension %s;"
 		_, err := conn.ExecContext(s.ctx, formatQueryObj(query, extension))
-		return err
+		return WrapSqlExecutionError(err, query, extension)
 	})
 }

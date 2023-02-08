@@ -141,31 +141,3 @@ func (s *pgInstanceAPIImpl) runIn(database string, runner func(ctx context.Conte
 
 	return err
 }
-
-func (s *pgInstanceAPIImpl) runInDatabase(database string, runner func(ctx context.Context, conn *sql.Conn) error) error {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	connectionString := s.connectionString.copy()
-	connectionString.database = database
-	db, err := sql.Open("postgres", connectionString.toString())
-	if err != nil {
-		return err
-	}
-
-	// Connect to Database Server
-	con, err := db.Conn(ctx)
-	if err != nil {
-		return err
-	}
-
-	err = runner(ctx, con)
-
-	if err := con.Close(); err != nil {
-		return err
-	}
-	if err := db.Close(); err != nil {
-		return err
-	}
-
-	return err
-}
