@@ -296,9 +296,6 @@ func (r *PgDatabaseReconciler) handleDefaultPrivileges(ctx context.Context, pgAp
 			if err := pgApi.UpdatePrivilegesOnAllObjects(database.Name, schema.SchemaName, role, "TABLES", schema.TablePrivilegesStr()); err != nil {
 				return err
 			}
-			if err := pgApi.UpdatePrivilegesOnAllObjects(database.Name, schema.Name, role, "TABLES", schema.TablePrivilegesStr()); err != nil {
-				return err
-			}
 			// Update sequence privileges
 			if err := pgApi.UpdateDefaultPrivileges(database.Name, schema.SchemaName, role, "SEQUENCES", schema.SequencePrivilegesStr()); err != nil {
 				return err
@@ -306,17 +303,11 @@ func (r *PgDatabaseReconciler) handleDefaultPrivileges(ctx context.Context, pgAp
 			if err := pgApi.UpdatePrivilegesOnAllObjects(database.Name, schema.SchemaName, role, "SEQUENCES", schema.SequencePrivilegesStr()); err != nil {
 				return err
 			}
-			if err := pgApi.UpdatePrivilegesOnAllObjects(database.Name, schema.Name, role, "SEQUENCES", schema.SequencePrivilegesStr()); err != nil {
-				return err
-			}
 			// Update function privileges
 			if err := pgApi.UpdateDefaultPrivileges(database.Name, schema.SchemaName, role, "FUNCTIONS", schema.FunctionPrivilegesStr()); err != nil {
 				return err
 			}
 			if err := pgApi.UpdatePrivilegesOnAllObjects(database.Name, schema.SchemaName, role, "FUNCTIONS", schema.FunctionPrivilegesStr()); err != nil {
-				return err
-			}
-			if err := pgApi.UpdatePrivilegesOnAllObjects(database.Name, schema.Name, role, "FUNCTIONS", schema.FunctionPrivilegesStr()); err != nil {
 				return err
 			}
 			// Update type privileges
