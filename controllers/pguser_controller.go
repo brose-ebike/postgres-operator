@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -194,13 +195,13 @@ func (r *PgUserReconciler) finalize(ctx context.Context, user *apiV1.PgUser, pgA
 	// Delete only if user exists
 	exists, err := pgApi.IsRoleExisting(user.Name)
 	if err != nil {
-		logger.Error(err, "Unable to check users existence "+user.Name+" from "+user.GetInstanceIdString())
+		logger.Error(err, fmt.Sprintf("Unable to check user`s existence %s from %s", user.Name, user.GetInstanceIdString()))
 		return err
 	}
 
 	if exists {
 		if err := pgApi.DeleteRole(user.Name); err != nil {
-			logger.Error(err, "Unable to remove login role "+user.Name+" from "+user.GetInstanceIdString())
+			logger.Error(err, fmt.Sprintf("Unable to remove login role %s from %s", user.Name, user.GetInstanceIdString()))
 			return err
 		}
 	}
@@ -241,17 +242,17 @@ func (r *PgUserReconciler) createLoginRoleIfNotExists(ctx context.Context, pgApi
 
 	exists, err := pgApi.IsRoleExisting(roleName)
 	if err != nil {
-		logger.Error(err, "Unable to query login role "+roleName)
+		logger.Error(err, fmt.Sprintf("Unable to query login role %s", roleName))
 		return err
 	}
 
 	// create roles
 	if !exists {
 		if err := pgApi.CreateRole(roleName); err != nil {
-			logger.Error(err, "Unable to create login role "+roleName)
+			logger.Error(err, fmt.Sprintf("Unable to create login role %s", roleName))
 			return err
 		}
-		logger.Info("Created login role " + roleName)
+		logger.Info(fmt.Sprintf("Created login role %s", roleName))
 	}
 	return nil
 }
@@ -268,7 +269,7 @@ func (r *PgUserReconciler) createOrUpdateSecret(ctx context.Context, pgApi PgRol
 	}
 	err := r.Get(ctx, secretKey, &roleSecret)
 	if err != nil && !kErrors.IsNotFound(err) {
-		logger.Error(err, "Unable to fetch role secret for login role "+roleName)
+		logger.Error(err, fmt.Sprintf("Unable to fetch role secret for login role %s", roleName))
 		return "", err
 	} else if err != nil && kErrors.IsNotFound(err) { // Create Secret
 		password = security.GeneratePassword()
@@ -290,7 +291,7 @@ func (r *PgUserReconciler) createOrUpdateSecret(ctx context.Context, pgApi PgRol
 			Data: r.generateSecretData(pgApi, user, password),
 		}
 		if err := r.Create(ctx, &roleSecret); err != nil {
-			logger.Error(err, "Unable to create role secret for login role "+roleName)
+			logger.Error(err, fmt.Sprintf("Unable to create role secret for login role %s", roleName))
 			return "", err
 		}
 	} else { // Update Secret
@@ -310,7 +311,7 @@ func (r *PgUserReconciler) createOrUpdateSecret(ctx context.Context, pgApi PgRol
 		roleSecret.Data = r.generateSecretData(pgApi, user, password)
 		err = r.Update(ctx, &roleSecret)
 		if err != nil {
-			logger.Error(err, "Unable to update role secret for login role "+roleName)
+			logger.Error(err, fmt.Sprintf("Unable to update role secret for login role %s", roleName))
 			return "", err
 		}
 	}
