@@ -122,10 +122,10 @@ func deleteAllPgUsers(ctx context.Context, c client.Client, opts []client.Delete
 	if err := c.List(ctx, &users); err != nil {
 		return nil
 	}
-
-	for _, user := range users.Items {
-		user.Finalizers = []string{}
-		if err := c.Update(ctx, &user); err != nil {
+	for i := range users.Items {
+		userPtr := &users.Items[i]
+		userPtr.Finalizers = []string{}
+		if err := c.Update(ctx, userPtr); err != nil {
 			return err
 		}
 	}
@@ -142,10 +142,10 @@ func deleteAllPgDatabases(ctx context.Context, c client.Client, opts []client.De
 	if err := c.List(ctx, &databases); err != nil {
 		return nil
 	}
-
-	for _, db := range databases.Items {
-		db.Finalizers = []string{}
-		if err := c.Update(ctx, &db); err != nil {
+	for i := range databases.Items {
+		dbPtr := &databases.Items[i]
+		dbPtr.Finalizers = []string{}
+		if err := c.Update(ctx, dbPtr); err != nil {
 			return err
 		}
 	}
@@ -162,10 +162,10 @@ func deleteAllPgInstances(ctx context.Context, c client.Client, opts []client.De
 	if err := c.List(ctx, &instances); err != nil {
 		return nil
 	}
-
-	for _, instance := range instances.Items {
-		instance.Finalizers = []string{}
-		if err := c.Update(ctx, &instance); err != nil {
+	for i := range instances.Items {
+		instancePtr := &instances.Items[i]
+		instancePtr.Finalizers = []string{}
+		if err := c.Update(ctx, instancePtr); err != nil {
 			return err
 		}
 	}
