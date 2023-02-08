@@ -101,4 +101,22 @@ var _ = Describe("PostgresAPI Schema Handling", func() {
 		err = pgApi.DeleteAllPrivilegesOnSchema(databaseName, schemaName, roleName)
 		Expect(err).To(BeNil())
 	})
+
+	It("can update privileges", func() {
+		roleName := "dummy_role_9"
+		databaseName := "dummy_db_15"
+		schemaName := "service"
+		// Create new role
+		err := pgApi.CreateRole(roleName)
+		Expect(err).To(BeNil())
+		// Create new database
+		err = pgApi.CreateDatabase(databaseName)
+		Expect(err).To(BeNil())
+		// Create Schema
+		err = pgApi.CreateSchema(databaseName, schemaName)
+		Expect(err).To(BeNil())
+		// Update Schema Privileges
+		err = pgApi.UpdatePrivilegesOnAllObjects(databaseName, schemaName, roleName, "TABLES", []string{"SELECT"})
+		Expect(err).To(BeNil())
+	})
 })

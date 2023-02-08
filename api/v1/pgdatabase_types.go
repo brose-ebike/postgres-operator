@@ -27,6 +27,9 @@ const DefaultFinalizerPgDatabase = "postgres.brose.bike/pgdatabase"
 const PgDatabaseExistsConditionType string = "pgdatabase.postgres.brose.bike/exists"
 const PgDatabaseExtensionsConditionType string = "pgdatabase.postgres.brose.bike/extensions"
 
+// +kubebuilder:validation:Enum=USAGE;CREATE
+type SchemaPrivilege string
+
 // +kubebuilder:validation:Enum=SELECT;INSERT;UPDATE;DELETE;TRUNCATE;REFERENCES;TRIGGER
 type TablePrivilege string
 
@@ -47,10 +50,12 @@ type PgDatabaseDeletion struct {
 }
 
 type PgDatabaseDefaultPrivileges struct {
+	// Name specifies the name of the schema for which the default privileges should be granted.
+	SchemaName string `json:"schemaName"`
 	// Roles specifies the name of the roles for which the privileges should be granted
 	Roles []string `json:"roles"`
-	// Name specifies the name of the schema for which the default privileges should be granted.
-	Name string `json:"name"`
+	// SchemaPrivileges specifies the privileges on this schema which should be granted to the roles
+	SchemaPrivileges []SchemaPrivilege `json:"schemaPrivileges,omitempty"`
 	// TablePrivileges specifies the name of the privileges on tables which should be granted to the roles
 	TablePrivileges []TablePrivilege `json:"tablePrivileges,omitempty"`
 	// SequencePrivileges specifies the name of the privileges on tables which should be granted to the roles
@@ -59,6 +64,14 @@ type PgDatabaseDefaultPrivileges struct {
 	FunctionPrivileges []FunctionPrivilege `json:"functionPrivileges,omitempty"`
 	// TypePrivileges specifies the name of the privileges on tables which should be granted to the roles
 	TypePrivileges []TypePrivilege `json:"typePrivileges,omitempty"`
+}
+
+func (dp *PgDatabaseDefaultPrivileges) PrivilegesStr() []string {
+	privileges := make([]string, len(dp.SchemaPrivileges))
+	for i := range dp.SchemaPrivileges {
+		privileges[i] = string(dp.SchemaPrivileges[i])
+	}
+	return privileges
 }
 
 func (dp *PgDatabaseDefaultPrivileges) TablePrivilegesStr() []string {
@@ -109,9 +122,9 @@ type PgDatabaseSpec struct {
 	// DeletionBehavior specifies what should happen when the manifest gets deleted
 	DeletionBehavior PgDatabaseDeletion `json:"deletion"`
 	// Extensions which should exist in this database
-	Extensions []string `json:"extensions"`
-	// DefaultPrivileges defines the default privileges for this database
-	DefaultPrivileges []PgDatabaseDefaultPrivileges `json:"defaultPrivileges"`
+	Extensions []string `json:"extensions,omitempty"`
+	// DefaultPrivileges defines the default privileges for schemas in this database
+	DefaultPrivileges []PgDatabaseDefaultPrivileges `json:"defaultPrivileges,omitempty"`
 	// PublicPrivileges revokes and Public stuff in postgres
 	PublicPrivileges PgDatabasePublicPrivileges `json:"publicPrivileges"`
 	// PublicSchema dropped
