@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"reflect"
 	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -104,8 +105,17 @@ func (r *PgDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	// Update Default Privileges
 	if err := r.handleDefaultPrivileges(ctx, pgApi, &database); err != nil {
+		// Update Database Exists Condition
+		if err := setCondition(ctx, r.Status(), &database, apiV1.PgDatabaseDefaultPrivilegesConditionType, false, "Error-"+reflect.TypeOf(err).Name(), err.Error()); err != nil {
+			return ctrl.Result{RequeueAfter: time.Minute}, err
+		}
 		logger.Error(err, "Unable to update default privileges", "database", database.Name, "instance", database.GetInstanceIdString())
 		return ctrl.Result{RequeueAfter: time.Minute}, err
+	} else {
+		// Update Database Exists Condition
+		if err := setCondition(ctx, r.Status(), &database, apiV1.PgDatabaseDefaultPrivilegesConditionType, true, "Success", "-"); err != nil {
+			return ctrl.Result{RequeueAfter: time.Minute}, err
+		}
 	}
 
 	// Revoke Public Privileges if needed

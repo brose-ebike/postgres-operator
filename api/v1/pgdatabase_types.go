@@ -26,6 +26,7 @@ import (
 const DefaultFinalizerPgDatabase = "postgres.brose.bike/pgdatabase"
 const PgDatabaseExistsConditionType string = "pgdatabase.postgres.brose.bike/exists"
 const PgDatabaseExtensionsConditionType string = "pgdatabase.postgres.brose.bike/extensions"
+const PgDatabaseDefaultPrivilegesConditionType string = "pgdatabase.postgres.brose.bike/default-privileges"
 
 // +kubebuilder:validation:Enum=SELECT;INSERT;UPDATE;DELETE;TRUNCATE;REFERENCES;TRIGGER
 type TablePrivilege string
