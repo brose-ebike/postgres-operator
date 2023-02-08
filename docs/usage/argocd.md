@@ -76,6 +76,11 @@ data:
                             hs.message = condition.message
                             return hs
                         end  
+                        if condition.type == "pgdatabase.postgres.brose.bike/default-privileges" and condition.status == "False" then
+                            hs.status = "Degraded"
+                            hs.message = condition.message
+                            return hs
+                        end  
                     end
                 end
             end
