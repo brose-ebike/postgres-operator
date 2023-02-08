@@ -20,6 +20,7 @@ import (
 	"context"
 	"time"
 
+	apiV1 "github.com/brose-ebike/postgres-operator/api/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -90,4 +91,90 @@ func removeCondition(
 	meta.RemoveStatusCondition(&conditions, conditionType)
 	obj.SetConditions(conditions)
 	return r.Update(ctx, obj)
+}
+
+// deleteAllCustomResources force deletes all custom resources (PgUser, PgDatabase and PgInstance)
+// without executing the finalizers.
+// THIS METHOD SHOULD ONLY BE USED FOR TESTING
+func deleteAllCustomResources(ctx context.Context, c client.Client, namespace string) error {
+	opts := []client.DeleteAllOfOption{
+		client.InNamespace(namespace),
+		client.GracePeriodSeconds(5),
+	}
+	// Delete all users
+	if err := deleteAllPgUsers(ctx, c, opts); err != nil {
+		return err
+	}
+	// Delete all databases
+	if err := deleteAllPgDatabases(ctx, c, opts); err != nil {
+		return err
+	}
+	// Delete all instances
+	if err := deleteAllPgInstances(ctx, c, opts); err != nil {
+		return err
+	}
+	return nil
+}
+
+// THIS METHOD SHOULD ONLY BE USED FOR TESTING
+func deleteAllPgUsers(ctx context.Context, c client.Client, opts []client.DeleteAllOfOption) error {
+	users := apiV1.PgUserList{}
+	if err := c.List(ctx, &users); err != nil {
+		return nil
+	}
+	// Remove the finalizers from all resource objects to ensure no logic gets executed before deletion
+	for i := range users.Items {
+		userPtr := &users.Items[i]
+		userPtr.Finalizers = []string{}
+		if err := c.Update(ctx, userPtr); err != nil {
+			return err
+		}
+	}
+	user := apiV1.PgUser{}
+	if err := c.DeleteAllOf(ctx, &user, opts...); err != nil {
+		return err
+	}
+	return nil
+}
+
+// THIS METHOD SHOULD ONLY BE USED FOR TESTING
+func deleteAllPgDatabases(ctx context.Context, c client.Client, opts []client.DeleteAllOfOption) error {
+	databases := apiV1.PgDatabaseList{}
+	if err := c.List(ctx, &databases); err != nil {
+		return nil
+	}
+	// Remove the finalizers from all resource objects to ensure no logic gets executed before deletion
+	for i := range databases.Items {
+		dbPtr := &databases.Items[i]
+		dbPtr.Finalizers = []string{}
+		if err := c.Update(ctx, dbPtr); err != nil {
+			return err
+		}
+	}
+	database := apiV1.PgDatabase{}
+	if err := c.DeleteAllOf(ctx, &database, opts...); err != nil {
+		return err
+	}
+	return nil
+}
+
+// THIS METHOD SHOULD ONLY BE USED FOR TESTING
+func deleteAllPgInstances(ctx context.Context, c client.Client, opts []client.DeleteAllOfOption) error {
+	instances := apiV1.PgInstanceList{}
+	if err := c.List(ctx, &instances); err != nil {
+		return nil
+	}
+	// Remove the finalizers from all resource objects to ensure no logic gets executed before deletion
+	for i := range instances.Items {
+		instancePtr := &instances.Items[i]
+		instancePtr.Finalizers = []string{}
+		if err := c.Update(ctx, instancePtr); err != nil {
+			return err
+		}
+	}
+	instance := apiV1.PgInstance{}
+	if err := c.DeleteAllOf(ctx, &instance, opts...); err != nil {
+		return err
+	}
+	return nil
 }
