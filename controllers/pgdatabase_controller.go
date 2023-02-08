@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -271,9 +272,7 @@ func (r *PgDatabaseReconciler) handleDefaultPrivileges(ctx context.Context, pgAp
 			return err
 		}
 		if !exists {
-			if err := pgApi.CreateSchema(database.Name, schema.Name); err != nil {
-				return err
-			}
+			return errors.New("Schema " + schema.Name + " does not exist in database " + database.Name)
 		}
 		// Check schema permissions
 		usable, err := pgApi.IsSchemaUsable(database.Name, schema.Name)

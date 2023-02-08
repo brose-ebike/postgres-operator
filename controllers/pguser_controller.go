@@ -211,16 +211,17 @@ func (r *PgUserReconciler) finalize(ctx context.Context, user *apiV1.PgUser, pgA
 		return err
 	}
 
-	// Delete Secret
-	roleSecret := coreV1.Secret{
-		ObjectMeta: metaV1.ObjectMeta{
-			Namespace: user.Namespace,
-			Name:      user.Spec.Secret.Name,
-		},
-	}
-	if err := r.Delete(ctx, &roleSecret); err != nil {
-		logger.Error(err, "Unable to delete Secret")
+	// Delete Secret if exists
+	roleSecret := coreV1.Secret{}
+	exists, err = getResource(ctx, r, types.NamespacedName{Namespace: user.Namespace, Name: user.Spec.Secret.Name}, &roleSecret)
+	if err != nil {
 		return err
+	}
+	if exists {
+		if err := r.Delete(ctx, &roleSecret); err != nil {
+			logger.Error(err, "Unable to delete Secret")
+			return err
+		}
 	}
 
 	// Remove finalizer
