@@ -37,7 +37,7 @@ spec:
             properties:
               defaultPrivileges:
                 description: DefaultPrivileges defines the default privileges for
-                  this database
+                  schemas in this database
                 items:
                   properties:
                     functionPrivileges:
@@ -48,23 +48,23 @@ spec:
                         - EXECUTE
                         type: string
                       type: array
-                    name:
+                    roles:
+                      description: Roles specifies the name of the roles for which
+                        the privileges should be granted
+                      items:
+                        type: string
+                      type: array
+                    schemaName:
                       description: Name specifies the name of the schema for which
                         the default privileges should be granted.
                       type: string
-                    privileges:
+                    schemaPrivileges:
                       description: SchemaPrivileges specifies the privileges on this
                         schema which should be granted to the roles
                       items:
                         enum:
                         - USAGE
                         - CREATE
-                        type: string
-                      type: array
-                    roles:
-                      description: Roles specifies the name of the roles for which
-                        the privileges should be granted
-                      items:
                         type: string
                       type: array
                     sequencePrivileges:
@@ -100,8 +100,8 @@ spec:
                         type: string
                       type: array
                   required:
-                  - name
                   - roles
+                  - schemaName
                   type: object
                 type: array
               deletion:

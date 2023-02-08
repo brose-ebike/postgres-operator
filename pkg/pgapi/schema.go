@@ -102,12 +102,12 @@ func (s *pgInstanceAPIImpl) UpdateSchemaPrivileges(databaseName string, schemaNa
 	if len(privileges) == 0 {
 		return nil
 	}
-	// Get Database Owner
+
 	dbOwner, err := s.GetDatabaseOwner(databaseName)
 	if err != nil {
 		return err
 	}
-	// Validate Privileges Parameter
+
 	if err := validatePrivileges(privileges); err != nil {
 		return err
 	}
@@ -125,15 +125,12 @@ func (s *pgInstanceAPIImpl) UpdatePrivilegesOnAllObjects(databaseName string, sc
 	if len(privileges) == 0 {
 		return nil
 	}
-	// Validate typeName Parameter
 	if err := validateTypeName(typeName); err != nil {
 		return err
 	}
-	// Validate Privileges Parameter
 	if err := validatePrivileges(privileges); err != nil {
 		return err
 	}
-	// Get Database Owner
 	dbOwner, err := s.GetDatabaseOwner(databaseName)
 	if err != nil {
 		return err

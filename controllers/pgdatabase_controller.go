@@ -266,53 +266,61 @@ func (r *PgDatabaseReconciler) handleExtensions(ctx context.Context, pgApi PgDat
 
 func (r *PgDatabaseReconciler) handleDefaultPrivileges(ctx context.Context, pgApi PgDatabaseAPI, database *apiV1.PgDatabase) error {
 	for _, schema := range database.Spec.DefaultPrivileges {
-		// Check schema existence
-		exists, err := pgApi.IsSchemaInDatabase(database.Name, schema.Name)
+		exists, err := pgApi.IsSchemaInDatabase(database.Name, schema.SchemaName)
 		if err != nil {
 			return err
 		}
 		if !exists {
-			return errors.New("Schema " + schema.Name + " does not exist in database " + database.Name)
+			return errors.New("Schema " + schema.SchemaName + " does not exist in database " + database.Name)
 		}
 		// Check schema permissions
-		usable, err := pgApi.IsSchemaUsable(database.Name, schema.Name)
+		usable, err := pgApi.IsSchemaUsable(database.Name, schema.SchemaName)
 		if err != nil {
 			return err
 		}
 		if !usable {
-			if err := pgApi.MakeSchemaUseable(database.Name, schema.Name); err != nil {
+			if err := pgApi.MakeSchemaUseable(database.Name, schema.SchemaName); err != nil {
 				return err
 			}
 		}
 		// Update Privileges
 		for _, role := range schema.Roles {
 			// Update schema privileges
-			if err := pgApi.UpdateSchemaPrivileges(database.Name, schema.Name, role, schema.PrivilegesStr()); err != nil {
+			if err := pgApi.UpdateSchemaPrivileges(database.Name, schema.SchemaName, role, schema.PrivilegesStr()); err != nil {
 				return err
 			}
 			// Update table privileges
-			if err := pgApi.UpdateDefaultPrivileges(database.Name, schema.Name, role, "TABLES", schema.TablePrivilegesStr()); err != nil {
+			if err := pgApi.UpdateDefaultPrivileges(database.Name, schema.SchemaName, role, "TABLES", schema.TablePrivilegesStr()); err != nil {
+				return err
+			}
+			if err := pgApi.UpdatePrivilegesOnAllObjects(database.Name, schema.SchemaName, role, "TABLES", schema.TablePrivilegesStr()); err != nil {
 				return err
 			}
 			if err := pgApi.UpdatePrivilegesOnAllObjects(database.Name, schema.Name, role, "TABLES", schema.TablePrivilegesStr()); err != nil {
 				return err
 			}
 			// Update sequence privileges
-			if err := pgApi.UpdateDefaultPrivileges(database.Name, schema.Name, role, "SEQUENCES", schema.SequencePrivilegesStr()); err != nil {
+			if err := pgApi.UpdateDefaultPrivileges(database.Name, schema.SchemaName, role, "SEQUENCES", schema.SequencePrivilegesStr()); err != nil {
+				return err
+			}
+			if err := pgApi.UpdatePrivilegesOnAllObjects(database.Name, schema.SchemaName, role, "SEQUENCES", schema.SequencePrivilegesStr()); err != nil {
 				return err
 			}
 			if err := pgApi.UpdatePrivilegesOnAllObjects(database.Name, schema.Name, role, "SEQUENCES", schema.SequencePrivilegesStr()); err != nil {
 				return err
 			}
 			// Update function privileges
-			if err := pgApi.UpdateDefaultPrivileges(database.Name, schema.Name, role, "FUNCTIONS", schema.FunctionPrivilegesStr()); err != nil {
+			if err := pgApi.UpdateDefaultPrivileges(database.Name, schema.SchemaName, role, "FUNCTIONS", schema.FunctionPrivilegesStr()); err != nil {
+				return err
+			}
+			if err := pgApi.UpdatePrivilegesOnAllObjects(database.Name, schema.SchemaName, role, "FUNCTIONS", schema.FunctionPrivilegesStr()); err != nil {
 				return err
 			}
 			if err := pgApi.UpdatePrivilegesOnAllObjects(database.Name, schema.Name, role, "FUNCTIONS", schema.FunctionPrivilegesStr()); err != nil {
 				return err
 			}
 			// Update type privileges
-			if err := pgApi.UpdateDefaultPrivileges(database.Name, schema.Name, role, "TYPES", schema.TypePrivilegesStr()); err != nil {
+			if err := pgApi.UpdateDefaultPrivileges(database.Name, schema.SchemaName, role, "TYPES", schema.TypePrivilegesStr()); err != nil {
 				return err
 			}
 		}

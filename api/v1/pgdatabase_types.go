@@ -51,11 +51,11 @@ type PgDatabaseDeletion struct {
 
 type PgDatabaseDefaultPrivileges struct {
 	// Name specifies the name of the schema for which the default privileges should be granted.
-	Name string `json:"name"`
+	SchemaName string `json:"schemaName"`
 	// Roles specifies the name of the roles for which the privileges should be granted
 	Roles []string `json:"roles"`
 	// SchemaPrivileges specifies the privileges on this schema which should be granted to the roles
-	SchemaPrivileges []SchemaPrivilege `json:"privileges,omitempty"`
+	SchemaPrivileges []SchemaPrivilege `json:"schemaPrivileges,omitempty"`
 	// TablePrivileges specifies the name of the privileges on tables which should be granted to the roles
 	TablePrivileges []TablePrivilege `json:"tablePrivileges,omitempty"`
 	// SequencePrivileges specifies the name of the privileges on tables which should be granted to the roles
@@ -123,7 +123,7 @@ type PgDatabaseSpec struct {
 	DeletionBehavior PgDatabaseDeletion `json:"deletion"`
 	// Extensions which should exist in this database
 	Extensions []string `json:"extensions,omitempty"`
-	// DefaultPrivileges defines the default privileges for this database
+	// DefaultPrivileges defines the default privileges for schemas in this database
 	DefaultPrivileges []PgDatabaseDefaultPrivileges `json:"defaultPrivileges,omitempty"`
 	// PublicPrivileges revokes and Public stuff in postgres
 	PublicPrivileges PgDatabasePublicPrivileges `json:"publicPrivileges"`
