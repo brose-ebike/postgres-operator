@@ -450,7 +450,7 @@ var _ = Describe("PgUserReconciler finalize", func() {
 		Expect(pgApiMock.(*pgRoleMock).callsDeleteRole).To(BeZero())
 	})
 
-	It("handles missing secret", func() {
+	It("handles user deletion with secret", func() {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		// given
@@ -475,6 +475,9 @@ var _ = Describe("PgUserReconciler finalize", func() {
 		Expect(err).To(BeNil())
 
 		// and
+		pgApiMock.(*pgRoleMock).roles["existing"] = true
+
+		// and
 		secret := coreV1.Secret{
 			ObjectMeta: v1.ObjectMeta{
 				Namespace: "default",
@@ -492,5 +495,11 @@ var _ = Describe("PgUserReconciler finalize", func() {
 		Expect(err).To(BeNil())
 		Expect(pgApiMock.(*pgRoleMock).callsIsRoleExisting).To(Equal(1))
 		Expect(pgApiMock.(*pgRoleMock).callsDeleteRole).To(BeZero())
+
+		// and secret does not exist
+		secret = coreV1.Secret{}
+		exists, err := getResource(ctx, k8sClient, types.NamespacedName{Namespace: "default", Name: "credentials"}, &secret)
+		Expect(err).To(BeNil())
+		Expect(exists).To(BeFalse())
 	})
 })
