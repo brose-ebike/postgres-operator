@@ -227,8 +227,7 @@ func (r *PgUserReconciler) finalize(ctx context.Context, user *apiV1.PgUser, pgA
 
 	// Remove finalizer
 	controllerutil.RemoveFinalizer(user, apiV1.DefaultFinalizerPgUser)
-	err = r.Update(ctx, user)
-	if err != nil {
+	if err := r.Update(ctx, user); err != nil {
 		return err
 	}
 
