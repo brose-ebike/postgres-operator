@@ -36,52 +36,71 @@ spec:
             properties:
               defaultPrivileges:
                 description: DefaultPrivileges defines the default privileges for
-                  this database
+                  schemas in this database
                 items:
                   properties:
                     functionPrivileges:
                       description: FunctionPrivileges specifies the name of the privileges
                         on tables which should be granted to the roles
                       items:
+                        enum:
+                        - EXECUTE
                         type: string
                       type: array
-                    name:
-                      description: Name specifies the name of the schema for which
-                        the default privileges should be granted.
-                      type: string
                     roles:
                       description: Roles specifies the name of the roles for which
                         the privileges should be granted
                       items:
                         type: string
                       type: array
-                    routinePrivileges:
-                      description: RoutinePrivileges specifies the name of the privileges
-                        on tables which should be granted to the roles
+                    schemaName:
+                      description: Name specifies the name of the schema for which
+                        the default privileges should be granted.
+                      type: string
+                    schemaPrivileges:
+                      description: SchemaPrivileges specifies the privileges on this
+                        schema which should be granted to the roles
                       items:
+                        enum:
+                        - USAGE
+                        - CREATE
                         type: string
                       type: array
                     sequencePrivileges:
                       description: SequencePrivileges specifies the name of the privileges
                         on tables which should be granted to the roles
                       items:
+                        enum:
+                        - SELECT
+                        - UPDATE
+                        - USAGE
                         type: string
                       type: array
                     tablePrivileges:
                       description: TablePrivileges specifies the name of the privileges
                         on tables which should be granted to the roles
                       items:
+                        enum:
+                        - SELECT
+                        - INSERT
+                        - UPDATE
+                        - DELETE
+                        - TRUNCATE
+                        - REFERENCES
+                        - TRIGGER
                         type: string
                       type: array
                     typePrivileges:
                       description: TypePrivileges specifies the name of the privileges
                         on tables which should be granted to the roles
                       items:
+                        enum:
+                        - USAGE
                         type: string
                       type: array
                   required:
-                  - name
                   - roles
+                  - schemaName
                   type: object
                 type: array
               deletion:
@@ -97,6 +116,11 @@ spec:
                       database to be deleted manually
                     type: boolean
                 type: object
+              extensions:
+                description: Extensions which should exist in this database
+                items:
+                  type: string
+                type: array
               instance:
                 description: Instance identifies the PgInstanceConnection which should
                   be used
@@ -132,7 +156,6 @@ spec:
                 - drop
                 type: object
             required:
-            - defaultPrivileges
             - deletion
             - instance
             - publicPrivileges

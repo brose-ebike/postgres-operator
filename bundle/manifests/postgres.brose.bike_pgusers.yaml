@@ -52,6 +52,9 @@ spec:
                       description: Privileges contains the names of the privileges
                         the user needs on the database
                       items:
+                        enum:
+                        - CONNECT
+                        - CREATE
                         type: string
                       type: array
                   required:
