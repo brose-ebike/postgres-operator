@@ -120,13 +120,7 @@ var _ = Describe("PgInstanceReconciler", func() {
 	AfterEach(func() {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
-		// Instances
-		instance := apiV1.PgInstance{}
-		opts := []client.DeleteAllOfOption{
-			client.InNamespace("default"),
-			client.GracePeriodSeconds(5),
-		}
-		err := k8sClient.DeleteAllOf(ctx, &instance, opts...)
+		err := deleteAllCustomResources(ctx, k8sClient, "default")
 		Expect(err).To(BeNil())
 	})
 
