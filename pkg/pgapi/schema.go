@@ -45,26 +45,27 @@ type PgSchemaAPI interface {
 
 func (s *pgInstanceAPIImpl) IsSchemaInDatabase(databaseName string, schemaName string) (bool, error) {
 	var exists bool
-	err := s.runInDatabase(databaseName, func(ctx context.Context, conn *sql.Conn) error {
+	err := s.runIn(databaseName, func(ctx context.Context, conn *sql.Conn) error {
 		const query = "select exists(select * from pg_catalog.pg_namespace where nspname = $1);"
-		return conn.QueryRowContext(ctx, query, schemaName).Scan(&exists)
+		err := conn.QueryRowContext(ctx, query, schemaName).Scan(&exists)
+		return WrapSqlExecutionError(err, query, schemaName)
 	})
 	return exists, err
 }
 
 func (s *pgInstanceAPIImpl) CreateSchema(databaseName string, schemaName string) error {
-	return s.runInDatabase(databaseName, func(ctx context.Context, conn *sql.Conn) error {
+	return s.runIn(databaseName, func(ctx context.Context, conn *sql.Conn) error {
 		const query = "create schema %s;"
 		_, err := conn.ExecContext(ctx, formatQueryObj(query, schemaName))
-		return err
+		return WrapSqlExecutionError(err, query, schemaName)
 	})
 }
 
 func (s *pgInstanceAPIImpl) DeleteSchema(databaseName string, schemaName string) error {
-	return s.runInDatabase(databaseName, func(ctx context.Context, conn *sql.Conn) error {
+	return s.runIn(databaseName, func(ctx context.Context, conn *sql.Conn) error {
 		const query = "drop schema %s;"
 		_, err := conn.ExecContext(ctx, formatQueryObj(query, schemaName))
-		return err
+		return WrapSqlExecutionError(err, query, schemaName)
 	})
 }
 
@@ -85,20 +86,20 @@ func (s *pgInstanceAPIImpl) UpdateDefaultPrivileges(databaseName string, schemaN
 		}
 	}
 	// Run in Database
-	err := s.runInDatabase(databaseName, func(ctx context.Context, conn *sql.Conn) error {
+	err := s.runIn(databaseName, func(ctx context.Context, conn *sql.Conn) error {
 		joinedPrivileges := strings.Join(privileges, ", ")
 		query := "alter default privileges in schema  %s grant " + joinedPrivileges + " on " + typeName + " to  %s;"
 		_, err := conn.ExecContext(ctx, fmt.Sprintf(query, schemaName, roleName))
-		return err
+		return WrapSqlExecutionError(err, query, schemaName, roleName)
 	})
 	return err
 }
 
 func (s *pgInstanceAPIImpl) DeleteAllPrivilegesOnSchema(databaseName string, schemaName string, role string) error {
-	return s.runInDatabase(databaseName, func(ctx context.Context, conn *sql.Conn) error {
+	return s.runIn(databaseName, func(ctx context.Context, conn *sql.Conn) error {
 		// This gets executed on the database `databaseName`
 		const query = "revoke all on schema %s from %s;"
 		_, err := conn.ExecContext(ctx, formatQueryObj(query, schemaName, role))
-		return err
+		return WrapSqlExecutionError(err, query, schemaName, role)
 	})
 }
