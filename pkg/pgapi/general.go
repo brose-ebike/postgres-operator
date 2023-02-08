@@ -141,3 +141,70 @@ func (s *pgInstanceAPIImpl) runIn(database string, runner func(ctx context.Conte
 
 	return err
 }
+
+func (s *pgInstanceAPIImpl) runInAs(database string, role string, runner func(ctx context.Context, conn *sql.Conn) error) error {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Use new connection string
+	conStr := s.connectionString.copy()
+	conStr.database = database
+
+	// Start SQL Database
+	db, err := sql.Open("postgres", conStr.toString())
+	if err != nil {
+		return err
+	}
+
+	// Connect to Database Server
+	conn, err := db.Conn(ctx)
+	if err != nil {
+		return err
+	}
+
+	myRole := s.connectionString.username
+	isMember, err := s.isMember(conn, myRole, role)
+	if err != nil {
+		return err
+	}
+	// Grant role to myRole
+	if !isMember {
+		const queryG = "grant %s to %s;"
+		_, err := conn.ExecContext(s.ctx, formatQueryObj(queryG, role, myRole))
+		if err != nil {
+			return err
+		}
+	}
+	defer func() {
+		// handle panic and ensure revoke gets executed
+		// pass error on to the next recover
+		if r := recover(); r != nil {
+			// Revoke role to myRole
+			if !isMember {
+				const queryR = "revoke %s from %s;"
+				conn.ExecContext(s.ctx, formatQueryObj(queryR, role, myRole))
+			}
+			conn.Close()
+			panic(r)
+		}
+	}()
+
+	// Execute runner
+	err = runner(ctx, conn)
+
+	// Revoke role to myRole
+	if !isMember {
+		const queryR = "revoke %s from %s;"
+		_, err := conn.ExecContext(s.ctx, formatQueryObj(queryR, role, myRole))
+		if err != nil {
+			return err
+		}
+	}
+
+	// Close connection
+	if err := conn.Close(); err != nil {
+		return err
+	}
+
+	return err
+}

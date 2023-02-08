@@ -38,21 +38,26 @@ type dummyDB struct {
 }
 
 type pgDatabaseMock struct {
-	databases                        map[string]dummyDB
-	callsIsDatabaseExisting          int
-	callsCreateDatabase              int
-	callsDeleteDatabase              int
-	callsGetDatabaseOwner            int
-	callsUpdateDatabaseOwner         int
-	callsResetDatabaseOwner          int
-	callsUpdateDatabasePrivileges    int
-	callsIsSchemaInDatabase          int
-	callsCreateSchema                int
-	callsDeleteSchema                int
-	callsUpdateDefaultPrivileges     int
-	callsDeleteAllPrivilegesOnSchema int
-	callsIsDatabaseExtensionPresent  int
-	callsCreateDatabaseExtension     int
+	databases                         map[string]dummyDB
+	callsIsDatabaseExisting           int
+	callsCreateDatabase               int
+	callsDeleteDatabase               int
+	callsGetDatabaseOwner             int
+	callsUpdateDatabaseOwner          int
+	callsResetDatabaseOwner           int
+	callsUpdateDatabasePrivileges     int
+	callsIsSchemaInDatabase           int
+	callsCreateSchema                 int
+	callsDeleteSchema                 int
+	callsUpdateDefaultPrivileges      int
+	callsDeleteAllPrivilegesOnSchema  int
+	callsIsDatabaseExtensionPresent   int
+	callsCreateDatabaseExtension      int
+	callsUpdatePrivilegesOnAllObjects int
+	callsIsSchemaUsable               int
+	callsMakeSchemaUseable            int
+	callsUpdateSchemaPrivileges       int
+	callsGetSchemaOwner               int
 }
 
 func (m *pgDatabaseMock) IsDatabaseExisting(databaseName string) (bool, error) {
@@ -169,6 +174,31 @@ func (m *pgDatabaseMock) IsDatabaseExtensionPresent(databaseName string, extensi
 func (m *pgDatabaseMock) CreateDatabaseExtension(databaseName string, extension string) error {
 	m.callsCreateDatabaseExtension += 1
 	return nil
+}
+
+func (m *pgDatabaseMock) UpdatePrivilegesOnAllObjects(databaseName string, schemaName string, roleName string, typeName string, privileges []string) error {
+	m.callsUpdatePrivilegesOnAllObjects += 1
+	return nil
+}
+
+func (m *pgDatabaseMock) IsSchemaUsable(databaseName string, schemaName string) (bool, error) {
+	m.callsIsSchemaUsable += 1
+	return true, nil
+}
+
+func (m *pgDatabaseMock) MakeSchemaUseable(databaseName string, schemaName string) error {
+	m.callsMakeSchemaUseable += 1
+	return nil
+}
+
+func (m *pgDatabaseMock) UpdateSchemaPrivileges(databaseName string, schemaName string, roleName string, privileges []string) error {
+	m.callsUpdateSchemaPrivileges += 1
+	return nil
+}
+
+func (m *pgDatabaseMock) GetSchemaOwner(databaseName string, schemaName string) (string, error) {
+	m.callsGetSchemaOwner += 1
+	return "", nil
 }
 
 var _ = Describe("PgInstanceReconciler", func() {
