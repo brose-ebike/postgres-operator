@@ -122,6 +122,7 @@ func deleteAllPgUsers(ctx context.Context, c client.Client, opts []client.Delete
 	if err := c.List(ctx, &users); err != nil {
 		return nil
 	}
+	// Remove the finalizers from all resource objects to ensure no logic gets executed before deletion
 	for i := range users.Items {
 		userPtr := &users.Items[i]
 		userPtr.Finalizers = []string{}
@@ -142,6 +143,7 @@ func deleteAllPgDatabases(ctx context.Context, c client.Client, opts []client.De
 	if err := c.List(ctx, &databases); err != nil {
 		return nil
 	}
+	// Remove the finalizers from all resource objects to ensure no logic gets executed before deletion
 	for i := range databases.Items {
 		dbPtr := &databases.Items[i]
 		dbPtr.Finalizers = []string{}
@@ -162,6 +164,7 @@ func deleteAllPgInstances(ctx context.Context, c client.Client, opts []client.De
 	if err := c.List(ctx, &instances); err != nil {
 		return nil
 	}
+	// Remove the finalizers from all resource objects to ensure no logic gets executed before deletion
 	for i := range instances.Items {
 		instancePtr := &instances.Items[i]
 		instancePtr.Finalizers = []string{}
