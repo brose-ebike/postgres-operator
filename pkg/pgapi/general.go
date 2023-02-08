@@ -175,6 +175,20 @@ func (s *pgInstanceAPIImpl) runInAs(database string, role string, runner func(ct
 			return err
 		}
 	}
+	defer func() {
+		// handle panic and ensure revoke gets executed
+		// pass error on to the next recover
+		if r := recover(); r != nil {
+			// Revoke role to myRole
+			if !isMember {
+				const queryR = "revoke %s from %s;"
+				conn.ExecContext(s.ctx, formatQueryObj(queryR, role, myRole))
+			}
+			conn.Close()
+			panic(r)
+		}
+	}()
+
 	// Execute runner
 	err = runner(ctx, conn)
 
