@@ -255,25 +255,7 @@ var _ = Describe("PgInstanceReconciler", func() {
 	AfterEach(func() {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
-		// Instances
-		instance := apiV1.PgInstance{}
-		opts := []client.DeleteAllOfOption{
-			client.InNamespace("default"),
-			client.GracePeriodSeconds(5),
-		}
-		err := k8sClient.DeleteAllOf(ctx, &instance, opts...)
-		Expect(err).To(BeNil())
-		//Databases
-		databases := apiV1.PgDatabaseList{}
-		err = k8sClient.List(ctx, &databases)
-		Expect(err).To(BeNil())
-		for _, db := range databases.Items {
-			db.Finalizers = []string{}
-			err = k8sClient.Update(ctx, &db)
-			Expect(err).To(BeNil())
-		}
-		database := apiV1.PgDatabase{}
-		err = k8sClient.DeleteAllOf(ctx, &database, opts...)
+		err := deleteAllCustomResources(ctx, k8sClient, "default")
 		Expect(err).To(BeNil())
 	})
 

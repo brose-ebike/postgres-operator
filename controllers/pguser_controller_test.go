@@ -157,6 +157,7 @@ var _ = Describe("PgUserReconciler", func() {
 					schemas: make(map[string]string),
 				},
 			},
+			roles: make(map[string]bool),
 		}
 
 		// Create Reconciler
@@ -232,25 +233,7 @@ var _ = Describe("PgUserReconciler", func() {
 	AfterEach(func() {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
-		// Instances
-		instance := apiV1.PgInstance{}
-		opts := []client.DeleteAllOfOption{
-			client.InNamespace("default"),
-			client.GracePeriodSeconds(5),
-		}
-		err := k8sClient.DeleteAllOf(ctx, &instance, opts...)
-		Expect(err).To(BeNil())
-		//Databases
-		users := apiV1.PgUserList{}
-		err = k8sClient.List(ctx, &users)
-		Expect(err).To(BeNil())
-		for _, db := range users.Items {
-			db.Finalizers = []string{}
-			err = k8sClient.Update(ctx, &db)
-			Expect(err).To(BeNil())
-		}
-		user := apiV1.PgUser{}
-		err = k8sClient.DeleteAllOf(ctx, &user, opts...)
+		err := deleteAllCustomResources(ctx, k8sClient, "default")
 		Expect(err).To(BeNil())
 	})
 
@@ -350,5 +333,164 @@ var _ = Describe("PgUserReconciler", func() {
 		// then
 		Expect(err).To(BeNil())
 		Expect(result.RequeueAfter).To(BeZero())
+	})
+})
+
+var _ = Describe("PgUserReconciler finalize", func() {
+
+	var pgApiMock PgRoleAPI
+	var reconciler *PgUserReconciler
+
+	BeforeEach(func() {
+		// Create ApiMock
+		pgApiMock = &pgRoleMock{
+			databases: map[string]dummyDB{
+				"testdb": {
+					owner:   "pgadmin",
+					schemas: make(map[string]string),
+				},
+			},
+			roles: make(map[string]bool),
+		}
+
+		// Create Reconciler
+		reconciler = &PgUserReconciler{
+			k8sClient,
+			nil,
+			func(ctx context.Context, r client.Reader, instance *apiV1.PgInstance) (PgRoleAPI, error) {
+				if instance.Name == "failure" {
+					return nil, errors.New("Connection Failure")
+				}
+				return pgApiMock, nil
+			},
+		}
+	})
+
+	AfterEach(func() {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		err := deleteAllCustomResources(ctx, k8sClient, "default")
+		Expect(err).To(BeNil())
+	})
+
+	It("handles user deletion", func() {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		// given
+		user := apiV1.PgUser{
+			TypeMeta: v1.TypeMeta{
+				APIVersion: "postgres.brose.bike/v1",
+				Kind:       "PgUser",
+			},
+			ObjectMeta: v1.ObjectMeta{
+				Namespace: "default",
+				Name:      "existing",
+			},
+			Spec: apiV1.PgUserSpec{
+				Instance: apiV1.PgInstanceRef{
+					Namespace: "default",
+					Name:      "instance",
+				},
+				Secret: &apiV1.PgUserSecret{
+					Name: "credentials",
+				},
+				Databases: []apiV1.PgUserDatabase{},
+			},
+			Status: apiV1.PgUserStatus{},
+		}
+		err := k8sClient.Create(ctx, &user)
+		Expect(err).To(BeNil())
+
+		// and
+		pgApiMock.(*pgRoleMock).roles["existing"] = true
+
+		// when
+		err = reconciler.finalize(ctx, &user, pgApiMock)
+
+		// then
+		Expect(err).To(BeNil())
+		Expect(pgApiMock.(*pgRoleMock).callsIsRoleExisting).To(Equal(1))
+		Expect(pgApiMock.(*pgRoleMock).callsDeleteRole).To(Equal(1))
+	})
+
+	It("handles missing user", func() {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		// given
+		user := apiV1.PgUser{
+			TypeMeta: v1.TypeMeta{
+				APIVersion: "postgres.brose.bike/v1",
+				Kind:       "PgUser",
+			},
+			ObjectMeta: v1.ObjectMeta{
+				Namespace: "default",
+				Name:      "missing",
+			},
+			Spec: apiV1.PgUserSpec{
+				Instance: apiV1.PgInstanceRef{
+					Namespace: "default",
+					Name:      "instance",
+				},
+				Secret: &apiV1.PgUserSecret{
+					Name: "credentials",
+				},
+				Databases: []apiV1.PgUserDatabase{},
+			},
+			Status: apiV1.PgUserStatus{},
+		}
+		err := k8sClient.Create(ctx, &user)
+		Expect(err).To(BeNil())
+
+		// when
+		err = reconciler.finalize(ctx, &user, pgApiMock)
+
+		// then
+		Expect(err).To(BeNil())
+		Expect(pgApiMock.(*pgRoleMock).callsIsRoleExisting).To(Equal(1))
+		Expect(pgApiMock.(*pgRoleMock).callsDeleteRole).To(BeZero())
+	})
+
+	It("handles missing secret", func() {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		// given
+		user := apiV1.PgUser{
+			ObjectMeta: v1.ObjectMeta{
+				Namespace: "default",
+				Name:      "missing",
+			},
+			Spec: apiV1.PgUserSpec{
+				Instance: apiV1.PgInstanceRef{
+					Namespace: "default",
+					Name:      "instance",
+				},
+				Secret: &apiV1.PgUserSecret{
+					Name: "credentials",
+				},
+				Databases: []apiV1.PgUserDatabase{},
+			},
+			Status: apiV1.PgUserStatus{},
+		}
+		err := k8sClient.Create(ctx, &user)
+		Expect(err).To(BeNil())
+
+		// and
+		secret := coreV1.Secret{
+			ObjectMeta: v1.ObjectMeta{
+				Namespace: "default",
+				Name:      "credentials",
+			},
+			StringData: map[string]string{"key": "value"},
+		}
+		err = k8sClient.Create(ctx, &secret)
+		Expect(err).To(BeNil())
+
+		// when
+		err = reconciler.finalize(ctx, &user, pgApiMock)
+
+		// then
+		Expect(err).To(BeNil())
+		Expect(pgApiMock.(*pgRoleMock).callsIsRoleExisting).To(Equal(1))
+		Expect(pgApiMock.(*pgRoleMock).callsDeleteRole).To(BeZero())
 	})
 })

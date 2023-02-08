@@ -20,6 +20,7 @@ import (
 	"context"
 	"time"
 
+	apiV1 "github.com/brose-ebike/postgres-operator/api/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -90,4 +91,61 @@ func removeCondition(
 	meta.RemoveStatusCondition(&conditions, conditionType)
 	obj.SetConditions(conditions)
 	return r.Update(ctx, obj)
+}
+
+func deleteAllCustomResources(ctx context.Context, c client.Client, namespace string) error {
+	opts := []client.DeleteAllOfOption{
+		client.InNamespace(namespace),
+		client.GracePeriodSeconds(5),
+	}
+	// Delete all users
+	users := apiV1.PgUserList{}
+	if err := c.List(ctx, &users); err != nil {
+		return nil
+	}
+
+	for _, user := range users.Items {
+		user.Finalizers = []string{}
+		if err := c.Update(ctx, &user); err != nil {
+			return err
+		}
+	}
+	user := apiV1.PgUser{}
+	if err := c.DeleteAllOf(ctx, &user, opts...); err != nil {
+		return err
+	}
+
+	// Delete all databases
+	databases := apiV1.PgDatabaseList{}
+	if err := c.List(ctx, &databases); err != nil {
+		return nil
+	}
+
+	for _, db := range databases.Items {
+		db.Finalizers = []string{}
+		if err := c.Update(ctx, &db); err != nil {
+			return err
+		}
+	}
+	database := apiV1.PgDatabase{}
+	if err := c.DeleteAllOf(ctx, &database, opts...); err != nil {
+		return err
+	}
+	// Delete all instances
+	instances := apiV1.PgInstanceList{}
+	if err := c.List(ctx, &users); err != nil {
+		return nil
+	}
+
+	for _, instance := range instances.Items {
+		instance.Finalizers = []string{}
+		if err := c.Update(ctx, &instance); err != nil {
+			return err
+		}
+	}
+	instance := apiV1.PgInstance{}
+	if err := c.DeleteAllOf(ctx, &instance, opts...); err != nil {
+		return err
+	}
+	return nil
 }
