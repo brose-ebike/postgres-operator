@@ -93,12 +93,31 @@ func removeCondition(
 	return r.Update(ctx, obj)
 }
 
+// deleteAllCustomResources force deletes all custom resources (PgUser, PgDatabase and PgInstance)
+// without executing the finalizers.
+// THIS METHOD SHOULD ONLY BE USED FOR TESTING
 func deleteAllCustomResources(ctx context.Context, c client.Client, namespace string) error {
 	opts := []client.DeleteAllOfOption{
 		client.InNamespace(namespace),
 		client.GracePeriodSeconds(5),
 	}
 	// Delete all users
+	if err := deleteAllPgUsers(ctx, c, opts); err != nil {
+		return err
+	}
+	// Delete all databases
+	if err := deleteAllPgDatabases(ctx, c, opts); err != nil {
+		return err
+	}
+	// Delete all instances
+	if err := deleteAllPgInstances(ctx, c, opts); err != nil {
+		return err
+	}
+	return nil
+}
+
+// THIS METHOD SHOULD ONLY BE USED FOR TESTING
+func deleteAllPgUsers(ctx context.Context, c client.Client, opts []client.DeleteAllOfOption) error {
 	users := apiV1.PgUserList{}
 	if err := c.List(ctx, &users); err != nil {
 		return nil
@@ -114,8 +133,11 @@ func deleteAllCustomResources(ctx context.Context, c client.Client, namespace st
 	if err := c.DeleteAllOf(ctx, &user, opts...); err != nil {
 		return err
 	}
+	return nil
+}
 
-	// Delete all databases
+// THIS METHOD SHOULD ONLY BE USED FOR TESTING
+func deleteAllPgDatabases(ctx context.Context, c client.Client, opts []client.DeleteAllOfOption) error {
 	databases := apiV1.PgDatabaseList{}
 	if err := c.List(ctx, &databases); err != nil {
 		return nil
@@ -131,9 +153,13 @@ func deleteAllCustomResources(ctx context.Context, c client.Client, namespace st
 	if err := c.DeleteAllOf(ctx, &database, opts...); err != nil {
 		return err
 	}
-	// Delete all instances
+	return nil
+}
+
+// THIS METHOD SHOULD ONLY BE USED FOR TESTING
+func deleteAllPgInstances(ctx context.Context, c client.Client, opts []client.DeleteAllOfOption) error {
 	instances := apiV1.PgInstanceList{}
-	if err := c.List(ctx, &users); err != nil {
+	if err := c.List(ctx, &instances); err != nil {
 		return nil
 	}
 
