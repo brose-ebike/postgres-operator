@@ -97,21 +97,21 @@ func (s *pgInstanceAPIImpl) UpdateDatabaseOwner(databaseName string, roleName st
 		return err
 	}
 	// Execute Query
-	const queryG = "grant %s to %s;"
-	_, err = conn.ExecContext(s.ctx, formatQueryObj(queryG, roleName, s.connectionString.username))
+	const queryGrant = "grant %s to %s;"
+	_, err = conn.ExecContext(s.ctx, formatQueryObj(queryGrant, roleName, s.connectionString.username))
 	if err != nil {
-		return WrapSqlExecutionError(err, queryG, databaseName, s.connectionString.username)
+		return WrapSqlExecutionError(err, queryGrant, databaseName, s.connectionString.username)
 	}
 	// Execute Query
-	const queryA = "alter database %s owner to %s;"
-	_, err = conn.ExecContext(s.ctx, formatQueryObj(queryA, databaseName, roleName))
+	const queryAlterDBOwner = "alter database %s owner to %s;"
+	_, err = conn.ExecContext(s.ctx, formatQueryObj(queryAlterDBOwner, databaseName, roleName))
 	if err != nil {
-		return WrapSqlExecutionError(err, queryA, databaseName, roleName)
+		return WrapSqlExecutionError(err, queryAlterDBOwner, databaseName, roleName)
 	}
 	// Execute Query
-	const queryR = "revoke %s from %s;"
-	_, err = conn.ExecContext(s.ctx, formatQueryObj(queryR, roleName, s.connectionString.username))
-	return WrapSqlExecutionError(err, queryR, databaseName, s.connectionString.username)
+	const queryRevoke = "revoke %s from %s;"
+	_, err = conn.ExecContext(s.ctx, formatQueryObj(queryRevoke, roleName, s.connectionString.username))
+	return WrapSqlExecutionError(err, queryRevoke, databaseName, s.connectionString.username)
 }
 
 func (s *pgInstanceAPIImpl) UpdateDatabasePrivileges(databaseName string, roleName string, privileges []string) error {
@@ -130,10 +130,10 @@ func (s *pgInstanceAPIImpl) UpdateDatabasePrivileges(databaseName string, roleNa
 	}
 	// TODO replace revoke all with specific revoke for the privileges which are not contained in the slice
 	// revoke all
-	const queryR = "revoke all on database %s from %s;"
-	_, err = conn.ExecContext(s.ctx, formatQueryObj(queryR, databaseName, roleName))
+	const queryRevoke = "revoke all on database %s from %s;"
+	_, err = conn.ExecContext(s.ctx, formatQueryObj(queryRevoke, databaseName, roleName))
 	if err != nil {
-		return WrapSqlExecutionError(err, queryR, databaseName, roleName)
+		return WrapSqlExecutionError(err, queryRevoke, databaseName, roleName)
 	}
 	// no privileges need to be granted
 	if len(privileges) == 0 {
@@ -141,9 +141,9 @@ func (s *pgInstanceAPIImpl) UpdateDatabasePrivileges(databaseName string, roleNa
 	}
 	joinedPrivileges := strings.Join(privileges, ", ")
 	// grant all privileges
-	queryG := "grant " + joinedPrivileges + " on database %s to %s;"
-	_, err = conn.ExecContext(s.ctx, formatQueryObj(queryG, databaseName, roleName))
-	return WrapSqlExecutionError(err, queryG, databaseName, roleName)
+	queryGrant := "grant " + joinedPrivileges + " on database %s to %s;"
+	_, err = conn.ExecContext(s.ctx, formatQueryObj(queryGrant, databaseName, roleName))
+	return WrapSqlExecutionError(err, queryGrant, databaseName, roleName)
 }
 
 func (s *pgInstanceAPIImpl) GetDatabaseOwner(databaseName string) (string, error) {

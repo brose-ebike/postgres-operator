@@ -71,24 +71,24 @@ func (s *pgInstanceAPIImpl) DeleteRole(name string) error {
 
 	err = s.runAs(conn, name, func() error {
 		// reassign owned objects
-		const queryR = "reassign owned by %s to %s;"
-		_, err = conn.ExecContext(s.ctx, formatQueryObj(queryR, name, s.connectionString.username))
+		const queryReassign = "reassign owned by %s to %s;"
+		_, err = conn.ExecContext(s.ctx, formatQueryObj(queryReassign, name, s.connectionString.username))
 		if err != nil {
-			return WrapSqlExecutionError(err, queryR, name)
+			return WrapSqlExecutionError(err, queryReassign, name)
 		}
 		// drop all existing privileges
-		const queryD = "drop owned by %s;"
-		_, err = conn.ExecContext(s.ctx, formatQueryObj(queryD, name))
-		return WrapSqlExecutionError(err, queryD, name)
+		const queryDrop = "drop owned by %s;"
+		_, err = conn.ExecContext(s.ctx, formatQueryObj(queryDrop, name))
+		return WrapSqlExecutionError(err, queryDrop, name)
 	})
 	if err != nil {
 		return err
 	}
 
 	// Execute Drop User
-	const queryD = "drop user %s;"
-	_, err = conn.ExecContext(s.ctx, formatQueryObj(queryD, name))
-	return WrapSqlExecutionError(err, queryD, name)
+	const queryDrop = "drop user %s;"
+	_, err = conn.ExecContext(s.ctx, formatQueryObj(queryDrop, name))
+	return WrapSqlExecutionError(err, queryDrop, name)
 }
 
 func (s *pgInstanceAPIImpl) UpdateUserPassword(name string, password string) error {

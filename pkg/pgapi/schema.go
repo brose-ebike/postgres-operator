@@ -88,9 +88,9 @@ func (s *pgInstanceAPIImpl) UpdateDefaultPrivileges(databaseName string, schemaN
 	// Run in Database
 	err := s.runIn(databaseName, func(ctx context.Context, conn *sql.Conn) error {
 		joinedPrivileges := strings.Join(privileges, ", ")
-		queryB := "alter default privileges in schema  %s grant " + joinedPrivileges + " on " + typeName + " to  %s;"
-		_, err := conn.ExecContext(ctx, fmt.Sprintf(queryB, schemaName, roleName))
-		return WrapSqlExecutionError(err, queryB, schemaName, roleName)
+		query := "alter default privileges in schema  %s grant " + joinedPrivileges + " on " + typeName + " to  %s;"
+		_, err := conn.ExecContext(ctx, fmt.Sprintf(query, schemaName, roleName))
+		return WrapSqlExecutionError(err, query, schemaName, roleName)
 	})
 	return err
 }
