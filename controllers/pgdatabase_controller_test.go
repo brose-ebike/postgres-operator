@@ -310,7 +310,7 @@ var _ = Describe("PgInstanceReconciler", func() {
 		var database apiV1.PgDatabase
 		err = k8sClient.Get(ctx, request.NamespacedName, &database)
 		Expect(err).To(BeNil())
-		Expect(database.Status.Conditions).To(HaveLen(3))
+		Expect(database.Status.Conditions).To(HaveLen(4))
 		// and Connected Condition is true
 		connectionCondition := meta.FindStatusCondition(database.Status.Conditions, apiV1.PgConnectedConditionType)
 		Expect(connectionCondition.Status).To(Equal(v1.ConditionTrue))
@@ -320,6 +320,9 @@ var _ = Describe("PgInstanceReconciler", func() {
 		// and Extensions Exists Condition is true
 		extensionCondition := meta.FindStatusCondition(database.Status.Conditions, apiV1.PgDatabaseExtensionsConditionType)
 		Expect(extensionCondition.Status).To(Equal(v1.ConditionTrue))
+		// and Default Privileges Condition is true
+		defaultPrivilegesCondition := meta.FindStatusCondition(database.Status.Conditions, apiV1.PgDatabaseDefaultPrivilegesConditionType)
+		Expect(defaultPrivilegesCondition.Status).To(Equal(v1.ConditionTrue))
 
 		// and
 		database = apiV1.PgDatabase{}
