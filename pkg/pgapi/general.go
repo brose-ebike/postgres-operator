@@ -19,7 +19,6 @@ package pgapi
 import (
 	"context"
 	"database/sql"
-	"fmt"
 
 	_ "github.com/lib/pq"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -93,7 +92,7 @@ func (s *pgInstanceAPIImpl) runAs(con *sql.Conn, role string, runner func() erro
 	// Grant role to myRole
 	if !isMember {
 		const queryG = "grant %s to %s;"
-		_, err := con.ExecContext(s.ctx, fmt.Sprintf(queryG, role, myRole))
+		_, err := con.ExecContext(s.ctx, formatQueryObj(queryG, role, myRole))
 		if err != nil {
 			return err
 		}
@@ -103,7 +102,7 @@ func (s *pgInstanceAPIImpl) runAs(con *sql.Conn, role string, runner func() erro
 	// Revoke role to myRole
 	if !isMember {
 		const queryR = "revoke %s from %s;"
-		_, err := con.ExecContext(s.ctx, fmt.Sprintf(queryR, role, myRole))
+		_, err := con.ExecContext(s.ctx, formatQueryObj(queryR, role, myRole))
 		if err != nil {
 			return err
 		}

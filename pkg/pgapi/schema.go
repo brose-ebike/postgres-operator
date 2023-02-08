@@ -102,10 +102,12 @@ func (s *pgInstanceAPIImpl) UpdateSchemaPrivileges(databaseName string, schemaNa
 	if len(privileges) == 0 {
 		return nil
 	}
+
 	dbOwner, err := s.GetDatabaseOwner(databaseName)
 	if err != nil {
 		return err
 	}
+
 	if err := validatePrivileges(privileges); err != nil {
 		return err
 	}
@@ -155,13 +157,12 @@ func (s *pgInstanceAPIImpl) UpdateDefaultPrivileges(databaseName string, schemaN
 		return err
 	}
 	// Run in Database
-	err := s.runIn(databaseName, func(ctx context.Context, conn *sql.Conn) error {
+	return s.runIn(databaseName, func(ctx context.Context, conn *sql.Conn) error {
 		joinedPrivileges := strings.Join(privileges, ", ")
 		query := "alter default privileges in schema  %s grant " + joinedPrivileges + " on " + typeName + " to  %s;"
 		_, err := conn.ExecContext(ctx, fmt.Sprintf(query, schemaName, roleName))
 		return WrapSqlExecutionError(err, query, schemaName, roleName)
 	})
-	return err
 }
 
 func (s *pgInstanceAPIImpl) DeleteAllPrivilegesOnSchema(databaseName string, schemaName string, role string) error {

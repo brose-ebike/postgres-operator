@@ -18,8 +18,8 @@ package controllers
 
 import (
 	"context"
-	"reflect"
 	"errors"
+	"reflect"
 	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -293,6 +293,7 @@ func (r *PgDatabaseReconciler) handleDefaultPrivileges(ctx context.Context, pgAp
 				return err
 			}
 		}
+		// Update Privileges
 		for _, role := range schema.Roles {
 			// Update schema privileges
 			if err := pgApi.UpdateSchemaPrivileges(database.Name, schema.SchemaName, role, schema.PrivilegesStr()); err != nil {
