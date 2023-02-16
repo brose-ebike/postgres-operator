@@ -19,7 +19,6 @@ package pgapi
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"strings"
 
 	"github.com/brose-ebike/postgres-operator/pkg/brose_errors"
@@ -159,8 +158,8 @@ func (s *pgInstanceAPIImpl) UpdateDefaultPrivileges(databaseName string, schemaN
 	// Run in Database
 	return s.runIn(databaseName, func(ctx context.Context, conn *sql.Conn) error {
 		joinedPrivileges := strings.Join(privileges, ", ")
-		query := "alter default privileges in schema  %s grant " + joinedPrivileges + " on " + typeName + " to  %s;"
-		_, err := conn.ExecContext(ctx, fmt.Sprintf(query, schemaName, roleName))
+		query := "alter default privileges in schema %s grant " + joinedPrivileges + " on " + typeName + " to  %s;"
+		_, err := conn.ExecContext(ctx, formatQueryObj(query, schemaName, roleName))
 		return WrapSqlExecutionError(err, query, schemaName, roleName)
 	})
 }
