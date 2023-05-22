@@ -26,7 +26,7 @@ import (
 )
 
 var pgTypes = []string{"TABLES", "SEQUENCES", "FUNCTIONS", "ROUTINES", "TYPES", "SCHEMAS"}
-var pgPrivileges = []string{"SELECT", "INSERT", "UPDATE", "DELETE", "TRUNCATE", "REFERENCES", "TRIGGER", "USAGE", "CONNECT", "CREATE", "ALL"}
+var pgPrivileges = []string{"SELECT", "INSERT", "UPDATE", "DELETE", "TRUNCATE", "REFERENCES", "TRIGGER", "USAGE", "CONNECT", "CREATE", "EXECUTE", "ALL"}
 
 func validateTypeName(typeName string) error {
 	if !hasElementString(pgTypes, typeName) {
