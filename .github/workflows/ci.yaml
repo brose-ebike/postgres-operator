@@ -13,7 +13,7 @@ jobs:
       group: "ci-build-${{ github.ref }}"
       cancel-in-progress: true
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - id: cache-tools
         name: Cache Tools
         uses: actions/cache@v3
@@ -41,7 +41,7 @@ jobs:
       group: "ci-linting-${{ github.ref }}"
       cancel-in-progress: true
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - id: cache-tools
         name: Cache Tools
         uses: actions/cache@v3
@@ -67,7 +67,7 @@ jobs:
       group: "ci-tests-${{ github.ref }}"
       cancel-in-progress: true
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - id: cache-tools
         name: Cache Tools
         uses: actions/cache@v3
@@ -86,7 +86,7 @@ jobs:
       group: "ci-documentation-${{ github.ref }}"
       cancel-in-progress: true
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: '3.10'
