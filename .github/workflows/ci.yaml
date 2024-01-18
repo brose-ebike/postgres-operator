@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
       - id: cache-tools
         name: Cache Tools
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: bin/
           key: ${{ runner.os }}-${{ hashFiles('Makefile') }}
@@ -44,7 +44,7 @@ jobs:
       - uses: actions/checkout@v4
       - id: cache-tools
         name: Cache Tools
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: bin/
           key: ${{ runner.os }}-${{ hashFiles('Makefile') }}
@@ -70,7 +70,7 @@ jobs:
       - uses: actions/checkout@v4
       - id: cache-tools
         name: Cache Tools
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: bin/
           key: ${{ runner.os }}-${{ hashFiles('Makefile') }}
