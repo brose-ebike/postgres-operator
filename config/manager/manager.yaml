@@ -98,5 +98,12 @@ spec:
           requests:
             cpu: 10m
             memory: 64Mi
+        ports:
+          - containerPort: 8080
+            protocol: TCP
+            name: metrics
+          - containerPort: 8081
+            protocol: TCP
+            name: health
       serviceAccountName: controller-manager
       terminationGracePeriodSeconds: 10
