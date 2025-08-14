@@ -15,7 +15,7 @@ jobs:
       ########################################################################################################################
       ########################################### Setup ######################################################################
       ########################################################################################################################
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - id: cache-tools
         name: Cache Tools
         uses: actions/cache@v4
@@ -95,7 +95,7 @@ jobs:
       group: "cd-documentation-${{ github.ref }}"
       cancel-in-progress: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
       - uses: actions/setup-python@v5
