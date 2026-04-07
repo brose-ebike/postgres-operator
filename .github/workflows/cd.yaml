@@ -15,15 +15,15 @@ jobs:
       ########################################################################################################################
       ########################################### Setup ######################################################################
       ########################################################################################################################
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
       - id: cache-tools
         name: Cache Tools
-        uses: actions/cache@v5
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7
         with:
           path: bin/
           key: ${{ runner.os }}-${{ hashFiles('Makefile') }}
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
         with:
           python-version: '3.x'
       - name: "Setup Operator SDK"
@@ -44,7 +44,7 @@ jobs:
       ########################################### Build ######################################################################
       ########################################################################################################################
       - name: Login to Docker Hub
-        uses: docker/login-action@v4
+        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2
         with:
           registry: "ghcr.io"
           username: ${{ github.actor }}
@@ -56,7 +56,7 @@ jobs:
       ########################################################################################################################
       - id: content
         name: Create Release Content
-        uses: raynigon/release-documentation@main
+        uses: raynigon/release-documentation@cc6d191c791ae349b003405670841ff9a5866e9b
         with:
           token: "${{ secrets.GITHUB_TOKEN }}"
           latest: "${{ steps.params.outputs.latest }}"
@@ -73,7 +73,7 @@ jobs:
       - name: Increment Version
         run: python .github/scripts/increment_version.py
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v8
+        uses: peter-evans/create-pull-request@c0f553fe549906ede9cf27b5156039d195d2ece0
         with:
           title: 'Release ${{ steps.params.outputs.version }}'
           branch: release-${{ steps.params.outputs.version }}
@@ -95,10 +95,10 @@ jobs:
       group: "cd-documentation-${{ github.ref }}"
       cancel-in-progress: true
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
         with:
           python-version: '3.10'
       - run: pip3 install -r requirements.txt

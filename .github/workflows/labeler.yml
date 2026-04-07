@@ -10,6 +10,6 @@ jobs:
       pull-requests: write
     runs-on: ubuntu-latest
     steps:
-      - uses: ffittschen/pr-branch-labeler@v1
+      - uses: ffittschen/pr-branch-labeler@86b2ec4fc9570e64dfeb95d2fcd466c7c3c70b02
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
