@@ -3,12 +3,12 @@ kind: ClusterRole
 metadata:
   labels:
     app.kubernetes.io/name: clusterrole
-    app.kubernetes.io/instance: proxy-role
+    app.kubernetes.io/instance: metrics-auth-role
     app.kubernetes.io/component: metrics
     app.kubernetes.io/created-by: postgres-operator
     app.kubernetes.io/part-of: postgres-operator
     app.kubernetes.io/managed-by: kustomize
-  name: proxy-role
+  name: metrics-auth-role
 rules:
 - apiGroups:
   - authentication.k8s.io
