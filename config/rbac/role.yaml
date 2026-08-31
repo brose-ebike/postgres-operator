@@ -2,7 +2,6 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  creationTimestamp: null
   name: manager-role
 rules:
 - apiGroups:
@@ -29,57 +28,7 @@ rules:
   - postgres.brose.bike
   resources:
   - pgdatabases
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - postgres.brose.bike
-  resources:
-  - pgdatabases/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - postgres.brose.bike
-  resources:
-  - pgdatabases/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - postgres.brose.bike
-  resources:
   - pginstances
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - postgres.brose.bike
-  resources:
-  - pginstances/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - postgres.brose.bike
-  resources:
-  - pginstances/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - postgres.brose.bike
-  resources:
   - pgusers
   verbs:
   - create
@@ -92,12 +41,16 @@ rules:
 - apiGroups:
   - postgres.brose.bike
   resources:
+  - pgdatabases/finalizers
+  - pginstances/finalizers
   - pgusers/finalizers
   verbs:
   - update
 - apiGroups:
   - postgres.brose.bike
   resources:
+  - pgdatabases/status
+  - pginstances/status
   - pgusers/status
   verbs:
   - get
