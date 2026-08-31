@@ -49,7 +49,7 @@ endif
 # Image URL to use all building/pushing image targets
 IMG ?= controller:latest
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
-ENVTEST_K8S_VERSION = 1.33.0
+ENVTEST_K8S_VERSION = 1.36.2
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -264,8 +264,6 @@ release: kustomize generate fmt vet manifests bundle docker-buildx ## Build a re
 	$(KUSTOMIZE) build config/default > dist/install.yaml
 	for arch in "amd64" "arm" "arm64" ; \
 	do \
-		GOOS=linux ; \
-		GOARCH=$${arch} ; \
-		go build -o dist/pgcontroller_$${arch} ./cmd ; \
+		GOOS=linux GOARCH=$${arch} go build -o dist/pgcontroller_$${arch} ./cmd ; \
 	done
 ## $(MAKE) docker-push IMG=$(CATALOG_IMG)
