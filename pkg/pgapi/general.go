@@ -141,7 +141,11 @@ func (s *pgInstanceAPIImpl) runIn(database string, runner func(ctx context.Conte
 	return err
 }
 
-func (s *pgInstanceAPIImpl) runInAs(database string, role string, runner func(ctx context.Context, conn *sql.Conn) error) error {
+// runInAs runs `runner` on a connection to `database` with `role` set as the
+// active role for the duration. Only safe when the runner needs exclusively
+// `role`'s own privileges — not the connecting admin's privileges at the same
+// time (SET ROLE replaces the active privileges rather than adding to them).
+func (s *pgInstanceAPIImpl) runInAs(database string, role string, runner func(ctx context.Context, conn *sql.Conn) error) (err error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -161,49 +165,32 @@ func (s *pgInstanceAPIImpl) runInAs(database string, role string, runner func(ct
 		return err
 	}
 
-	myRole := s.connectionString.username
-	isMember, err := s.isMember(conn, myRole, role)
-	if err != nil {
-		return err
+	const querySetRole = "set role %s;"
+	if _, setErr := conn.ExecContext(ctx, formatQueryObj(querySetRole, role)); setErr != nil {
+		_ = conn.Close()
+		return WrapSqlExecutionError(setErr, querySetRole, role)
 	}
-	// Grant role to myRole
-	if !isMember {
-		const queryG = "grant %s to %s;"
-		_, err := conn.ExecContext(s.ctx, formatQueryObj(queryG, role, myRole))
-		if err != nil {
-			return err
-		}
-	}
+
+	// This connection was opened fresh for this single call and is never
+	// returned to a shared pool, so it is always safe to close it here,
+	// even if resetting the role first fails.
 	defer func() {
-		// handle panic and ensure revoke gets executed
-		// pass error on to the next recover
+		const queryResetRole = "reset role;"
+		_, resetErr := conn.ExecContext(ctx, queryResetRole)
+		closeErr := conn.Close()
+
 		if r := recover(); r != nil {
-			// Revoke role to myRole
-			if !isMember {
-				const queryR = "revoke %s from %s;"
-				conn.ExecContext(s.ctx, formatQueryObj(queryR, role, myRole))
-			}
-			conn.Close()
 			panic(r)
+		}
+		if err == nil && resetErr != nil {
+			err = WrapSqlExecutionError(resetErr, queryResetRole)
+		}
+		if err == nil && closeErr != nil {
+			err = closeErr
 		}
 	}()
 
 	// Execute runner
 	err = runner(ctx, conn)
-
-	// Revoke role to myRole
-	if !isMember {
-		const queryR = "revoke %s from %s;"
-		_, err := conn.ExecContext(s.ctx, formatQueryObj(queryR, role, myRole))
-		if err != nil {
-			return err
-		}
-	}
-
-	// Close connection
-	if err := conn.Close(); err != nil {
-		return err
-	}
-
 	return err
 }

@@ -190,17 +190,23 @@ func (s *pgInstanceAPIImpl) MakeSchemaUseable(databaseName string, schemaName st
 		return err
 	}
 
-	// Execute Grants
+	// GRANT CONNECT ON DATABASE needs privileges over the database, not the
+	// schema, so it runs as the connecting role rather than as schemaOwner
+	// (schemaOwner may not own, or have any privileges on, the database).
+	err = s.runIn(databaseName, func(ctx context.Context, conn *sql.Conn) error {
+		const query = "GRANT CONNECT ON DATABASE %s TO %s;"
+		_, err := conn.ExecContext(ctx, formatQueryObj(query, databaseName, s.connectionString.username))
+		return WrapSqlExecutionError(err, query, databaseName, s.connectionString.username)
+	})
+	if err != nil {
+		return err
+	}
+
+	// GRANT USAGE ON SCHEMA only needs schemaOwner's own privileges.
 	return s.runInAs(databaseName, schemaOwner, func(ctx context.Context, conn *sql.Conn) error {
-		// This gets executed on the database `databaseName`
-		const queryA = "GRANT CONNECT ON DATABASE %s TO %s;"
-		if _, err := conn.ExecContext(ctx, formatQueryObj(queryA, databaseName, s.connectionString.username)); err != nil {
-			return WrapSqlExecutionError(err, queryA, schemaName, s.connectionString.username)
-		}
-		// This gets executed on the database `databaseName`
-		const queryB = "GRANT USAGE ON SCHEMA %s TO %s;"
-		_, err := conn.ExecContext(ctx, formatQueryObj(queryB, schemaName, s.connectionString.username))
-		return WrapSqlExecutionError(err, queryB, schemaName, s.connectionString.username)
+		const query = "GRANT USAGE ON SCHEMA %s TO %s;"
+		_, err := conn.ExecContext(ctx, formatQueryObj(query, schemaName, s.connectionString.username))
+		return WrapSqlExecutionError(err, query, schemaName, s.connectionString.username)
 	})
 }
 
