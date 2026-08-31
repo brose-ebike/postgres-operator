@@ -4,20 +4,20 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.21.0
-  name: pgdatabases.postgres.brose.bike
+  name: pgusers.postgres.oebc.tools
 spec:
-  group: postgres.brose.bike
+  group: postgres.oebc.tools
   names:
-    kind: PgDatabase
-    listKind: PgDatabaseList
-    plural: pgdatabases
-    singular: pgdatabase
+    kind: PgUser
+    listKind: PgUserList
+    plural: pgusers
+    singular: pguser
   scope: Namespaced
   versions:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: PgDatabase is the Schema for the pgdatabases API
+        description: PgUser is the Schema for the pgusers API
         properties:
           apiVersion:
             description: |-
@@ -37,94 +37,34 @@ spec:
           metadata:
             type: object
           spec:
-            description: PgDatabaseSpec defines the desired state of PgDatabase
+            description: PgUserSpec defines the desired state of PgUser
             properties:
-              defaultPrivileges:
-                description: DefaultPrivileges defines the default privileges for
-                  schemas in this database
+              databases:
+                description: Databases is an example field of PgLoginRole
                 items:
+                  description: PgUserDatabase represents the database a user would
+                    like to connect to
                   properties:
-                    functionPrivileges:
-                      description: FunctionPrivileges specifies the name of the privileges
-                        on tables which should be granted to the roles
-                      items:
-                        enum:
-                        - EXECUTE
-                        type: string
-                      type: array
-                    roles:
-                      description: Roles specifies the name of the roles for which
-                        the privileges should be granted
-                      items:
-                        type: string
-                      type: array
-                    schemaName:
-                      description: Name specifies the name of the schema for which
-                        the default privileges should be granted.
+                    name:
+                      description: Name contains the Database Name on the postgres
+                        instance
                       type: string
-                    schemaPrivileges:
-                      description: SchemaPrivileges specifies the privileges on this
-                        schema which should be granted to the roles
+                    owner:
+                      description: Owner is the optional value which allows to set
+                        this user as owner of a database
+                      type: boolean
+                    privileges:
+                      description: Privileges contains the names of the privileges
+                        the user needs on the database
                       items:
                         enum:
-                        - USAGE
+                        - CONNECT
                         - CREATE
                         type: string
                       type: array
-                    sequencePrivileges:
-                      description: SequencePrivileges specifies the name of the privileges
-                        on tables which should be granted to the roles
-                      items:
-                        enum:
-                        - SELECT
-                        - UPDATE
-                        - USAGE
-                        type: string
-                      type: array
-                    tablePrivileges:
-                      description: TablePrivileges specifies the name of the privileges
-                        on tables which should be granted to the roles
-                      items:
-                        enum:
-                        - SELECT
-                        - INSERT
-                        - UPDATE
-                        - DELETE
-                        - TRUNCATE
-                        - REFERENCES
-                        - TRIGGER
-                        type: string
-                      type: array
-                    typePrivileges:
-                      description: TypePrivileges specifies the name of the privileges
-                        on tables which should be granted to the roles
-                      items:
-                        enum:
-                        - USAGE
-                        type: string
-                      type: array
                   required:
-                  - roles
-                  - schemaName
+                  - privileges
                   type: object
-                type: array
-              deletion:
-                description: DeletionBehavior specifies what should happen when the
-                  manifest gets deleted
-                properties:
-                  drop:
-                    description: Drop specifies if the database should be dropped
-                      on deletion (defaults to false)
-                    type: boolean
-                  wait:
-                    description: Wait specifies if the finalizer should wait for the
-                      database to be deleted manually
-                    type: boolean
-                type: object
-              extensions:
-                description: Extensions which should exist in this database
-                items:
-                  type: string
                 type: array
               instance:
                 description: Instance identifies the PgInstanceConnection which should
@@ -142,35 +82,26 @@ spec:
                 - name
                 - namespace
                 type: object
-              publicPrivileges:
-                description: PublicPrivileges revokes and Public stuff in postgres
+              secret:
+                description: Secret is an example field of PgLoginRole
                 properties:
-                  revoke:
-                    description: Revoke the public privileges from all database object
-                    type: boolean
-                required:
-                - revoke
-                type: object
-              publicSchema:
-                description: PublicSchema dropped
-                properties:
-                  drop:
-                    description: Revoke the public privileges from all database object
-                    type: boolean
-                required:
-                - drop
+                  name:
+                    description: Name identifies the PgLoginRoleSecret which should
+                      be used
+                    type: string
                 type: object
             required:
-            - deletion
             - instance
-            - publicPrivileges
-            - publicSchema
             type: object
           status:
-            description: PgDatabaseStatus defines the observed state of PgDatabase
+            description: PgUserStatus defines the observed state of PgUser
             properties:
               conditions:
-                description: Conditions represent the current connection state
+                description: |-
+                  Conditions represent the current connection state
+                  Supported Condition Types:
+                  - postgres.oebc.tools/login-role-exists true if login role exists false if not
+                  - postgres.oebc.tools/connected true if the instance is reachable false if not
                 items:
                   description: Condition contains details for one aspect of the current
                     state of this API Resource.

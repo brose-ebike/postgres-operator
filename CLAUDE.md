@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A Kubernetes operator (Kubebuilder v3, Go) that manages PostgreSQL databases and roles on
 **existing** Postgres instances (it does not provision Postgres itself — see Zalando's
-postgres-operator for that). Three CRDs, group `postgres.brose.bike/v1`:
+postgres-operator for that). Three CRDs, group `postgres.oebc.tools/v1`:
 
 - `PgInstance` — connection info (host/port/user/password/database/sslMode) for an existing
   Postgres server. Each field is a `PgProperty` that can be a literal `value`, or sourced from a
@@ -47,7 +47,7 @@ manifests && make build && make docker-build`), linter (`make fmt && make vet` +
 files must be committed), tests (`make test`), and documentation (`mkdocs build`).
 
 Every `.go` file must start with the Apache-2.0 boilerplate header from
-`hack/boilerplate.go.txt` ("Copyright 2023 Brose Fahrzeugteile SE & Co. KG, Bamberg."). The linter
+`hack/boilerplate.go.txt` ("Copyright 2026 Yamaha Motor eBike Systems GmbH."). The linter
 job checks this with `.github/scripts/lint_file_headers.py`; run it with a `format` arg to
 auto-insert missing headers: `python3 .github/scripts/lint_file_headers.py format`.
 
@@ -57,7 +57,7 @@ auto-insert missing headers: `python3 .github/scripts/lint_file_headers.py forma
 `PgInstance` CR, resolving `PgProperty` values from literals/ConfigMaps/Secrets) → `pkg/pgapi/`
 (raw SQL against the target Postgres instance via `database/sql` + `lib/pq`). `api/v1/` holds the
 CRD types (spec/status/conditions) plus shared helpers. `pkg/security/` generates role passwords.
-`pkg/tcpostgres/` and `pkg/brose_errors/` are small supporting packages (testcontainers-based
+`pkg/tcpostgres/` and `pkg/oebc_errors/` are small supporting packages (testcontainers-based
 Postgres test helper, and typed domain errors respectively).
 
 **Dependency injection via factories, not interfaces on structs directly**: each reconciler
@@ -74,7 +74,7 @@ use when testing reconciler logic in isolation.
 `PgRoleAPI` + `PgDatabaseAPI` + `PgConnector`, aliased as `PgRoleAPI` in `controllers/factories.go`).
 
 **Reconcile pattern**: every reconciler fetches its resource, builds a `pgApi` client from the
-referenced `PgInstance` (recording a `postgres.brose.bike/connected` status condition on
+referenced `PgInstance` (recording a `postgres.oebc.tools/connected` status condition on
 success/failure), branches on `DeletionTimestamp` to run finalizer logic
 (`apiV1.DefaultFinalizerPgUser` / equivalent), otherwise reconciles create/update state and sets
 status conditions (via `setCondition`/`removeCondition` in `controllers/utils.go`) before adding

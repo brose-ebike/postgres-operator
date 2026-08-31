@@ -11,7 +11,7 @@ kubectl apply -f https://github.com/brose-ebike/postgres-operator/releases/downl
 ```
 
 ## Description
-The Brose E-Bike Postgres Operator manages Postgres Databases and Users on existing instances.
+The Yamaha Motor eBike Systems Postgres Operator manages Postgres Databases and Users on existing instances.
 If you want to create Postgres instances in K8s checkout the [Zalando Postgres Operator](https://github.com/zalando/postgres-operator). When using this operator you need a user with `superuser` like privileges.
 Checkout the [documentation](https://brose-ebike.github.io/postgres-operator/) for more information.
 
@@ -21,7 +21,7 @@ To manage databases and users on an instance, the `PgInstance` resource has to b
 The `PgInstance` allows the operator to connect to the postgres instance.
 
 ```yaml
-apiVersion: postgres.brose.bike/v1
+apiVersion: postgres.oebc.tools/v1
 kind: PgInstance
 metadata:
   name: instance-001
@@ -61,7 +61,7 @@ Checkout the [documentation](https://brose-ebike.github.io/postgres-operator/) f
 The `PgDatabase` resource manages a database on the referenced instance.
 
 ```yaml
-apiVersion: postgres.brose.bike/v1
+apiVersion: postgres.oebc.tools/v1
 kind: PgDatabase
 metadata:
   name: service_db
@@ -93,7 +93,7 @@ Checkout the [documentation](https://brose-ebike.github.io/postgres-operator/) f
 The `PgUser` resource manages a role with login (user) on the referenced instance.
 
 ```yaml
-apiVersion: postgres.brose.bike/v1
+apiVersion: postgres.oebc.tools/v1
 kind: PgUser
 metadata:
   name: service_user
@@ -114,7 +114,7 @@ Checkout the [documentation](https://brose-ebike.github.io/postgres-operator/) f
 
 ## License
 
-Copyright 2023 Brose Fahrzeugteile SE & Co. KG, Bamberg.
+Copyright 2026 Yamaha Motor eBike Systems GmbH.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this writing and software except in compliance with the License.

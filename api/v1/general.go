@@ -1,5 +1,5 @@
 /*
-Copyright 2023 Brose Fahrzeugteile SE & Co. KG, Bamberg.
+Copyright 2026 Yamaha Motor eBike Systems GmbH.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ package v1
 import (
 	"context"
 
-	"github.com/brose-ebike/postgres-operator/pkg/brose_errors"
+	"github.com/brose-ebike/postgres-operator/pkg/oebc_errors"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -27,7 +27,7 @@ import (
 	coreV1 "k8s.io/api/core/v1"
 )
 
-const PgConnectedConditionType string = "postgres.brose.bike/connected"
+const PgConnectedConditionType string = "postgres.oebc.tools/connected"
 
 const (
 	PgConnectedConditionReasonConSucceeded = "ConnectionSucceeded"
@@ -51,7 +51,7 @@ func (p *PgProperty) GetPropertyValueWithDefault(ctx context.Context, r client.R
 	if err == nil {
 		return value, nil
 	}
-	if _, ok := err.(*brose_errors.MissingPropertyValueError); ok {
+	if _, ok := err.(*oebc_errors.MissingPropertyValueError); ok {
 		return defaultValue, nil
 	}
 	return "", err
@@ -74,7 +74,7 @@ func (p *PgProperty) GetPropertyValue(ctx context.Context, r client.Reader, name
 		if value, found := configMap.Data[key]; found {
 			return value, nil
 		}
-		return "", brose_errors.NewMapEntryNotFoundError(key, nil)
+		return "", oebc_errors.NewMapEntryNotFoundError(key, nil)
 	}
 	// Read from secret
 	if p.SecretKeyRef != nil {
@@ -88,13 +88,13 @@ func (p *PgProperty) GetPropertyValue(ctx context.Context, r client.Reader, name
 		valueBase64, foundBase64 := secret.Data[key]
 		valueString, foundString := secret.StringData[key]
 		if !foundBase64 && !foundString {
-			return "", brose_errors.NewMapEntryNotFoundError(key, nil)
+			return "", oebc_errors.NewMapEntryNotFoundError(key, nil)
 		} else if foundString {
 			return valueString, nil
 		}
 		return string(valueBase64), nil
 	}
-	return "", brose_errors.NewMissingPropertyValueError(name, nil)
+	return "", oebc_errors.NewMissingPropertyValueError(name, nil)
 }
 
 // PgInstanceRef identifies the PgInstanceConnection which should be used

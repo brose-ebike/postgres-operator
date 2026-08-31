@@ -13,22 +13,22 @@ spec:
     - description: PgDatabase is the Schema for the pgdatabases API
       displayName: Pg Database
       kind: PgDatabase
-      name: pgdatabases.postgres.brose.bike
+      name: pgdatabases.postgres.oebc.tools
       version: v1
     - description: PgInstance is the Schema for the pginstances API
       displayName: Pg Instance
       kind: PgInstance
-      name: pginstances.postgres.brose.bike
+      name: pginstances.postgres.oebc.tools
       version: v1
     - description: PgUser is the Schema for the pgusers API
       displayName: Pg User
       kind: PgUser
-      name: pgusers.postgres.brose.bike
+      name: pgusers.postgres.oebc.tools
       version: v1
-  description: The Brose Postgres Operator allows the management of databases and
+  description: The Yamaha Motor eBike Systems Postgres Operator allows the management of databases and
     users on multiple postgres instances. The Postgres Instances need to be provisioned
     externally or by another operator.
-  displayName: Brose Postgres Operator
+  displayName: Yamaha Motor eBike Systems Postgres Operator
   icon:
   - base64data: ""
     mediatype: ""
@@ -62,10 +62,10 @@ spec:
   maintainers:
   - email: 10846939+raynigon@users.noreply.github.com
     name: Simon Schneider
-  - email: lucas.duerksen@brose.com
+  - email: lucas.duerksen@yamaha-ebike-systems.com
     name: Lucas Dürksen
   maturity: alpha
   provider:
-    name: Brose Fahrzeugteile SE & Co. KG, Bamberg
-    url: https://www.brose.com/
+    name: Yamaha Motor eBike Systems GmbH
+    url: https://one-ebike.cloud
   version: 0.0.1

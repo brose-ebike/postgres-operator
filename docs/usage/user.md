@@ -9,7 +9,7 @@
 The `PgUser` resource manages a role with login (user) on the referenced instance.
 
 ```yaml
-apiVersion: postgres.brose.bike/v1
+apiVersion: postgres.oebc.tools/v1
 kind: PgUser
 metadata:
   name: service_user

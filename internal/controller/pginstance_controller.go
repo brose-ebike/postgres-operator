@@ -1,5 +1,5 @@
 /*
-Copyright 2023 Brose Fahrzeugteile SE & Co. KG, Bamberg.
+Copyright 2026 Yamaha Motor eBike Systems GmbH.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -37,9 +37,9 @@ type PgInstanceReconciler struct {
 	PgConnectionFactory PgConnectionFactory
 }
 
-//+kubebuilder:rbac:groups=postgres.brose.bike,resources=pginstances,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=postgres.brose.bike,resources=pginstances/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=postgres.brose.bike,resources=pginstances/finalizers,verbs=update
+//+kubebuilder:rbac:groups=postgres.oebc.tools,resources=pginstances,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=postgres.oebc.tools,resources=pginstances/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=postgres.oebc.tools,resources=pginstances/finalizers,verbs=update
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch
 

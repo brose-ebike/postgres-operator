@@ -1,5 +1,5 @@
 /*
-Copyright 2023 Brose Fahrzeugteile SE & Co. KG, Bamberg.
+Copyright 2026 Yamaha Motor eBike Systems GmbH.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,9 +23,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-const DefaultFinalizerPgUser = "postgres.brose.bike/pgloginrole"
-const PgUserExistsConditionType string = "pguser.postgres.brose.bike/exists"
-const PgUserDatabasesExistsConditionType string = "pguser.postgres.brose.bike/databases"
+const DefaultFinalizerPgUser = "postgres.oebc.tools/pgloginrole"
+const PgUserExistsConditionType string = "pguser.postgres.oebc.tools/exists"
+const PgUserDatabasesExistsConditionType string = "pguser.postgres.oebc.tools/databases"
 
 // +kubebuilder:validation:Enum=CONNECT;CREATE
 type DatabasePrivilege string
@@ -74,8 +74,8 @@ type PgUserSpec struct {
 type PgUserStatus struct {
 	// Conditions represent the current connection state
 	// Supported Condition Types:
-	// - postgres.brose.bike/login-role-exists true if login role exists false if not
-	// - postgres.brose.bike/connected true if the instance is reachable false if not
+	// - postgres.oebc.tools/login-role-exists true if login role exists false if not
+	// - postgres.oebc.tools/connected true if the instance is reachable false if not
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
 }
 

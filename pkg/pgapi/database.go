@@ -1,5 +1,5 @@
 /*
-Copyright 2023 Brose Fahrzeugteile SE & Co. KG, Bamberg.
+Copyright 2026 Yamaha Motor eBike Systems GmbH.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ import (
 	"database/sql"
 	"strings"
 
-	"github.com/brose-ebike/postgres-operator/pkg/brose_errors"
+	"github.com/brose-ebike/postgres-operator/pkg/oebc_errors"
 	_ "github.com/lib/pq"
 )
 
@@ -119,7 +119,7 @@ func (s *pgInstanceAPIImpl) UpdateDatabasePrivileges(databaseName string, roleNa
 	databasePrivileges := []string{"CONNECT", "CREATE", "TEMPLATE", "TEMPORARY"}
 	for _, privilege := range privileges {
 		if !hasElementString(databasePrivileges, privilege) {
-			return brose_errors.NewIllegalArgumentError("privileges", privilege, nil)
+			return oebc_errors.NewIllegalArgumentError("privileges", privilege, nil)
 		}
 	}
 	// Create Context

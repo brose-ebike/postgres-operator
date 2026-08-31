@@ -4,9 +4,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.21.0
-  name: pginstances.postgres.brose.bike
+  name: pginstances.postgres.oebc.tools
 spec:
-  group: postgres.brose.bike
+  group: postgres.oebc.tools
   names:
     kind: PgInstance
     listKind: PgInstanceList

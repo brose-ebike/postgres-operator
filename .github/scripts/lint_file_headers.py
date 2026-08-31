@@ -20,7 +20,7 @@ error = False
 for file in source_files:
     with open(file, encoding="utf-8") as fp:
         content = fp.read()
-    if "Copyright 2023 Brose Fahrzeugteile SE & Co. KG, Bamberg." in content:
+    if "Copyright 2026 Yamaha Motor eBike Systems GmbH." in content:
         continue
     if format:
         with open(file, "w", encoding="utf-8") as fp:

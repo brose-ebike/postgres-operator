@@ -9,7 +9,7 @@
 The `PgDatabase` resource manages a database on the referenced instance.
 
 ```yaml
-apiVersion: postgres.brose.bike/v1
+apiVersion: postgres.oebc.tools/v1
 kind: PgDatabase
 metadata:
   name: service_db

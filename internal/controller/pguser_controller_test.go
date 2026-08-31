@@ -1,5 +1,5 @@
 /*
-Copyright 2023 Brose Fahrzeugteile SE & Co. KG, Bamberg.
+Copyright 2026 Yamaha Motor eBike Systems GmbH.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -176,7 +176,7 @@ var _ = Describe("PgUserReconciler", func() {
 		createDummy := func() {
 			instance := apiV1.PgInstance{
 				TypeMeta: v1.TypeMeta{
-					APIVersion: "postgres.brose.bike/v1",
+					APIVersion: "postgres.oebc.tools/v1",
 					Kind:       "PgInstance",
 				},
 				ObjectMeta: v1.ObjectMeta{
@@ -199,7 +199,7 @@ var _ = Describe("PgUserReconciler", func() {
 		createUser := func() {
 			instance := apiV1.PgUser{
 				TypeMeta: v1.TypeMeta{
-					APIVersion: "postgres.brose.bike/v1",
+					APIVersion: "postgres.oebc.tools/v1",
 					Kind:       "PgUser",
 				},
 				ObjectMeta: v1.ObjectMeta{
@@ -379,7 +379,7 @@ var _ = Describe("PgUserReconciler finalize", func() {
 		// given
 		user := apiV1.PgUser{
 			TypeMeta: v1.TypeMeta{
-				APIVersion: "postgres.brose.bike/v1",
+				APIVersion: "postgres.oebc.tools/v1",
 				Kind:       "PgUser",
 			},
 			ObjectMeta: v1.ObjectMeta{
@@ -419,7 +419,7 @@ var _ = Describe("PgUserReconciler finalize", func() {
 		// given
 		user := apiV1.PgUser{
 			TypeMeta: v1.TypeMeta{
-				APIVersion: "postgres.brose.bike/v1",
+				APIVersion: "postgres.oebc.tools/v1",
 				Kind:       "PgUser",
 			},
 			ObjectMeta: v1.ObjectMeta{

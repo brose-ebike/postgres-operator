@@ -1,5 +1,5 @@
 /*
-Copyright 2023 Brose Fahrzeugteile SE & Co. KG, Bamberg.
+Copyright 2026 Yamaha Motor eBike Systems GmbH.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,10 +23,10 @@ import (
 
 // DefaultFinalizerPgDatabase contains the name for the default finalizer
 // of the PgDatabase resource
-const DefaultFinalizerPgDatabase = "postgres.brose.bike/pgdatabase"
-const PgDatabaseExistsConditionType string = "pgdatabase.postgres.brose.bike/exists"
-const PgDatabaseExtensionsConditionType string = "pgdatabase.postgres.brose.bike/extensions"
-const PgDatabaseDefaultPrivilegesConditionType string = "pgdatabase.postgres.brose.bike/default-privileges"
+const DefaultFinalizerPgDatabase = "postgres.oebc.tools/pgdatabase"
+const PgDatabaseExistsConditionType string = "pgdatabase.postgres.oebc.tools/exists"
+const PgDatabaseExtensionsConditionType string = "pgdatabase.postgres.oebc.tools/extensions"
+const PgDatabaseDefaultPrivilegesConditionType string = "pgdatabase.postgres.oebc.tools/default-privileges"
 
 // +kubebuilder:validation:Enum=USAGE;CREATE
 type SchemaPrivilege string
