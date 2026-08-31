@@ -1,5 +1,5 @@
 /*
-Copyright 2023 Brose Fahrzeugteile SE & Co. KG, Bamberg.
+Copyright 2026 Yamaha Motor eBike Systems GmbH.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package brose_errors
+package oebc_errors
 
 import (
 	"errors"
@@ -23,19 +23,19 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestIllegalArgumentErrorMessage(t *testing.T) {
-	err := NewIllegalArgumentError("test", "dummy", nil)
+func TestMapEntryNotFoundErrorMessage(t *testing.T) {
+	err := NewMapEntryNotFoundError("test", nil)
 	actual := err.Error()
-	expected := "The argument 'test' has an illegal value of 'dummy'"
+	expected := "Entry for key 'test' was not found in map"
 	if diff := cmp.Diff(expected, actual); diff != "" {
 		t.Errorf("Message is incorrect (-want +got):\n%s", diff)
 	}
 }
 
-func TestIllegalArgumentErrorUnwrap(t *testing.T) {
+func TestMapEntryNotFoundErrorUnwrap(t *testing.T) {
 	// given
 	inner := errors.New("to-be-wrapped")
-	err := NewIllegalArgumentError("test", "dummy", inner)
+	err := NewMapEntryNotFoundError("test", inner)
 	// when
 	actual := err.Unwrap().Error()
 	// then

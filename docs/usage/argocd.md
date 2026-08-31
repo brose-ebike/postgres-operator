@@ -9,13 +9,13 @@ See [ArgoCD Documentation](https://argo-cd.readthedocs.io/en/stable/operator-man
 
 ```yaml
 data:
-    resource.customizations.health.postgres.brose.bike_PgInstance: |
+    resource.customizations.health.postgres.oebc.tools_PgInstance: |
         hs = {}
         if obj.status ~= nil then
             if obj.status.conditions ~= nil then
                 for i, condition in ipairs(obj.status.conditions) do
                     if condition.type ~= nil then
-                        if condition.type == "postgres.brose.bike/connected" and condition.status == "False" then
+                        if condition.type == "postgres.oebc.tools/connected" and condition.status == "False" then
                             hs.status = "Progressing"
                             hs.message = condition.message
                             return hs
@@ -27,23 +27,23 @@ data:
 
         hs.status = "Healthy"
         return hs
-    resource.customizations.health.postgres.brose.bike_PgUser: |
+    resource.customizations.health.postgres.oebc.tools_PgUser: |
         hs = {}
         if obj.status ~= nil then
             if obj.status.conditions ~= nil then
                 for i, condition in ipairs(obj.status.conditions) do
                     if condition.type ~= nil then
-                        if condition.type == "postgres.brose.bike/connected" and condition.status == "False" then
+                        if condition.type == "postgres.oebc.tools/connected" and condition.status == "False" then
                             hs.status = "Progressing"
                             hs.message = condition.message
                             return hs
                         end        
-                        if condition.type == "pguser.postgres.brose.bike/exists" and condition.status == "False" then
+                        if condition.type == "pguser.postgres.oebc.tools/exists" and condition.status == "False" then
                             hs.status = "Progressing"
                             hs.message = condition.message
                             return hs
                         end  
-                        if condition.type == "pguser.postgres.brose.bike/databases" and condition.status == "False" then
+                        if condition.type == "pguser.postgres.oebc.tools/databases" and condition.status == "False" then
                             hs.status = "Degraded"
                             hs.message = condition.message
                             return hs
@@ -55,28 +55,28 @@ data:
 
         hs.status = "Healthy"
         return hs
-    resource.customizations.health.postgres.brose.bike_PgDatabase: |
+    resource.customizations.health.postgres.oebc.tools_PgDatabase: |
         hs = {}
         if obj.status ~= nil then
             if obj.status.conditions ~= nil then
                 for i, condition in ipairs(obj.status.conditions) do
                     if condition.type ~= nil then
-                        if condition.type == "postgres.brose.bike/connected" and condition.status == "False" then
+                        if condition.type == "postgres.oebc.tools/connected" and condition.status == "False" then
                             hs.status = "Progressing"
                             hs.message = condition.message
                             return hs
                         end        
-                        if condition.type == "pgdatabase.postgres.brose.bike/exists" and condition.status == "False" then
+                        if condition.type == "pgdatabase.postgres.oebc.tools/exists" and condition.status == "False" then
                             hs.status = "Progressing"
                             hs.message = condition.message
                             return hs
                         end
-                        if condition.type == "pgdatabase.postgres.brose.bike/extensions" and condition.status == "False" then
+                        if condition.type == "pgdatabase.postgres.oebc.tools/extensions" and condition.status == "False" then
                             hs.status = "Degraded"
                             hs.message = condition.message
                             return hs
                         end  
-                        if condition.type == "pgdatabase.postgres.brose.bike/default-privileges" and condition.status == "False" then
+                        if condition.type == "pgdatabase.postgres.oebc.tools/default-privileges" and condition.status == "False" then
                             hs.status = "Degraded"
                             hs.message = condition.message
                             return hs

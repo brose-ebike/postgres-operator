@@ -1,4 +1,4 @@
-domain: brose.bike
+domain: oebc.tools
 layout:
 - go.kubebuilder.io/v4
 plugins:
@@ -11,7 +11,7 @@ resources:
     crdVersion: v1
     namespaced: true
   controller: true
-  domain: brose.bike
+  domain: oebc.tools
   group: postgres
   kind: PgInstance
   path: github.com/brose-ebike/postgres-operator/api/v1
@@ -20,7 +20,7 @@ resources:
     crdVersion: v1
     namespaced: true
   controller: true
-  domain: brose.bike
+  domain: oebc.tools
   group: postgres
   kind: PgDatabase
   path: github.com/brose-ebike/postgres-operator/api/v1
@@ -29,7 +29,7 @@ resources:
     crdVersion: v1
     namespaced: true
   controller: true
-  domain: brose.bike
+  domain: oebc.tools
   group: postgres
   kind: PgUser
   path: github.com/brose-ebike/postgres-operator/api/v1

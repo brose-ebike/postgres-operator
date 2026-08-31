@@ -12,7 +12,7 @@ metadata:
   name: pgdatabase-viewer-role
 rules:
 - apiGroups:
-  - postgres.brose.bike
+  - postgres.oebc.tools
   resources:
   - pgdatabases
   verbs:
@@ -20,7 +20,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - postgres.brose.bike
+  - postgres.oebc.tools
   resources:
   - pgdatabases/status
   verbs:

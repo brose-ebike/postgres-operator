@@ -1,6 +1,6 @@
 # Requirements
 
-This document captures the functional and non-functional requirements of the Brose E-Bike
+This document captures the functional and non-functional requirements of the Yamaha Motor eBike Systems
 Postgres Operator as they exist today. It is the baseline to validate against during the planned
 refactoring: any behavior described here that a refactor would change is a **breaking change**
 and must be called out explicitly and agreed on before merging.
@@ -25,7 +25,7 @@ and must be called out explicitly and agreed on before merging.
   Server is explicitly unsupported (deprecated by Microsoft, incompatible username structure) and
   is not a support goal for the refactor.
 
-## 2. Custom Resource Definitions (API group `postgres.brose.bike/v1`)
+## 2. Custom Resource Definitions (API group `postgres.oebc.tools/v1`)
 
 ### 2.1 `PgProperty` (shared value-sourcing primitive)
 
@@ -55,7 +55,7 @@ and must be called out explicitly and agreed on before merging.
   (`PgInstanceRef`) — the referenced instance may live in a different namespace than the resource
   referencing it.
 - REQ-2.2.4: On reconcile, the operator establishes a connection and actively pings it
-  (`TestConnection`), recording success/failure as the `postgres.brose.bike/connected` status
+  (`TestConnection`), recording success/failure as the `postgres.oebc.tools/connected` status
   condition (reasons `ConnectionSucceeded` / `ConnectionFailed`). `PgInstance` reconciliation does
   not itself create/alter any database objects.
 - REQ-2.2.5: The connecting user must have superuser-equivalent rights, or at minimum
@@ -76,7 +76,7 @@ and must be called out explicitly and agreed on before merging.
   already exists (no destructive re-create, no schema diffing/migration).
 - REQ-2.3.4: Deletion behavior is declarative and controlled per-resource by
   `deletion.drop`/`deletion.wait`, enforced via a finalizer
-  (`postgres.brose.bike/pgdatabase`):
+  (`postgres.oebc.tools/pgdatabase`):
   - `drop: true` — on CR deletion, drop the actual Postgres database (if it exists) before
     removing the finalizer.
   - `drop: false` (default) — deleting the CR never drops the database; the finalizer is removed
@@ -87,7 +87,7 @@ and must be called out explicitly and agreed on before merging.
 - REQ-2.3.5: Extensions listed in `spec.extensions` are ensured present via `CREATE EXTENSION`
   (checked first with `IsDatabaseExtensionPresent`) — idempotent, additive only. There is no
   mechanism to drop an extension that is removed from the spec. Failure to create one extension
-  sets a `pgdatabase.postgres.brose.bike/extensions` condition to `False` with reason
+  sets a `pgdatabase.postgres.oebc.tools/extensions` condition to `False` with reason
   `MissingExtension-<name>` and stops further extension processing for that reconcile.
 - REQ-2.3.6: `defaultPrivileges` entries name a schema (`schemaName`) that must already exist in
   the database (reconcile fails with an error if not — the operator does not create
@@ -112,8 +112,8 @@ and must be called out explicitly and agreed on before merging.
   is later set back to `false`.
 - REQ-2.3.8: `publicSchema.drop: true` drops the `public` schema entirely if present. This is
   irreversible via the operator (no re-creation logic) and independent of `publicPrivileges`.
-- REQ-2.3.9: Status conditions exposed: `pgdatabase.postgres.brose.bike/exists`,
-  `.../extensions`, `.../default-privileges`, plus the shared `postgres.brose.bike/connected`.
+- REQ-2.3.9: Status conditions exposed: `pgdatabase.postgres.oebc.tools/exists`,
+  `.../extensions`, `.../default-privileges`, plus the shared `postgres.oebc.tools/connected`.
 - REQ-2.3.10: All Postgres object identifiers (database name, schema name, role name) are
   interpolated into SQL as double-quoted identifiers (`formatQueryObj`); the CRD does not
   currently validate identifier legality beyond the Kubernetes resource name (DNS-1123 subdomain)
@@ -147,7 +147,7 @@ and must be called out explicitly and agreed on before merging.
   applications consume them directly (CI/CD decoupling use case, REQ-6).
 - REQ-2.4.6: Reconciliation only proceeds to grant database ownership/privileges once **all**
   referenced databases exist; otherwise it sets the
-  `pguser.postgres.brose.bike/databases` condition to `False` (reason `DatabasesMissing`, message
+  `pguser.postgres.oebc.tools/databases` condition to `False` (reason `DatabasesMissing`, message
   lists missing DB names) and requeues quickly (1s) rather than erroring — this is the intended
   mechanism for `PgUser` to wait on a co-deployed `PgDatabase`.
 - REQ-2.4.7: Per-database privilege reconciliation is state-driven on current vs. desired
@@ -161,14 +161,14 @@ and must be called out explicitly and agreed on before merging.
     exactly the declared set (full replace, not incremental).
   - If the user **is** the owner, per-database `Privileges` are not separately applied (an owner
     implicitly has full rights).
-- REQ-2.4.8: Deletion (finalizer `postgres.brose.bike/pgloginrole`): if the role exists,
+- REQ-2.4.8: Deletion (finalizer `postgres.oebc.tools/pgloginrole`): if the role exists,
   `DeleteRole` first reassigns all objects owned by the role to the connecting admin role
   (`REASSIGN OWNED BY ... TO ...`), drops all remaining privileges owned by the role (`DROP OWNED
   BY`), then drops the role (`DROP USER`) — this must not fail merely because the role still owns
   objects. The credentials Secret is then explicitly deleted (not left to Kubernetes GC), and the
   finalizer is removed.
-- REQ-2.4.9: Status conditions exposed: `pguser.postgres.brose.bike/exists`,
-  `.../databases`, plus the shared `postgres.brose.bike/connected`.
+- REQ-2.4.9: Status conditions exposed: `pguser.postgres.oebc.tools/exists`,
+  `.../databases`, plus the shared `postgres.oebc.tools/connected`.
 
 ## 3. Reconciliation semantics (cross-cutting)
 
@@ -315,18 +315,18 @@ and must be called out explicitly and agreed on before merging.
 
 ## 9. Backwards compatibility constraints for the refactor
 
-- REQ-9.1: The API group/version (`postgres.brose.bike/v1`) and Kind names (`PgInstance`,
+- REQ-9.1: The API group/version (`postgres.oebc.tools/v1`) and Kind names (`PgInstance`,
   `PgDatabase`, `PgUser`) must not change.
 - REQ-9.2: All existing spec fields listed in §2 must continue to be accepted with their current
   JSON field names, types, and default values; no required field may become newly required, and no
   currently-optional field may become mandatory.
-- REQ-9.3: Existing status condition `Type` strings (`postgres.brose.bike/connected`,
-  `pgdatabase.postgres.brose.bike/exists`, `.../extensions`, `.../default-privileges`,
-  `pguser.postgres.brose.bike/exists`, `.../databases`) must keep their exact string values, since
+- REQ-9.3: Existing status condition `Type` strings (`postgres.oebc.tools/connected`,
+  `pgdatabase.postgres.oebc.tools/exists`, `.../extensions`, `.../default-privileges`,
+  `pguser.postgres.oebc.tools/exists`, `.../databases`) must keep their exact string values, since
   external tooling (dashboards, `kubectl wait --for=condition=...`, ArgoCD health checks) may
   depend on them.
-- REQ-9.4: Finalizer string values (`postgres.brose.bike/pgdatabase`,
-  `postgres.brose.bike/pgloginrole`) must not change, so upgrades don't strand existing resources
+- REQ-9.4: Finalizer string values (`postgres.oebc.tools/pgdatabase`,
+  `postgres.oebc.tools/pgloginrole`) must not change, so upgrades don't strand existing resources
   with an unrecognized finalizer.
 - REQ-9.5: Generated Secret key names for `PgUser` (REQ-2.4.5) must not change or be removed;
   new keys may be added additively.
