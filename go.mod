@@ -7,7 +7,7 @@ toolchain go1.26.7
 require (
 	github.com/docker/go-connections v0.4.0
 	github.com/google/go-cmp v0.7.0
-	github.com/lib/pq v1.10.7
+	github.com/lib/pq v1.12.3
 	github.com/onsi/ginkgo/v2 v2.27.4
 	github.com/onsi/gomega v1.39.0
 	github.com/testcontainers/testcontainers-go v0.17.0
