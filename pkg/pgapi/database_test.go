@@ -126,7 +126,7 @@ var _ = Describe("PostgresAPI Database Handling", func() {
 		// Create the database twice
 		err = pgApi.CreateDatabase("dummy_db_6")
 		Expect(err).ToNot(BeNil())
-		Expect(err.Error()).To(Equal("Unable to execute query 'create database %s;' with arguments 'dummy_db_6'\npq: database \"dummy_db_6\" already exists"))
-		Expect(errors.Unwrap(err).Error()).To(Equal("pq: database \"dummy_db_6\" already exists"))
+		Expect(err.Error()).To(Equal("Unable to execute query 'create database %s;' with arguments 'dummy_db_6'\npq: database \"dummy_db_6\" already exists (42P04)"))
+		Expect(errors.Unwrap(err).Error()).To(Equal("pq: database \"dummy_db_6\" already exists (42P04)"))
 	})
 })
