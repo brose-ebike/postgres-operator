@@ -5,7 +5,7 @@ go 1.26.0
 toolchain go1.26.7
 
 require (
-	github.com/docker/go-connections v0.4.0
+	github.com/docker/go-connections v0.8.1
 	github.com/google/go-cmp v0.7.0
 	github.com/lib/pq v1.10.7
 	github.com/onsi/ginkgo/v2 v2.27.4
