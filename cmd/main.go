@@ -115,6 +115,7 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "PgDatabase")
+		os.Exit(1)
 	}
 	if err = (&controller.PgUserReconciler{
 		Client: mgr.GetClient(),
