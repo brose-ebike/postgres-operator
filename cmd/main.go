@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	postgresv1 "github.com/brose-ebike/postgres-operator/api/v1"
-	"github.com/brose-ebike/postgres-operator/controllers"
+	"github.com/brose-ebike/postgres-operator/internal/controller"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -89,20 +89,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controllers.PgInstanceReconciler{
+	if err = (&controller.PgInstanceReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "PgInstance")
 		os.Exit(1)
 	}
-	if err = (&controllers.PgDatabaseReconciler{
+	if err = (&controller.PgDatabaseReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "PgDatabase")
 	}
-	if err = (&controllers.PgUserReconciler{
+	if err = (&controller.PgUserReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
