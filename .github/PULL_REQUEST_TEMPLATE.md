@@ -13,7 +13,7 @@ As a user i want to ... because ...
 * ...
 
 ## References
-Ticket: BRS-XXXX
+Ticket: OEBC-XXXX
 
 # Checklist:
 
