@@ -17,6 +17,9 @@ limitations under the License.
 package pgapi
 
 import (
+	"context"
+	"database/sql"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -79,6 +82,54 @@ var _ = Describe("PostgresAPI Schema Handling", func() {
 		// Update Schema Privileges
 		err = pgApi.UpdateDefaultPrivileges(databaseName, schemaName, roleName, "TABLES", []string{"SELECT"})
 		Expect(err).To(BeNil())
+	})
+
+	It("applies default privileges to objects created later by the owning role", func() {
+		granteeRole := "dummy_role_50"
+		ownerRole := "dummy_role_51"
+		databaseName := "dummy_db_50"
+		schemaName := "service"
+		tableName := "widgets"
+		// Create roles
+		err := pgApi.CreateRole(granteeRole)
+		Expect(err).To(BeNil())
+		err = pgApi.CreateRole(ownerRole)
+		Expect(err).To(BeNil())
+		// Create database and make ownerRole the actual database owner, mirroring how a
+		// PgDatabase's owner role is the one that will create objects later on
+		err = pgApi.CreateDatabase(databaseName)
+		Expect(err).To(BeNil())
+		err = pgApi.UpdateDatabaseOwner(databaseName, ownerRole)
+		Expect(err).To(BeNil())
+		// Create schema and allow ownerRole to create objects in it
+		err = pgApi.CreateSchema(databaseName, schemaName)
+		Expect(err).To(BeNil())
+		err = pgApi.UpdateSchemaPrivileges(databaseName, schemaName, ownerRole, []string{"CREATE", "USAGE"})
+		Expect(err).To(BeNil())
+		// Register default privileges for granteeRole on future tables
+		err = pgApi.UpdateDefaultPrivileges(databaseName, schemaName, granteeRole, "TABLES", []string{"SELECT"})
+		Expect(err).To(BeNil())
+		// Create a new table as ownerRole, simulating an object created after reconciliation
+		impl := pgApi.(*pgInstanceAPIImpl)
+		err = impl.runInAs(databaseName, ownerRole, func(ctx context.Context, conn *sql.Conn) error {
+			if _, err := conn.ExecContext(ctx, formatQueryObj("set role %s;", ownerRole)); err != nil {
+				return err
+			}
+			if _, err := conn.ExecContext(ctx, formatQueryObj("create table %s.%s (id int);", schemaName, tableName)); err != nil {
+				return err
+			}
+			_, err := conn.ExecContext(ctx, "reset role;")
+			return err
+		})
+		Expect(err).To(BeNil())
+		// The grantee role should have SELECT on the newly created table via the default privilege
+		var hasPrivilege bool
+		err = impl.runIn(databaseName, func(ctx context.Context, conn *sql.Conn) error {
+			const query = "select has_table_privilege($1, $2, 'SELECT');"
+			return conn.QueryRowContext(ctx, query, granteeRole, schemaName+"."+tableName).Scan(&hasPrivilege)
+		})
+		Expect(err).To(BeNil())
+		Expect(hasPrivilege).To(BeTrue())
 	})
 
 	It("can delete privileges on schema", func() {
