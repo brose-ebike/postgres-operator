@@ -213,15 +213,17 @@ func (r *PgUserReconciler) finalize(ctx context.Context, user *apiV1.PgUser, pgA
 	}
 
 	// Delete Secret if exists
-	roleSecret := coreV1.Secret{}
-	exists, err = getResource(ctx, r, types.NamespacedName{Namespace: user.Namespace, Name: user.Spec.Secret.Name}, &roleSecret)
-	if err != nil {
-		return err
-	}
-	if exists {
-		if err := r.Delete(ctx, &roleSecret); err != nil {
-			logger.Error(err, "Unable to delete Secret")
+	if user.Spec.Secret != nil {
+		roleSecret := coreV1.Secret{}
+		exists, err = getResource(ctx, r, types.NamespacedName{Namespace: user.Namespace, Name: user.Spec.Secret.Name}, &roleSecret)
+		if err != nil {
 			return err
+		}
+		if exists {
+			if err := r.Delete(ctx, &roleSecret); err != nil {
+				logger.Error(err, "Unable to delete Secret")
+				return err
+			}
 		}
 	}
 
@@ -260,6 +262,12 @@ func (r *PgUserReconciler) createOrUpdateSecret(ctx context.Context, pgApi PgRol
 	logger := log.FromContext(ctx)
 	roleName := user.Name
 	password := ""
+
+	if user.Spec.Secret == nil {
+		err := errors.New("spec.secret is required to generate credentials for login role " + roleName)
+		logger.Error(err, fmt.Sprintf("Unable to create role secret for login role %s", roleName))
+		return "", err
+	}
 
 	var roleSecret coreV1.Secret
 	secretKey := types.NamespacedName{

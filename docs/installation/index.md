@@ -1,37 +1,29 @@
-!!! warning "Work in Progress"
-
-    This page is still work in progress and will be updated as soon as possible.<br />
-    Feel free to create a [Pull Request](https://github.com/brose-ebike/postgres-operator/pulls) for this page.
-
 # Installation
-Learn about the various ways you can install postgres-operator and how to choose between them.
-
-Below you will find details on various scenarios we aim to support and that are
-compatible with the documentation on this website. Furthermore, the most applicable
-install methods are listed below for each of the situations.
+Learn about the various ways you can install the postgres-operator and how to choose between them.
 
 ## Default static install
 
-> You don't require any tweaking of the cert-manager install parameters.
+> You want to get started quickly with a single command and don't need to customize the
+> deployment.
 
 The default static configuration can be installed as follows:
 
 ```bash
-kubectl apply -f https://github.com/brose-ebike/postgres-operator/releases/download/latest/install.yaml
+kubectl apply -f https://github.com/brose-ebike/postgres-operator/releases/latest/download/install.yaml
 ```
 
 More information on this install method [can be found here](./simple.md).
 
-## Getting started
-> You quickly want to learn how to use postgres-operator and what it can be used for.
+## Kustomize
 
-<!-- TODO -->
+> You want to customize the deployment (e.g. resource limits, replica count, namespace) before
+> applying it, or manage the installation as part of a larger Kustomize-based GitOps setup.
 
-## Continuous deployment
+The repository itself is a valid Kustomize base. See [Kustomize](./kustomize.md) for details.
 
-> You know how to configure your postgres-operator setup and want to automate this.
+## Helm
 
-<!-- TODO: Describe HELM and kustomize installation -->
-This templated cert-manager manifest can be piped into your preferred deployment tool.
+> You manage your cluster's workloads with Helm.
 
-In case you are using Helm for automation, cert-manager [supports installing using Helm](./helm.md).
+A Helm chart is not published for this operator yet. See [Helm](./helm.md) for the current
+status and alternatives.

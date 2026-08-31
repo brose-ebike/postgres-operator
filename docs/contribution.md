@@ -12,7 +12,7 @@ The list of all [Contributors](https://github.com/brose-ebike/postgres-operator/
   * discuss with the authors on an issue ticket prior to doing anything big.
   * follow the style, naming and structure conventions of the rest of the project.
   * make commits atomic and easy to merge.
-  * verify all tests are passing. Build the project with `make build` and `make tests` run to do this.
+  * verify all tests are passing. Build the project with `make build` and run tests with `make test`.
 
 ## How it works
 This project aims to follow the Kubernetes [Operator pattern](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/)

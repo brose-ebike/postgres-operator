@@ -42,4 +42,4 @@ nav:
     - Azure: usage/azure.md
   - Contribution: contribution.md
 extra:
-  latest_version: 0.0.1
+  latest_version: 0.0.6

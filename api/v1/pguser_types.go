@@ -40,7 +40,8 @@ const (
 
 // PgLoginRoleSecret identifies the PgLoginRoleSecret which should be used
 type PgUserSecret struct {
-	// Name identifies the PgLoginRoleSecret which should be used
+	// Name identifies the name of the generated k8s Secret holding the role's
+	// credentials and per-database connection strings
 	Name string `json:"name,omitempty"`
 }
 
@@ -74,8 +75,9 @@ type PgUserSpec struct {
 type PgUserStatus struct {
 	// Conditions represent the current connection state
 	// Supported Condition Types:
-	// - postgres.oebc.tools/login-role-exists true if login role exists false if not
 	// - postgres.oebc.tools/connected true if the instance is reachable false if not
+	// - pguser.postgres.oebc.tools/exists true if the login role exists on the instance false if not
+	// - pguser.postgres.oebc.tools/databases true if all referenced spec.databases exist false if not
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
 }
 

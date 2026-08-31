@@ -28,14 +28,20 @@ The username and password can be stored in a secret.
 The operator will resolve all attribute values when the resource gets applied.
 Its better to avoid having defined multiple sources for an attribute, buts its permitted by the operator.
 
-| Attribute   | Decription                                                                   | Optional            | Default  |   |
-|-------------|------------------------------------------------------------------------------|---------------------|----------|---|
-| `hostname`  | The hostname of the postgres instance to which the operator should connect   | :x:                 | -        |   |
-| `port`      | The port of the postgres instance to which the operator should connect       | :white_check_mark:  | 8432     |   |
-| `username`  | The username of the administration user which should be used by the operator | :x:                 | -        |   |
-| `password`  | The password of the administration user which should be used by the operator | :x:                 | -        |   |
-| `database`  | The maintenance database which should be used to establish the connection to | :white_check_mark:  | postgres |   |
-| `sslmode`   | The SSLMode which should be used for the connection to the postgres instance | :white_check_mark:  | none     |   |
+| Attribute  | Decription                                                                    | Optional            | Default  |   |
+|------------|--------------------------------------------------------------------------------|--------------------|----------|---|
+| `host`     | The hostname of the postgres instance to which the operator should connect   | :x:                 | -        |   |
+| `port`     | The port of the postgres instance to which the operator should connect       | :white_check_mark:  | 5432     |   |
+| `username` | The username of the administration user which should be used by the operator | :x:                 | -        |   |
+| `password` | The password of the administration user which should be used by the operator | :x:                 | -        |   |
+| `database` | The maintenance database which should be used to establish the connection to | :white_check_mark:  | postgres |   |
+| `sslMode`  | The SSLMode which should be used for the connection to the postgres instance  | :white_check_mark:  | none     |   |
+
+!!! note
+    None of these defaults are enforced by the CRD schema itself (`kubectl explain` won't show
+    them) — they are applied by the operator at reconcile time. `host`, `username` and `password`
+    have no default: if none of `value`, `configMapKeyRef` or `secretKeyRef` is set for one of
+    these, reconciliation will fail with a `MissingPropertyValueError` until it is set.
 
 ## Required Privileges
 The user which is provided for the `PgInstance` to connect to the instance needs to have at least superuser like privileges.

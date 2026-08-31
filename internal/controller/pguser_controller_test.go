@@ -286,6 +286,46 @@ var _ = Describe("PgUserReconciler", func() {
 		Expect(secret.ObjectMeta.OwnerReferences).To(HaveLen(1))
 	})
 
+	It("fails cleanly on create when spec.secret is missing", func() {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		// given
+		user := apiV1.PgUser{
+			TypeMeta: v1.TypeMeta{
+				APIVersion: "postgres.oebc.tools/v1",
+				Kind:       "PgUser",
+			},
+			ObjectMeta: v1.ObjectMeta{
+				Namespace: "default",
+				Name:      "no-secret",
+			},
+			Spec: apiV1.PgUserSpec{
+				Instance: apiV1.PgInstanceRef{
+					Namespace: "default",
+					Name:      "instance",
+				},
+				Databases: []apiV1.PgUserDatabase{},
+			},
+			Status: apiV1.PgUserStatus{},
+		}
+		err := k8sClient.Create(ctx, &user)
+		Expect(err).To(BeNil())
+
+		request := reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Namespace: "default",
+				Name:      "no-secret",
+			},
+		}
+
+		// when
+		result, err := reconciler.Reconcile(ctx, request)
+
+		// then
+		Expect(err).NotTo(BeNil())
+		Expect(result.RequeueAfter).NotTo(BeZero())
+	})
+
 	It("reconciles on delete of PgDatabase", func() {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
@@ -501,5 +541,38 @@ var _ = Describe("PgUserReconciler finalize", func() {
 		exists, err := getResource(ctx, k8sClient, types.NamespacedName{Namespace: "default", Name: "credentials"}, &secret)
 		Expect(err).To(BeNil())
 		Expect(exists).To(BeFalse())
+	})
+
+	It("handles user deletion without spec.secret", func() {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		// given
+		user := apiV1.PgUser{
+			ObjectMeta: v1.ObjectMeta{
+				Namespace: "default",
+				Name:      "existing",
+			},
+			Spec: apiV1.PgUserSpec{
+				Instance: apiV1.PgInstanceRef{
+					Namespace: "default",
+					Name:      "instance",
+				},
+				Databases: []apiV1.PgUserDatabase{},
+			},
+			Status: apiV1.PgUserStatus{},
+		}
+		err := k8sClient.Create(ctx, &user)
+		Expect(err).To(BeNil())
+
+		// and
+		pgApiMock.(*pgRoleMock).roles["existing"] = true
+
+		// when
+		err = reconciler.finalize(ctx, &user, pgApiMock)
+
+		// then
+		Expect(err).To(BeNil())
+		Expect(pgApiMock.(*pgRoleMock).callsIsRoleExisting).To(Equal(1))
+		Expect(pgApiMock.(*pgRoleMock).callsDeleteRole).To(Equal(1))
 	})
 })

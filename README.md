@@ -7,7 +7,7 @@ Create a role that with access to this Postgres Instance and optionally update p
 The default static configuration can be installed as follows:
 
 ```bash
-kubectl apply -f https://github.com/brose-ebike/postgres-operator/releases/download/latest/install.yaml
+kubectl apply -f https://github.com/brose-ebike/postgres-operator/releases/latest/download/install.yaml
 ```
 
 ## Description
@@ -72,13 +72,13 @@ spec:
   deletion:
     wait: true # Wait until the database was deleted manually on the postgres instance
   defaultPrivileges:
-    - name: "service"
+    - schemaName: "service"
       roles: ["developer"]
-      tablePrivileges: ["ALL"]
-      sequencePrivileges: ["ALL"]
-      functionPrivileges: ["ALL"]
-      routinePrivileges: ["ALL"]
-      typePrivileges: ["ALL"]
+      schemaPrivileges: ["USAGE", "CREATE"]
+      tablePrivileges: ["SELECT", "INSERT", "UPDATE", "DELETE"]
+      sequencePrivileges: ["SELECT", "UPDATE", "USAGE"]
+      functionPrivileges: ["EXECUTE"]
+      typePrivileges: ["USAGE"]
   publicPrivileges:
     revoke: false # revoke all public privileges from the database
   publicSchema:
