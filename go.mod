@@ -2,6 +2,8 @@ module github.com/brose-ebike/postgres-operator
 
 go 1.26.0
 
+toolchain go1.26.7
+
 require (
 	github.com/docker/go-connections v0.4.0
 	github.com/google/go-cmp v0.7.0
