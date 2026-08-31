@@ -115,9 +115,9 @@ metadata:
         }
       ]
     capabilities: Basic Install
-    createdAt: "2024-01-25T09:51:39Z"
-    operators.operatorframework.io/builder: operator-sdk-v1.27.0
-    operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
+    createdAt: "2026-08-31T14:40:56Z"
+    operators.operatorframework.io/builder: operator-sdk-v1.42.3
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
   name: postgres-operator.v0.0.1
   namespace: placeholder
 spec:
@@ -174,57 +174,7 @@ spec:
           - postgres.brose.bike
           resources:
           - pgdatabases
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - postgres.brose.bike
-          resources:
-          - pgdatabases/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - postgres.brose.bike
-          resources:
-          - pgdatabases/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - postgres.brose.bike
-          resources:
           - pginstances
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - postgres.brose.bike
-          resources:
-          - pginstances/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - postgres.brose.bike
-          resources:
-          - pginstances/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - postgres.brose.bike
-          resources:
           - pgusers
           verbs:
           - create
@@ -237,12 +187,16 @@ spec:
         - apiGroups:
           - postgres.brose.bike
           resources:
+          - pgdatabases/finalizers
+          - pginstances/finalizers
           - pgusers/finalizers
           verbs:
           - update
         - apiGroups:
           - postgres.brose.bike
           resources:
+          - pgdatabases/status
+          - pginstances/status
           - pgusers/status
           verbs:
           - get
@@ -284,49 +238,8 @@ spec:
               labels:
                 control-plane: controller-manager
             spec:
-              affinity:
-                nodeAffinity:
-                  requiredDuringSchedulingIgnoredDuringExecution:
-                    nodeSelectorTerms:
-                    - matchExpressions:
-                      - key: kubernetes.io/arch
-                        operator: In
-                        values:
-                        - amd64
-                        - arm64
-                        - ppc64le
-                        - s390x
-                      - key: kubernetes.io/os
-                        operator: In
-                        values:
-                        - linux
               containers:
               - args:
-                - --secure-listen-address=0.0.0.0:8443
-                - --upstream=http://127.0.0.1:8080/
-                - --logtostderr=true
-                - --v=0
-                image: gcr.io/kubebuilder/kube-rbac-proxy:v0.13.0
-                name: kube-rbac-proxy
-                ports:
-                - containerPort: 8443
-                  name: https
-                  protocol: TCP
-                resources:
-                  limits:
-                    cpu: 500m
-                    memory: 128Mi
-                  requests:
-                    cpu: 5m
-                    memory: 64Mi
-                securityContext:
-                  allowPrivilegeEscalation: false
-                  capabilities:
-                    drop:
-                    - ALL
-              - args:
-                - --health-probe-bind-address=:8081
-                - --metrics-bind-address=127.0.0.1:8080
                 - --leader-elect
                 command:
                 - /manager
@@ -339,8 +252,8 @@ spec:
                   periodSeconds: 20
                 name: manager
                 ports:
-                - containerPort: 8080
-                  name: metrics
+                - containerPort: 8443
+                  name: https
                   protocol: TCP
                 - containerPort: 8081
                   name: health
