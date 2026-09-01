@@ -3,4 +3,4 @@ mkdocs-material==9.7.7
 mkdocs-markdownextradata-plugin==0.2.6
 mkdocs-pymdownx-material-extras==2.0.3
 mkdocs-codeinclude-plugin==0.3.1
-markdown>=3.3.6
+markdown>=3.10.3
