@@ -115,7 +115,7 @@ metadata:
         }
       ]
     capabilities: Basic Install
-    createdAt: "2026-08-31T16:19:33Z"
+    createdAt: "2026-09-02T18:19:25Z"
     operators.operatorframework.io/builder: operator-sdk-v1.42.3
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
   name: postgres-operator.v0.0.1
@@ -139,9 +139,9 @@ spec:
       kind: PgUser
       name: pgusers.postgres.oebc.tools
       version: v1
-  description: The Yamaha Motor eBike Systems Postgres Operator allows the management of databases and
-    users on multiple postgres instances. The Postgres Instances need to be provisioned
-    externally or by another operator.
+  description: The Yamaha Motor eBike Systems Postgres Operator allows the management
+    of databases and users on multiple postgres instances. The Postgres Instances
+    need to be provisioned externally or by another operator.
   displayName: Yamaha Motor eBike Systems Postgres Operator
   icon:
   - base64data: ""
@@ -259,7 +259,7 @@ spec:
                 - --leader-elect
                 command:
                 - /manager
-                image: ghcr.io/brose-ebike/postgres-operator:v0.0.6
+                image: ghcr.io/brose-ebike/postgres-operator:v1.0.0
                 livenessProbe:
                   httpGet:
                     path: /healthz
