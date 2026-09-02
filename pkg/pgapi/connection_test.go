@@ -50,6 +50,78 @@ var _ = Describe("PostgresAPI Connection Handling", func() {
 
 	})
 
+	It("reuses the same connection pool for the same database", func() {
+		impl := pgApi.(*pgInstanceAPIImpl)
+		databaseName := "dummy_db_pool_reuse"
+
+		err := pgApi.CreateDatabase(databaseName)
+		Expect(err).To(BeNil())
+
+		// impl.databases is shared with the rest of the suite, so assert on
+		// the change in size rather than an absolute count.
+		impl.databasesMu.Lock()
+		initialCount := len(impl.databases)
+		impl.databasesMu.Unlock()
+
+		db1, err := impl.databaseConn(databaseName)
+		Expect(err).To(BeNil())
+
+		impl.databasesMu.Lock()
+		afterFirstCount := len(impl.databases)
+		impl.databasesMu.Unlock()
+		Expect(afterFirstCount).To(Equal(initialCount + 1))
+
+		db2, err := impl.databaseConn(databaseName)
+		Expect(err).To(BeNil())
+
+		impl.databasesMu.Lock()
+		afterSecondCount := len(impl.databases)
+		impl.databasesMu.Unlock()
+		Expect(afterSecondCount).To(Equal(afterFirstCount))
+
+		// Same *sql.DB instance both times - a genuinely reused pool, not
+		// just a coincidentally equal count.
+		Expect(db2).To(BeIdenticalTo(db1))
+	})
+
+	It("disconnect drains and closes the per-database connection pool cache", func() {
+		impl := pgApi.(*pgInstanceAPIImpl)
+		databaseName := "dummy_db_pool_drain"
+
+		err := pgApi.CreateDatabase(databaseName)
+		Expect(err).To(BeNil())
+
+		// Populate the per-database pool cache
+		_, err = impl.databaseConn(databaseName)
+		Expect(err).To(BeNil())
+
+		impl.databasesMu.Lock()
+		cachedDb, ok := impl.databases[databaseName]
+		impl.databasesMu.Unlock()
+		Expect(ok).To(BeTrue())
+
+		// Disconnect should drain and close every cached pool
+		err = impl.disconnect()
+		Expect(err).To(BeNil())
+
+		impl.databasesMu.Lock()
+		_, stillCached := impl.databases[databaseName]
+		remainingCount := len(impl.databases)
+		impl.databasesMu.Unlock()
+		Expect(stillCached).To(BeFalse())
+		Expect(remainingCount).To(Equal(0))
+
+		// The cached pool should actually be closed, not just removed from
+		// the map - a closed *sql.DB rejects further use.
+		pingErr := cachedDb.Ping()
+		Expect(pingErr).ToNot(BeNil())
+
+		// Reconnect so the shared pgApi instance remains usable by later
+		// tests, matching the same pattern the existing disconnect test uses.
+		err = impl.connect()
+		Expect(err).To(BeNil())
+	})
+
 	It("connection string returns the current connection string", func() {
 		// Test Server Connection
 		cs := pgApi.ConnectionString()

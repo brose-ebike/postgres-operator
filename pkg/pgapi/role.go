@@ -17,6 +17,7 @@ limitations under the License.
 package pgapi
 
 import (
+	"errors"
 	"strings"
 
 	_ "github.com/lib/pq"
@@ -35,13 +36,17 @@ type PgRoleAPI interface {
 	UpdateUserPassword(name string, password string) error
 }
 
-func (s *pgInstanceAPIImpl) IsRoleExisting(roleName string) (bool, error) {
+func (s *pgInstanceAPIImpl) IsRoleExisting(roleName string) (exists bool, err error) {
 	// Connect to Database Server
 	conn, err := s.newConnection()
 	if err != nil {
 		return false, err
 	}
-	var exists bool
+	defer func() {
+		if closeErr := conn.Close(); closeErr != nil {
+			err = errors.Join(err, closeErr)
+		}
+	}()
 	const query = "select exists(select * from pg_catalog.pg_user where usename = $1);"
 	err = conn.QueryRowContext(s.ctx, query, roleName).Scan(&exists)
 	if err != nil {
@@ -50,24 +55,34 @@ func (s *pgInstanceAPIImpl) IsRoleExisting(roleName string) (bool, error) {
 	return exists, nil
 }
 
-func (s *pgInstanceAPIImpl) CreateRole(name string) error {
+func (s *pgInstanceAPIImpl) CreateRole(name string) (err error) {
 	// Connect to Database Server
 	conn, err := s.newConnection()
 	if err != nil {
 		return err
 	}
+	defer func() {
+		if closeErr := conn.Close(); closeErr != nil {
+			err = errors.Join(err, closeErr)
+		}
+	}()
 	// Execute Query
 	const query = "create user %s;"
 	_, err = conn.ExecContext(s.ctx, formatQueryObj(query, name))
 	return WrapSqlExecutionError(err, query, name)
 }
 
-func (s *pgInstanceAPIImpl) DeleteRole(name string) error {
+func (s *pgInstanceAPIImpl) DeleteRole(name string) (err error) {
 	// Connect to Database Server
 	conn, err := s.newConnection()
 	if err != nil {
 		return err
 	}
+	defer func() {
+		if closeErr := conn.Close(); closeErr != nil {
+			err = errors.Join(err, closeErr)
+		}
+	}()
 
 	err = s.runAs(conn, name, func() error {
 		// reassign owned objects
@@ -91,12 +106,17 @@ func (s *pgInstanceAPIImpl) DeleteRole(name string) error {
 	return WrapSqlExecutionError(err, queryDrop, name)
 }
 
-func (s *pgInstanceAPIImpl) UpdateUserPassword(name string, password string) error {
+func (s *pgInstanceAPIImpl) UpdateUserPassword(name string, password string) (err error) {
 	// Connect to Database Server
 	conn, err := s.newConnection()
 	if err != nil {
 		return err
 	}
+	defer func() {
+		if closeErr := conn.Close(); closeErr != nil {
+			err = errors.Join(err, closeErr)
+		}
+	}()
 	// Escape Password manually because its not an object identifier
 	password = strings.ReplaceAll(password, "'", "\\'")
 	query := "alter user %s with password '" + password + "' login;"

@@ -19,6 +19,8 @@ package pgapi
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"sync"
 
 	_ "github.com/lib/pq"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -39,10 +41,10 @@ type PgInstanceAPI interface {
 func NewPgInstanceAPI(ctx context.Context, name string, connectionString *PgConnectionString) (PgInstanceAPI, error) {
 	logger := log.FromContext(ctx)
 	api := pgInstanceAPIImpl{
-		name,
-		*connectionString,
-		ctx,
-		nil,
+		name:             name,
+		connectionString: *connectionString,
+		ctx:              ctx,
+		databases:        map[string]*sql.DB{},
 	}
 	if err := api.connect(); err != nil {
 		logger.Error(err, "Unable to connect")
@@ -70,6 +72,12 @@ type pgInstanceAPIImpl struct {
 	// If the clients need to set other contexts we need to refactor this struct and all methods!
 	ctx      context.Context
 	instance *sql.DB
+	// databases caches one connection pool per target database for the
+	// lifetime of this pgInstanceAPIImpl (i.e. for one Reconcile() call), so
+	// repeated runIn/runInAs calls against the same database reuse a
+	// connection instead of opening (and leaking) a new one every time.
+	databases   map[string]*sql.DB
+	databasesMu sync.Mutex
 }
 
 // isMember determines if roleA is a member of roleB
@@ -83,127 +91,103 @@ func (s *pgInstanceAPIImpl) isMember(con *sql.Conn, roleA, roleB string) (bool, 
 	return result, nil
 }
 
-func (s *pgInstanceAPIImpl) runAs(con *sql.Conn, role string, runner func() error) error {
+// withBorrowedRole temporarily grants `role` to the connecting role for the
+// duration of `runner`, then revokes it again - even if `runner` returns an
+// error or panics. If the connecting role is already a member of `role`, no
+// grant or revoke is issued at all. This is the shared implementation behind
+// both runAs and runInAs.
+func (s *pgInstanceAPIImpl) withBorrowedRole(con *sql.Conn, role string, runner func() error) (err error) {
 	myRole := s.connectionString.username
 	isMember, err := s.isMember(con, myRole, role)
 	if err != nil {
 		return err
 	}
+
 	// Grant role to myRole
 	if !isMember {
-		const queryG = "grant %s to %s;"
-		_, err := con.ExecContext(s.ctx, formatQueryObj(queryG, role, myRole))
-		if err != nil {
-			return err
+		const queryGrant = "grant %s to %s;"
+		if _, grantErr := con.ExecContext(s.ctx, formatQueryObj(queryGrant, role, myRole)); grantErr != nil {
+			return grantErr
 		}
 	}
-	// Execute runner
-	err = runner()
-	// Revoke role to myRole
-	if !isMember {
-		const queryR = "revoke %s from %s;"
-		_, err := con.ExecContext(s.ctx, formatQueryObj(queryR, role, myRole))
-		if err != nil {
-			return err
-		}
-	}
-	return err
-}
 
-func (s *pgInstanceAPIImpl) runIn(database string, runner func(ctx context.Context, conn *sql.Conn) error) error {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// Use new connection string
-	conStr := s.connectionString.copy()
-	conStr.database = database
-
-	// Start SQL Database
-	db, err := sql.Open("postgres", conStr.toString())
-	if err != nil {
-		return err
-	}
-
-	// Connect to Database Server
-	conn, err := db.Conn(ctx)
-	if err != nil {
-		return err
-	}
-
-	// Execute commands
-	err = runner(ctx, conn)
-
-	// Close connection
-	if err := conn.Close(); err != nil {
-		return err
-	}
-
-	return err
-}
-
-func (s *pgInstanceAPIImpl) runInAs(database string, role string, runner func(ctx context.Context, conn *sql.Conn) error) error {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// Use new connection string
-	conStr := s.connectionString.copy()
-	conStr.database = database
-
-	// Start SQL Database
-	db, err := sql.Open("postgres", conStr.toString())
-	if err != nil {
-		return err
-	}
-
-	// Connect to Database Server
-	conn, err := db.Conn(ctx)
-	if err != nil {
-		return err
-	}
-
-	myRole := s.connectionString.username
-	isMember, err := s.isMember(conn, myRole, role)
-	if err != nil {
-		return err
-	}
-	// Grant role to myRole
-	if !isMember {
-		const queryG = "grant %s to %s;"
-		_, err := conn.ExecContext(s.ctx, formatQueryObj(queryG, role, myRole))
-		if err != nil {
-			return err
-		}
-	}
 	defer func() {
-		// handle panic and ensure revoke gets executed
-		// pass error on to the next recover
-		if r := recover(); r != nil {
-			// Revoke role to myRole
-			if !isMember {
-				const queryR = "revoke %s from %s;"
-				conn.ExecContext(s.ctx, formatQueryObj(queryR, role, myRole))
+		// Revoke role from myRole. Joined with any runner error rather than
+		// silently dropped, so a failing revoke is never invisible even when
+		// the runner itself also failed. This also runs when runner panics -
+		// deferred functions execute during panic unwinding regardless of
+		// whether they call recover(), and the panic resumes automatically
+		// once this function returns, so no explicit recover/re-panic is
+		// needed here.
+		if !isMember {
+			const queryRevoke = "revoke %s from %s;"
+			_, revokeErr := con.ExecContext(s.ctx, formatQueryObj(queryRevoke, role, myRole))
+			if revokeErr != nil {
+				err = errors.Join(err, revokeErr)
 			}
-			conn.Close()
-			panic(r)
 		}
 	}()
 
 	// Execute runner
-	err = runner(ctx, conn)
+	err = runner()
+	return err
+}
 
-	// Revoke role to myRole
-	if !isMember {
-		const queryR = "revoke %s from %s;"
-		_, err := conn.ExecContext(s.ctx, formatQueryObj(queryR, role, myRole))
-		if err != nil {
-			return err
-		}
-	}
+func (s *pgInstanceAPIImpl) runAs(con *sql.Conn, role string, runner func() error) error {
+	return s.withBorrowedRole(con, role, runner)
+}
 
-	// Close connection
-	if err := conn.Close(); err != nil {
+func (s *pgInstanceAPIImpl) runIn(database string, runner func(ctx context.Context, conn *sql.Conn) error) (err error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Reuse (or lazily create) the connection pool for this database instead
+	// of opening a new one for every call
+	db, err := s.databaseConn(database)
+	if err != nil {
 		return err
 	}
 
+	// Connect to Database Server
+	conn, err := db.Conn(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if closeErr := conn.Close(); closeErr != nil {
+			err = errors.Join(err, closeErr)
+		}
+	}()
+
+	// Execute commands
+	err = runner(ctx, conn)
+	return err
+}
+
+func (s *pgInstanceAPIImpl) runInAs(database string, role string, runner func(ctx context.Context, conn *sql.Conn) error) (err error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Reuse (or lazily create) the connection pool for this database instead
+	// of opening a new one for every call
+	db, err := s.databaseConn(database)
+	if err != nil {
+		return err
+	}
+
+	// Connect to Database Server
+	conn, err := db.Conn(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if closeErr := conn.Close(); closeErr != nil {
+			err = errors.Join(err, closeErr)
+		}
+	}()
+
+	err = s.withBorrowedRole(conn, role, func() error {
+		return runner(ctx, conn)
+	})
 	return err
 }

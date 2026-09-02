@@ -17,6 +17,7 @@ limitations under the License.
 package pgapi
 
 import (
+	"context"
 	"errors"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -68,6 +69,117 @@ var _ = Describe("PostgresAPI Database Handling", func() {
 		dbOwner, err := pgApi.GetDatabaseOwner(databaseName)
 		Expect(err).To(BeNil())
 		Expect(dbOwner).To(Equal(newOwnerName))
+	})
+
+	It("does not leave admin permanently a member of the role if UpdateDatabaseOwner fails", func() {
+		roleName := "dummy_role_12"
+		nonSuperAdmin := "dummy_nonsuper_admin_12"
+		nonSuperPassword := "super-secret-password-12"
+		impl := pgApi.(*pgInstanceAPIImpl)
+
+		// Create new role
+		err := pgApi.CreateRole(roleName)
+		Expect(err).To(BeNil())
+
+		// The container's own admin is a real Postgres superuser, and
+		// pg_has_role(..., 'member') treats a superuser as an implicit
+		// member of every role regardless of any actual grant - so
+		// withBorrowedRole's grant/revoke branch never even runs for it.
+		// Exercising the real grant/revoke path this fix targets requires
+		// connecting as a genuinely non-superuser role instead, mirroring a
+		// real "Minimal Privileges" deployment (CREATEROLE, no SUPERUSER).
+		setupConn, setupConnErr := impl.newConnection()
+		Expect(setupConnErr).To(BeNil())
+		defer setupConn.Close()
+		_, createNonSuperErr := setupConn.ExecContext(impl.ctx, formatQueryObj(
+			"create user %s with createrole login password '"+nonSuperPassword+"';",
+			nonSuperAdmin,
+		))
+		Expect(createNonSuperErr).To(BeNil())
+
+		nonSuperConnStr, connStrErr := NewPgConnectionString(
+			impl.connectionString.Hostname(),
+			impl.connectionString.Port(),
+			nonSuperAdmin,
+			nonSuperPassword,
+			impl.connectionString.Database(),
+			impl.connectionString.SSLMode(),
+		)
+		Expect(connStrErr).To(BeNil())
+		nonSuperCtx, nonSuperCancel := context.WithCancel(context.Background())
+		defer nonSuperCancel()
+		nonSuperApi, apiErr := NewPgInstanceAPI(nonSuperCtx, "nonsuper-test-12", nonSuperConnStr)
+		Expect(apiErr).To(BeNil())
+
+		// Target a database that doesn't exist so ALTER DATABASE fails deterministically
+		updateErr := nonSuperApi.UpdateDatabaseOwner("dummy_db_does_not_exist", roleName)
+		Expect(updateErr).ToNot(BeNil())
+
+		// The non-superuser admin should not be left a member of roleName
+		checkConn, checkConnErr := impl.newConnection()
+		Expect(checkConnErr).To(BeNil())
+		defer checkConn.Close()
+		isMember, memberErr := impl.isMember(checkConn, nonSuperAdmin, roleName)
+		Expect(memberErr).To(BeNil())
+		Expect(isMember).To(BeFalse())
+	})
+
+	It("still revokes a borrowed role even if the runner panics", func() {
+		roleName := "dummy_role_13"
+		nonSuperAdmin := "dummy_nonsuper_admin_13"
+		nonSuperPassword := "super-secret-password-13"
+		impl := pgApi.(*pgInstanceAPIImpl)
+
+		// Create new role
+		err := pgApi.CreateRole(roleName)
+		Expect(err).To(BeNil())
+
+		// See the previous test for why a genuinely non-superuser connection
+		// is required to exercise the real grant/revoke path here.
+		setupConn, setupConnErr := impl.newConnection()
+		Expect(setupConnErr).To(BeNil())
+		defer setupConn.Close()
+		_, createNonSuperErr := setupConn.ExecContext(impl.ctx, formatQueryObj(
+			"create user %s with createrole login password '"+nonSuperPassword+"';",
+			nonSuperAdmin,
+		))
+		Expect(createNonSuperErr).To(BeNil())
+
+		nonSuperConnStr, connStrErr := NewPgConnectionString(
+			impl.connectionString.Hostname(),
+			impl.connectionString.Port(),
+			nonSuperAdmin,
+			nonSuperPassword,
+			impl.connectionString.Database(),
+			impl.connectionString.SSLMode(),
+		)
+		Expect(connStrErr).To(BeNil())
+		nonSuperCtx, nonSuperCancel := context.WithCancel(context.Background())
+		defer nonSuperCancel()
+		nonSuperApi, apiErr := NewPgInstanceAPI(nonSuperCtx, "nonsuper-test-13", nonSuperConnStr)
+		Expect(apiErr).To(BeNil())
+		nonSuperImpl := nonSuperApi.(*pgInstanceAPIImpl)
+
+		workConn, workConnErr := nonSuperImpl.newConnection()
+		Expect(workConnErr).To(BeNil())
+		defer workConn.Close()
+
+		// Call runAs with a runner that panics, recovering locally so the
+		// test itself keeps running afterward
+		func() {
+			defer func() { _ = recover() }()
+			_ = nonSuperImpl.runAs(workConn, roleName, func() error {
+				panic("boom")
+			})
+		}()
+
+		// The non-superuser admin should not be left a member of roleName after the panic
+		checkConn, checkConnErr := impl.newConnection()
+		Expect(checkConnErr).To(BeNil())
+		defer checkConn.Close()
+		isMember, memberErr := impl.isMember(checkConn, nonSuperAdmin, roleName)
+		Expect(memberErr).To(BeNil())
+		Expect(isMember).To(BeFalse())
 	})
 
 	It("can update database privileges", func() {
