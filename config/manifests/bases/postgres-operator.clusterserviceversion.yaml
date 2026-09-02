@@ -25,9 +25,9 @@ spec:
       kind: PgUser
       name: pgusers.postgres.oebc.tools
       version: v1
-  description: The Yamaha Motor eBike Systems Postgres Operator allows the management of databases and
-    users on multiple postgres instances. The Postgres Instances need to be provisioned
-    externally or by another operator.
+  description: The Yamaha Motor eBike Systems Postgres Operator allows the management
+    of databases and users on multiple postgres instances. The Postgres Instances
+    need to be provisioned externally or by another operator.
   displayName: Yamaha Motor eBike Systems Postgres Operator
   icon:
   - base64data: ""

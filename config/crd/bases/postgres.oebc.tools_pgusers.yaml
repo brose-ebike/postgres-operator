@@ -86,8 +86,9 @@ spec:
                 description: Secret is an example field of PgLoginRole
                 properties:
                   name:
-                    description: Name identifies the PgLoginRoleSecret which should
-                      be used
+                    description: |-
+                      Name identifies the name of the generated k8s Secret holding the role's
+                      credentials and per-database connection strings
                     type: string
                 type: object
             required:
@@ -100,8 +101,9 @@ spec:
                 description: |-
                   Conditions represent the current connection state
                   Supported Condition Types:
-                  - postgres.oebc.tools/login-role-exists true if login role exists false if not
                   - postgres.oebc.tools/connected true if the instance is reachable false if not
+                  - pguser.postgres.oebc.tools/exists true if the login role exists on the instance false if not
+                  - pguser.postgres.oebc.tools/databases true if all referenced spec.databases exist false if not
                 items:
                   description: Condition contains details for one aspect of the current
                     state of this API Resource.
