@@ -70,6 +70,50 @@ var _ = Describe("PostgresAPI Database Handling", func() {
 		Expect(dbOwner).To(Equal(newOwnerName))
 	})
 
+	It("does not leave admin permanently a member of the role if UpdateDatabaseOwner fails", func() {
+		roleName := "dummy_role_12"
+		// Create new role
+		err := pgApi.CreateRole(roleName)
+		Expect(err).To(BeNil())
+		// Target a database that doesn't exist so ALTER DATABASE fails deterministically
+		err = pgApi.UpdateDatabaseOwner("dummy_db_does_not_exist", roleName)
+		Expect(err).ToNot(BeNil())
+		// Admin should not be left a member of roleName after the failed attempt
+		impl := pgApi.(*pgInstanceAPIImpl)
+		conn, connErr := impl.newConnection()
+		Expect(connErr).To(BeNil())
+		defer conn.Close()
+		isMember, memberErr := impl.isMember(conn, impl.connectionString.username, roleName)
+		Expect(memberErr).To(BeNil())
+		Expect(isMember).To(BeFalse())
+	})
+
+	It("still revokes a borrowed role even if the runner panics", func() {
+		roleName := "dummy_role_13"
+		// Create new role
+		err := pgApi.CreateRole(roleName)
+		Expect(err).To(BeNil())
+
+		impl := pgApi.(*pgInstanceAPIImpl)
+		conn, connErr := impl.newConnection()
+		Expect(connErr).To(BeNil())
+		defer conn.Close()
+
+		// Call runAs with a runner that panics, recovering locally so the
+		// test itself keeps running afterward
+		func() {
+			defer func() { _ = recover() }()
+			_ = impl.runAs(conn, roleName, func() error {
+				panic("boom")
+			})
+		}()
+
+		// Admin should not be left a member of roleName after the panic
+		isMember, memberErr := impl.isMember(conn, impl.connectionString.username, roleName)
+		Expect(memberErr).To(BeNil())
+		Expect(isMember).To(BeFalse())
+	})
+
 	It("can update database privileges", func() {
 		roleName := "dummy_role_10"
 		databaseName := "dummy_db_3"

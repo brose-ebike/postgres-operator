@@ -112,23 +112,19 @@ func (s *pgInstanceAPIImpl) withBorrowedRole(con *sql.Conn, role string, runner 
 	}
 
 	defer func() {
-		// capture a panic now so the revoke below still runs either way,
-		// then re-panic once cleanup is done
-		r := recover()
-
 		// Revoke role from myRole. Joined with any runner error rather than
 		// silently dropped, so a failing revoke is never invisible even when
-		// the runner itself also failed.
+		// the runner itself also failed. This also runs when runner panics -
+		// deferred functions execute during panic unwinding regardless of
+		// whether they call recover(), and the panic resumes automatically
+		// once this function returns, so no explicit recover/re-panic is
+		// needed here.
 		if !isMember {
 			const queryRevoke = "revoke %s from %s;"
 			_, revokeErr := con.ExecContext(s.ctx, formatQueryObj(queryRevoke, role, myRole))
 			if revokeErr != nil {
 				err = errors.Join(err, revokeErr)
 			}
-		}
-
-		if r != nil {
-			panic(r)
 		}
 	}()
 
@@ -141,7 +137,7 @@ func (s *pgInstanceAPIImpl) runAs(con *sql.Conn, role string, runner func() erro
 	return s.withBorrowedRole(con, role, runner)
 }
 
-func (s *pgInstanceAPIImpl) runIn(database string, runner func(ctx context.Context, conn *sql.Conn) error) error {
+func (s *pgInstanceAPIImpl) runIn(database string, runner func(ctx context.Context, conn *sql.Conn) error) (err error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -157,13 +153,18 @@ func (s *pgInstanceAPIImpl) runIn(database string, runner func(ctx context.Conte
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	defer func() {
+		if closeErr := conn.Close(); closeErr != nil {
+			err = errors.Join(err, closeErr)
+		}
+	}()
 
 	// Execute commands
-	return runner(ctx, conn)
+	err = runner(ctx, conn)
+	return err
 }
 
-func (s *pgInstanceAPIImpl) runInAs(database string, role string, runner func(ctx context.Context, conn *sql.Conn) error) error {
+func (s *pgInstanceAPIImpl) runInAs(database string, role string, runner func(ctx context.Context, conn *sql.Conn) error) (err error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -179,9 +180,14 @@ func (s *pgInstanceAPIImpl) runInAs(database string, role string, runner func(ct
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	defer func() {
+		if closeErr := conn.Close(); closeErr != nil {
+			err = errors.Join(err, closeErr)
+		}
+	}()
 
-	return s.withBorrowedRole(conn, role, func() error {
+	err = s.withBorrowedRole(conn, role, func() error {
 		return runner(ctx, conn)
 	})
+	return err
 }

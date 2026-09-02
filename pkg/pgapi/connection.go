@@ -79,11 +79,13 @@ func (s *pgInstanceAPIImpl) disconnect() error {
 	// one. This runs regardless of whether the main connection was ever
 	// established, since databaseConn can populate this cache independently
 	// (via runIn/runInAs) - draining it unconditionally avoids relying on an
-	// invariant between the two that isn't otherwise enforced.
+	// invariant between the two that isn't otherwise enforced. Every close
+	// error is joined rather than only keeping the first, consistent with
+	// how withBorrowedRole treats the revoke error.
 	s.databasesMu.Lock()
 	for database, db := range s.databases {
-		if closeErr := db.Close(); closeErr != nil && err == nil {
-			err = closeErr
+		if closeErr := db.Close(); closeErr != nil {
+			err = errors.Join(err, closeErr)
 		}
 		delete(s.databases, database)
 	}

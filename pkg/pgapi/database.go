@@ -19,6 +19,7 @@ package pgapi
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"strings"
 
 	"github.com/brose-ebike/postgres-operator/pkg/oebc_errors"
@@ -49,14 +50,17 @@ type PgDatabaseAPI interface {
 	CreateDatabaseExtension(databaseName string, extension string) error
 }
 
-func (s *pgInstanceAPIImpl) IsDatabaseExisting(databaseName string) (bool, error) {
+func (s *pgInstanceAPIImpl) IsDatabaseExisting(databaseName string) (exists bool, err error) {
 	// Connect to Database Server
 	conn, err := s.newConnection()
 	if err != nil {
 		return false, err
 	}
-	defer conn.Close()
-	var exists bool
+	defer func() {
+		if closeErr := conn.Close(); closeErr != nil {
+			err = errors.Join(err, closeErr)
+		}
+	}()
 	const query = "select exists(select * from pg_catalog.pg_database where datname = $1);"
 	err = conn.QueryRowContext(s.ctx, query, databaseName).Scan(&exists)
 	if err != nil {
@@ -65,26 +69,34 @@ func (s *pgInstanceAPIImpl) IsDatabaseExisting(databaseName string) (bool, error
 	return exists, nil
 }
 
-func (s *pgInstanceAPIImpl) CreateDatabase(databaseName string) error {
+func (s *pgInstanceAPIImpl) CreateDatabase(databaseName string) (err error) {
 	// Connect to Database Server
 	conn, err := s.newConnection()
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	defer func() {
+		if closeErr := conn.Close(); closeErr != nil {
+			err = errors.Join(err, closeErr)
+		}
+	}()
 	// Execute Query
 	const query = "create database %s;"
 	_, err = conn.ExecContext(s.ctx, formatQueryObj(query, databaseName))
 	return WrapSqlExecutionError(err, query, databaseName)
 }
 
-func (s *pgInstanceAPIImpl) DeleteDatabase(databaseName string) error {
+func (s *pgInstanceAPIImpl) DeleteDatabase(databaseName string) (err error) {
 	// Connect to Database Server
 	conn, err := s.newConnection()
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	defer func() {
+		if closeErr := conn.Close(); closeErr != nil {
+			err = errors.Join(err, closeErr)
+		}
+	}()
 	return s.runAs(conn, s.connectionString.username, func() error {
 		// Execute Query
 		const query = "drop database %s;"
@@ -93,13 +105,17 @@ func (s *pgInstanceAPIImpl) DeleteDatabase(databaseName string) error {
 	})
 }
 
-func (s *pgInstanceAPIImpl) UpdateDatabaseOwner(databaseName string, roleName string) error {
+func (s *pgInstanceAPIImpl) UpdateDatabaseOwner(databaseName string, roleName string) (err error) {
 	// Connect to Database Server
 	conn, err := s.newConnection()
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	defer func() {
+		if closeErr := conn.Close(); closeErr != nil {
+			err = errors.Join(err, closeErr)
+		}
+	}()
 	return s.runAs(conn, roleName, func() error {
 		// Execute Query
 		const query = "alter database %s owner to %s;"
@@ -108,7 +124,7 @@ func (s *pgInstanceAPIImpl) UpdateDatabaseOwner(databaseName string, roleName st
 	})
 }
 
-func (s *pgInstanceAPIImpl) UpdateDatabasePrivileges(databaseName string, roleName string, privileges []string) error {
+func (s *pgInstanceAPIImpl) UpdateDatabasePrivileges(databaseName string, roleName string, privileges []string) (err error) {
 	// Validate Privileges Parameter
 	databasePrivileges := []string{"CONNECT", "CREATE", "TEMPLATE", "TEMPORARY"}
 	for _, privilege := range privileges {
@@ -122,7 +138,11 @@ func (s *pgInstanceAPIImpl) UpdateDatabasePrivileges(databaseName string, roleNa
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	defer func() {
+		if closeErr := conn.Close(); closeErr != nil {
+			err = errors.Join(err, closeErr)
+		}
+	}()
 	// TODO replace revoke all with specific revoke for the privileges which are not contained in the slice
 	// revoke all
 	const queryRevoke = "revoke all on database %s from %s;"
@@ -141,14 +161,17 @@ func (s *pgInstanceAPIImpl) UpdateDatabasePrivileges(databaseName string, roleNa
 	return WrapSqlExecutionError(err, queryGrant, databaseName, roleName)
 }
 
-func (s *pgInstanceAPIImpl) GetDatabaseOwner(databaseName string) (string, error) {
+func (s *pgInstanceAPIImpl) GetDatabaseOwner(databaseName string) (databaseOwner string, err error) {
 	// Connect to Database Server
 	conn, err := s.newConnection()
 	if err != nil {
 		return "", err
 	}
-	defer conn.Close()
-	var databaseOwner string
+	defer func() {
+		if closeErr := conn.Close(); closeErr != nil {
+			err = errors.Join(err, closeErr)
+		}
+	}()
 	const query = "select pg_catalog.pg_get_userbyid(d.datdba) as owner from pg_catalog.pg_database as d where d.datname = $1;"
 	err = conn.QueryRowContext(s.ctx, query, databaseName).Scan(&databaseOwner)
 	if err != nil {
@@ -157,13 +180,17 @@ func (s *pgInstanceAPIImpl) GetDatabaseOwner(databaseName string) (string, error
 	return databaseOwner, nil
 }
 
-func (s *pgInstanceAPIImpl) ResetDatabaseOwner(databaseName string) error {
+func (s *pgInstanceAPIImpl) ResetDatabaseOwner(databaseName string) (err error) {
 	// Connect to Database Server
 	conn, err := s.newConnection()
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	defer func() {
+		if closeErr := conn.Close(); closeErr != nil {
+			err = errors.Join(err, closeErr)
+		}
+	}()
 	oldOwner, err := s.GetDatabaseOwner(databaseName)
 	if err != nil {
 		return err
