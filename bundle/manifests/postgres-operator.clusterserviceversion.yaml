@@ -115,7 +115,7 @@ metadata:
         }
       ]
     capabilities: Basic Install
-    createdAt: "2026-09-02T18:19:25Z"
+    createdAt: "2026-09-02T18:39:45Z"
     operators.operatorframework.io/builder: operator-sdk-v1.42.3
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
   name: postgres-operator.v0.0.1
@@ -259,7 +259,7 @@ spec:
                 - --leader-elect
                 command:
                 - /manager
-                image: ghcr.io/brose-ebike/postgres-operator:v1.0.0
+                image: ghcr.io/brose-ebike/postgres-operator:v1.0.1
                 livenessProbe:
                   httpGet:
                     path: /healthz
