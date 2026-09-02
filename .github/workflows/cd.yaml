@@ -16,6 +16,8 @@ jobs:
       ########################################### Setup ######################################################################
       ########################################################################################################################
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
       - id: cache-tools
         name: Cache Tools
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
@@ -29,7 +31,6 @@ jobs:
       - name: Get current date
         id: params
         run: |
-          echo "latest=$(git describe --tags `git rev-list --tags --max-count=1`)" >> $GITHUB_OUTPUT
           echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
           echo "version=$(cat version.txt)" >> $GITHUB_OUTPUT
       ########################################################################################################################
@@ -46,12 +47,14 @@ jobs:
       ########################################################################################################################
       ########################################### Release#####################################################################
       ########################################################################################################################
+      - name: Tag Release
+        run: git tag "v${{ steps.params.outputs.version }}"
       - id: content
         name: Create Release Content
         uses: raynigon/release-documentation@cc6d191c791ae349b003405670841ff9a5866e9b
         with:
           token: "${{ secrets.GITHUB_TOKEN }}"
-          latest: "${{ steps.params.outputs.latest }}"
+          latest: "v${{ steps.params.outputs.version }}"
           templateFile: ".github/templates/release.md"
       - name: "Github Release"
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 #v1
