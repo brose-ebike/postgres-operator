@@ -20,7 +20,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/docker/go-connections/nat"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
@@ -105,20 +104,14 @@ func (pgc *PostgresContainer) Hostname(ctx context.Context) (string, error) {
 }
 
 func (pgc *PostgresContainer) Port(ctx context.Context) (int, error) {
-	// Convert Port Number to Port Object
-	postgresPort, err := nat.NewPort("tcp", "5432")
-	if err != nil {
-		return 0, err
-	}
-
 	// Get Mapped Port
-	containerPort, err := pgc.container.MappedPort(ctx, postgresPort)
+	containerPort, err := pgc.container.MappedPort(ctx, "5432/tcp")
 	if err != nil {
 		return 0, err
 	}
 
 	// Return port
-	return containerPort.Int(), nil
+	return int(containerPort.Num()), nil
 }
 
 func (pgc *PostgresContainer) Username() string {
