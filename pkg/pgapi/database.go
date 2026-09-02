@@ -55,6 +55,7 @@ func (s *pgInstanceAPIImpl) IsDatabaseExisting(databaseName string) (bool, error
 	if err != nil {
 		return false, err
 	}
+	defer conn.Close()
 	var exists bool
 	const query = "select exists(select * from pg_catalog.pg_database where datname = $1);"
 	err = conn.QueryRowContext(s.ctx, query, databaseName).Scan(&exists)
@@ -70,6 +71,7 @@ func (s *pgInstanceAPIImpl) CreateDatabase(databaseName string) error {
 	if err != nil {
 		return err
 	}
+	defer conn.Close()
 	// Execute Query
 	const query = "create database %s;"
 	_, err = conn.ExecContext(s.ctx, formatQueryObj(query, databaseName))
@@ -82,6 +84,7 @@ func (s *pgInstanceAPIImpl) DeleteDatabase(databaseName string) error {
 	if err != nil {
 		return err
 	}
+	defer conn.Close()
 	return s.runAs(conn, s.connectionString.username, func() error {
 		// Execute Query
 		const query = "drop database %s;"
@@ -96,22 +99,13 @@ func (s *pgInstanceAPIImpl) UpdateDatabaseOwner(databaseName string, roleName st
 	if err != nil {
 		return err
 	}
-	// Execute Query
-	const queryGrant = "grant %s to %s;"
-	_, err = conn.ExecContext(s.ctx, formatQueryObj(queryGrant, roleName, s.connectionString.username))
-	if err != nil {
-		return WrapSqlExecutionError(err, queryGrant, databaseName, s.connectionString.username)
-	}
-	// Execute Query
-	const queryAlterDBOwner = "alter database %s owner to %s;"
-	_, err = conn.ExecContext(s.ctx, formatQueryObj(queryAlterDBOwner, databaseName, roleName))
-	if err != nil {
-		return WrapSqlExecutionError(err, queryAlterDBOwner, databaseName, roleName)
-	}
-	// Execute Query
-	const queryRevoke = "revoke %s from %s;"
-	_, err = conn.ExecContext(s.ctx, formatQueryObj(queryRevoke, roleName, s.connectionString.username))
-	return WrapSqlExecutionError(err, queryRevoke, databaseName, s.connectionString.username)
+	defer conn.Close()
+	return s.runAs(conn, roleName, func() error {
+		// Execute Query
+		const query = "alter database %s owner to %s;"
+		_, err := conn.ExecContext(s.ctx, formatQueryObj(query, databaseName, roleName))
+		return WrapSqlExecutionError(err, query, databaseName, roleName)
+	})
 }
 
 func (s *pgInstanceAPIImpl) UpdateDatabasePrivileges(databaseName string, roleName string, privileges []string) error {
@@ -128,6 +122,7 @@ func (s *pgInstanceAPIImpl) UpdateDatabasePrivileges(databaseName string, roleNa
 	if err != nil {
 		return err
 	}
+	defer conn.Close()
 	// TODO replace revoke all with specific revoke for the privileges which are not contained in the slice
 	// revoke all
 	const queryRevoke = "revoke all on database %s from %s;"
@@ -152,6 +147,7 @@ func (s *pgInstanceAPIImpl) GetDatabaseOwner(databaseName string) (string, error
 	if err != nil {
 		return "", err
 	}
+	defer conn.Close()
 	var databaseOwner string
 	const query = "select pg_catalog.pg_get_userbyid(d.datdba) as owner from pg_catalog.pg_database as d where d.datname = $1;"
 	err = conn.QueryRowContext(s.ctx, query, databaseName).Scan(&databaseOwner)
@@ -167,6 +163,7 @@ func (s *pgInstanceAPIImpl) ResetDatabaseOwner(databaseName string) error {
 	if err != nil {
 		return err
 	}
+	defer conn.Close()
 	oldOwner, err := s.GetDatabaseOwner(databaseName)
 	if err != nil {
 		return err

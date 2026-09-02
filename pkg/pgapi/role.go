@@ -41,6 +41,7 @@ func (s *pgInstanceAPIImpl) IsRoleExisting(roleName string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	defer conn.Close()
 	var exists bool
 	const query = "select exists(select * from pg_catalog.pg_user where usename = $1);"
 	err = conn.QueryRowContext(s.ctx, query, roleName).Scan(&exists)
@@ -56,6 +57,7 @@ func (s *pgInstanceAPIImpl) CreateRole(name string) error {
 	if err != nil {
 		return err
 	}
+	defer conn.Close()
 	// Execute Query
 	const query = "create user %s;"
 	_, err = conn.ExecContext(s.ctx, formatQueryObj(query, name))
@@ -68,6 +70,7 @@ func (s *pgInstanceAPIImpl) DeleteRole(name string) error {
 	if err != nil {
 		return err
 	}
+	defer conn.Close()
 
 	err = s.runAs(conn, name, func() error {
 		// reassign owned objects
@@ -97,6 +100,7 @@ func (s *pgInstanceAPIImpl) UpdateUserPassword(name string, password string) err
 	if err != nil {
 		return err
 	}
+	defer conn.Close()
 	// Escape Password manually because its not an object identifier
 	password = strings.ReplaceAll(password, "'", "\\'")
 	query := "alter user %s with password '" + password + "' login;"

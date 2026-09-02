@@ -69,12 +69,26 @@ func (s *pgInstanceAPIImpl) connect() error {
 }
 
 func (s *pgInstanceAPIImpl) disconnect() error {
-	if s.instance == nil {
-		return nil
+	var err error
+	if s.instance != nil {
+		err = s.instance.Close()
+		s.instance = nil
 	}
 
-	err := s.instance.Close()
-	s.instance = nil
+	// Close every cached per-database connection pool alongside the main
+	// one. This runs regardless of whether the main connection was ever
+	// established, since databaseConn can populate this cache independently
+	// (via runIn/runInAs) - draining it unconditionally avoids relying on an
+	// invariant between the two that isn't otherwise enforced.
+	s.databasesMu.Lock()
+	for database, db := range s.databases {
+		if closeErr := db.Close(); closeErr != nil && err == nil {
+			err = closeErr
+		}
+		delete(s.databases, database)
+	}
+	s.databasesMu.Unlock()
+
 	return err
 }
 
@@ -103,4 +117,27 @@ func (s *pgInstanceAPIImpl) newConnection() (*sql.Conn, error) {
 	}
 	// Connect to Database Server
 	return s.instance.Conn(s.ctx)
+}
+
+// databaseConn returns a cached connection pool for the given database,
+// creating one lazily on first use. The pool is reused for the lifetime of
+// this pgInstanceAPIImpl (i.e. for the duration of one Reconcile() call)
+// instead of being opened fresh on every call, and is closed together with
+// the rest of the connections in disconnect().
+func (s *pgInstanceAPIImpl) databaseConn(database string) (*sql.DB, error) {
+	s.databasesMu.Lock()
+	defer s.databasesMu.Unlock()
+
+	if db, ok := s.databases[database]; ok {
+		return db, nil
+	}
+
+	conStr := s.connectionString.copy()
+	conStr.database = database
+	db, err := sql.Open("postgres", conStr.toString())
+	if err != nil {
+		return nil, err
+	}
+	s.databases[database] = db
+	return db, nil
 }
