@@ -70,14 +70,20 @@ type pgInstanceAPIImpl struct {
 	// but in this struct should only be available until the request context finishes.
 	// Therefore the same context would be used in all calls.
 	// If the clients need to set other contexts we need to refactor this struct and all methods!
-	ctx      context.Context
+	ctx context.Context
+	// mu protects instance and databases below. Both are mutated by the
+	// background auto-disconnect goroutine started in NewPgInstanceAPI as
+	// soon as ctx is cancelled, which can happen concurrently with an
+	// in-flight call from whichever goroutine is actively reconciling -
+	// without a shared lock, that read and this write race on the same
+	// memory with no synchronization.
+	mu       sync.Mutex
 	instance *sql.DB
 	// databases caches one connection pool per target database for the
 	// lifetime of this pgInstanceAPIImpl (i.e. for one Reconcile() call), so
 	// repeated runIn/runInAs calls against the same database reuse a
 	// connection instead of opening (and leaking) a new one every time.
-	databases   map[string]*sql.DB
-	databasesMu sync.Mutex
+	databases map[string]*sql.DB
 }
 
 // isMember determines if roleA is a member of roleB
