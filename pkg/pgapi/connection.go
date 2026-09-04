@@ -77,13 +77,24 @@ func (s *pgInstanceAPIImpl) connect() error {
 }
 
 func (s *pgInstanceAPIImpl) disconnect() error {
+	// Swap the shared state out under the lock - fast, just pointer/map
+	// assignment - then do the actual Close() calls (real network round
+	// trips) outside it, so a concurrent IsConnected()/newConnection() call
+	// only ever blocks for the swap, not for however long every Close()
+	// takes. Safe against a second concurrent disconnect() call too (e.g.
+	// from TestConnection()): whichever goroutine wins the lock captures the
+	// non-nil/non-empty state and closes it; the other finds it already
+	// nil/empty and does nothing, so nothing is ever closed twice.
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	oldInstance := s.instance
+	s.instance = nil
+	oldDatabases := s.databases
+	s.databases = map[string]*sql.DB{}
+	s.mu.Unlock()
 
 	var err error
-	if s.instance != nil {
-		err = s.instance.Close()
-		s.instance = nil
+	if oldInstance != nil {
+		err = oldInstance.Close()
 	}
 
 	// Close every cached per-database connection pool alongside the main
@@ -93,11 +104,10 @@ func (s *pgInstanceAPIImpl) disconnect() error {
 	// invariant between the two that isn't otherwise enforced. Every close
 	// error is joined rather than only keeping the first, consistent with
 	// how withBorrowedRole treats the revoke error.
-	for database, db := range s.databases {
+	for _, db := range oldDatabases {
 		if closeErr := db.Close(); closeErr != nil {
 			err = errors.Join(err, closeErr)
 		}
-		delete(s.databases, database)
 	}
 
 	return err
