@@ -17,6 +17,9 @@ limitations under the License.
 package pgapi
 
 import (
+	"context"
+	"sync"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -59,24 +62,24 @@ var _ = Describe("PostgresAPI Connection Handling", func() {
 
 		// impl.databases is shared with the rest of the suite, so assert on
 		// the change in size rather than an absolute count.
-		impl.databasesMu.Lock()
+		impl.mu.Lock()
 		initialCount := len(impl.databases)
-		impl.databasesMu.Unlock()
+		impl.mu.Unlock()
 
 		db1, err := impl.databaseConn(databaseName)
 		Expect(err).To(BeNil())
 
-		impl.databasesMu.Lock()
+		impl.mu.Lock()
 		afterFirstCount := len(impl.databases)
-		impl.databasesMu.Unlock()
+		impl.mu.Unlock()
 		Expect(afterFirstCount).To(Equal(initialCount + 1))
 
 		db2, err := impl.databaseConn(databaseName)
 		Expect(err).To(BeNil())
 
-		impl.databasesMu.Lock()
+		impl.mu.Lock()
 		afterSecondCount := len(impl.databases)
-		impl.databasesMu.Unlock()
+		impl.mu.Unlock()
 		Expect(afterSecondCount).To(Equal(afterFirstCount))
 
 		// Same *sql.DB instance both times - a genuinely reused pool, not
@@ -95,19 +98,19 @@ var _ = Describe("PostgresAPI Connection Handling", func() {
 		_, err = impl.databaseConn(databaseName)
 		Expect(err).To(BeNil())
 
-		impl.databasesMu.Lock()
+		impl.mu.Lock()
 		cachedDb, ok := impl.databases[databaseName]
-		impl.databasesMu.Unlock()
+		impl.mu.Unlock()
 		Expect(ok).To(BeTrue())
 
 		// Disconnect should drain and close every cached pool
 		err = impl.disconnect()
 		Expect(err).To(BeNil())
 
-		impl.databasesMu.Lock()
+		impl.mu.Lock()
 		_, stillCached := impl.databases[databaseName]
 		remainingCount := len(impl.databases)
-		impl.databasesMu.Unlock()
+		impl.mu.Unlock()
 		Expect(stillCached).To(BeFalse())
 		Expect(remainingCount).To(Equal(0))
 
@@ -120,6 +123,51 @@ var _ = Describe("PostgresAPI Connection Handling", func() {
 		// tests, matching the same pattern the existing disconnect test uses.
 		err = impl.connect()
 		Expect(err).To(BeNil())
+	})
+
+	It("does not race when disconnect runs concurrently with an in-flight call", func() {
+		// This test intentionally makes no assertions about which state wins
+		// at any given moment - either outcome (connected or not) is valid
+		// while these two goroutines are racing. Its entire purpose is to be
+		// run under `go test -race`: if instance/databases are ever touched
+		// without the shared mutex again, the race detector fails this test
+		// even though no Expect() here would ever catch it on its own.
+		impl := pgApi.(*pgInstanceAPIImpl)
+		connStr := impl.connectionString.copy()
+
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		raceApi, err := NewPgInstanceAPI(ctx, "race-test", connStr)
+		Expect(err).To(BeNil())
+		raceImpl := raceApi.(*pgInstanceAPIImpl)
+
+		var wg sync.WaitGroup
+		wg.Add(2)
+
+		// Goroutine 1: repeatedly read s.instance, mirroring what an
+		// in-flight Reconcile call does via newConnection()/IsConnected().
+		go func() {
+			defer wg.Done()
+			for i := 0; i < 50; i++ {
+				if raceImpl.IsConnected() {
+					if conn, connErr := raceImpl.newConnection(); connErr == nil {
+						_ = conn.Close()
+					}
+				}
+			}
+		}()
+
+		// Goroutine 2: repeatedly disconnect/reconnect, mirroring the
+		// background auto-disconnect goroutine started in NewPgInstanceAPI.
+		go func() {
+			defer wg.Done()
+			for i := 0; i < 50; i++ {
+				_ = raceImpl.disconnect()
+				_ = raceImpl.connect()
+			}
+		}()
+
+		wg.Wait()
 	})
 
 	It("connection string returns the current connection string", func() {
