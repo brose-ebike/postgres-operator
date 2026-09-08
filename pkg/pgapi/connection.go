@@ -43,10 +43,16 @@ func (s *pgInstanceAPIImpl) ConnectionString() PgConnectionString {
 }
 
 func (s *pgInstanceAPIImpl) connect() error {
+	s.mu.Lock()
 	if s.instance != nil {
+		s.mu.Unlock()
 		return nil
 	}
-	// Start SQL Database
+	s.mu.Unlock()
+
+	// Open the connection outside the lock: sql.Open/db.Conn/con.Close can
+	// block on the network, and nothing else needs to be excluded while
+	// that happens.
 	db, err := sql.Open("postgres", s.connectionString.toString())
 	if err != nil {
 		return err
@@ -64,15 +70,31 @@ func (s *pgInstanceAPIImpl) connect() error {
 	}
 
 	// Connection established
+	s.mu.Lock()
 	s.instance = db
+	s.mu.Unlock()
 	return nil
 }
 
 func (s *pgInstanceAPIImpl) disconnect() error {
+	// Swap the shared state out under the lock - fast, just pointer/map
+	// assignment - then do the actual Close() calls (real network round
+	// trips) outside it, so a concurrent IsConnected()/newConnection() call
+	// only ever blocks for the swap, not for however long every Close()
+	// takes. Safe against a second concurrent disconnect() call too (e.g.
+	// from TestConnection()): whichever goroutine wins the lock captures the
+	// non-nil/non-empty state and closes it; the other finds it already
+	// nil/empty and does nothing, so nothing is ever closed twice.
+	s.mu.Lock()
+	oldInstance := s.instance
+	s.instance = nil
+	oldDatabases := s.databases
+	s.databases = map[string]*sql.DB{}
+	s.mu.Unlock()
+
 	var err error
-	if s.instance != nil {
-		err = s.instance.Close()
-		s.instance = nil
+	if oldInstance != nil {
+		err = oldInstance.Close()
 	}
 
 	// Close every cached per-database connection pool alongside the main
@@ -82,19 +104,18 @@ func (s *pgInstanceAPIImpl) disconnect() error {
 	// invariant between the two that isn't otherwise enforced. Every close
 	// error is joined rather than only keeping the first, consistent with
 	// how withBorrowedRole treats the revoke error.
-	s.databasesMu.Lock()
-	for database, db := range s.databases {
+	for _, db := range oldDatabases {
 		if closeErr := db.Close(); closeErr != nil {
 			err = errors.Join(err, closeErr)
 		}
-		delete(s.databases, database)
 	}
-	s.databasesMu.Unlock()
 
 	return err
 }
 
 func (s *pgInstanceAPIImpl) IsConnected() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	return s.instance != nil
 }
 
@@ -104,7 +125,14 @@ func (s *pgInstanceAPIImpl) TestConnection() error {
 		return err
 	}
 
-	err = s.instance.PingContext(s.ctx)
+	s.mu.Lock()
+	instance := s.instance
+	s.mu.Unlock()
+	if instance == nil {
+		return errors.New("Missing Connection, unable to execute query")
+	}
+
+	err = instance.PingContext(s.ctx)
 	if err != nil {
 		return err
 	}
@@ -113,12 +141,14 @@ func (s *pgInstanceAPIImpl) TestConnection() error {
 }
 
 func (s *pgInstanceAPIImpl) newConnection() (*sql.Conn, error) {
-	// Auto Connect if needed
-	if !s.IsConnected() {
+	s.mu.Lock()
+	instance := s.instance
+	s.mu.Unlock()
+	if instance == nil {
 		return nil, errors.New("Missing Connection, unable to execute query")
 	}
 	// Connect to Database Server
-	return s.instance.Conn(s.ctx)
+	return instance.Conn(s.ctx)
 }
 
 // databaseConn returns a cached connection pool for the given database,
@@ -127,8 +157,8 @@ func (s *pgInstanceAPIImpl) newConnection() (*sql.Conn, error) {
 // instead of being opened fresh on every call, and is closed together with
 // the rest of the connections in disconnect().
 func (s *pgInstanceAPIImpl) databaseConn(database string) (*sql.DB, error) {
-	s.databasesMu.Lock()
-	defer s.databasesMu.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	if db, ok := s.databases[database]; ok {
 		return db, nil
