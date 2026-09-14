@@ -7,7 +7,7 @@ toolchain go1.26.7
 require (
 	github.com/google/go-cmp v0.7.0
 	github.com/lib/pq v1.12.3
-	github.com/onsi/ginkgo/v2 v2.32.1
+	github.com/onsi/ginkgo/v2 v2.32.2
 	github.com/onsi/gomega v1.43.0
 	github.com/testcontainers/testcontainers-go v0.44.0
 	k8s.io/api v0.37.0
