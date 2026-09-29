@@ -164,9 +164,19 @@ func (r *PgUserReconciler) createPgApi(ctx context.Context, user *apiV1.PgUser) 
 	instanceId := user.GetInstanceId()
 	var instance apiV1.PgInstance
 	exists, err := getResource(ctx, r, instanceId, &instance)
-	if !exists || err != nil {
+	if err != nil {
 		logger.Error(err, "Unable to fetch PgInstance", "instance", instanceId.String())
 		return nil, err
+	}
+	if !exists {
+		notFoundErr := kErrors.NewNotFound(apiV1.GroupVersion.WithResource("pginstances").GroupResource(), instanceId.String())
+		logger.Error(notFoundErr, "Unable to fetch PgInstance", "instance", instanceId.String())
+		// Update connection status
+		if err := setCondition(ctx, r.Status(), user, apiV1.PgConnectedConditionType, false, apiV1.PgConnectedConditionReasonInstanceNotFound, notFoundErr.Error()); err != nil {
+			logger.Error(err, "Unable to update condition", "user", user.ToNamespacedName())
+			return nil, err
+		}
+		return nil, notFoundErr
 	}
 
 	// Connect to Instance

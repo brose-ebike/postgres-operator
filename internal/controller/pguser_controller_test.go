@@ -19,12 +19,14 @@ package controller
 import (
 	"context"
 	"errors"
+	"time"
 
 	apiV1 "github.com/brose-ebike/postgres-operator/api/v1"
 	"github.com/brose-ebike/postgres-operator/pkg/pgapi"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	coreV1 "k8s.io/api/core/v1"
+	kErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -345,6 +347,59 @@ var _ = Describe("PgUserReconciler", func() {
 
 		// and
 		Expect(nil).To(BeNil())
+	})
+
+	It("does not panic and returns an error when the referenced PgInstance does not exist", func() {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		// given
+		orphan := apiV1.PgUser{
+			TypeMeta: v1.TypeMeta{
+				APIVersion: "postgres.oebc.tools/v1",
+				Kind:       "PgUser",
+			},
+			ObjectMeta: v1.ObjectMeta{
+				Namespace: "default",
+				Name:      "orphan",
+			},
+			Spec: apiV1.PgUserSpec{
+				Instance: apiV1.PgInstanceRef{
+					Namespace: "default",
+					Name:      "does-not-exist",
+				},
+				Secret: &apiV1.PgUserSecret{
+					Name: "orphan-credentials",
+				},
+				Databases: []apiV1.PgUserDatabase{},
+			},
+			Status: apiV1.PgUserStatus{},
+		}
+		err := k8sClient.Create(ctx, &orphan)
+		Expect(err).To(BeNil())
+
+		request := reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Namespace: "default",
+				Name:      "orphan",
+			},
+		}
+
+		// when
+		result, err := reconciler.Reconcile(ctx, request)
+
+		// then reconcile fails cleanly (a panic would abort the test run, not surface here)
+		Expect(err).NotTo(BeNil())
+		Expect(kErrors.IsNotFound(err)).To(BeTrue())
+		Expect(result.RequeueAfter).To(Equal(time.Minute))
+
+		// and the connected condition reflects the missing instance
+		user := apiV1.PgUser{}
+		err = k8sClient.Get(ctx, request.NamespacedName, &user)
+		Expect(err).To(BeNil())
+		connectionCondition := meta.FindStatusCondition(user.Status.Conditions, apiV1.PgConnectedConditionType)
+		Expect(connectionCondition).ToNot(BeNil())
+		Expect(connectionCondition.Status).To(Equal(v1.ConditionFalse))
+		Expect(connectionCondition.Reason).To(Equal(apiV1.PgConnectedConditionReasonInstanceNotFound))
 	})
 
 	It("reconciles on finalize of PgUser", func() {

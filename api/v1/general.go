@@ -30,8 +30,9 @@ import (
 const PgConnectedConditionType string = "postgres.oebc.tools/connected"
 
 const (
-	PgConnectedConditionReasonConSucceeded = "ConnectionSucceeded"
-	PgConnectedConditionReasonConFailed    = "ConnectionFailed"
+	PgConnectedConditionReasonConSucceeded     = "ConnectionSucceeded"
+	PgConnectedConditionReasonConFailed        = "ConnectionFailed"
+	PgConnectedConditionReasonInstanceNotFound = "InstanceNotFound"
 )
 
 type PgProperty struct {

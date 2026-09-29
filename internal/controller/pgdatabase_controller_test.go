@@ -19,6 +19,7 @@ package controller
 import (
 	"context"
 	"errors"
+	"time"
 
 	kErrors "k8s.io/apimachinery/pkg/api/errors"
 
@@ -387,5 +388,62 @@ var _ = Describe("PgInstanceReconciler", func() {
 		database = apiV1.PgDatabase{}
 		err = k8sClient.Get(ctx, request.NamespacedName, &database)
 		Expect(kErrors.IsNotFound(err)).To(BeTrue())
+	})
+
+	It("does not panic and returns an error when the referenced PgInstance does not exist", func() {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		// given
+		orphan := apiV1.PgDatabase{
+			TypeMeta: v1.TypeMeta{
+				APIVersion: "postgres.oebc.tools/v1",
+				Kind:       "PgDatabase",
+			},
+			ObjectMeta: v1.ObjectMeta{
+				Namespace: "default",
+				Name:      "orphan",
+			},
+			Spec: apiV1.PgDatabaseSpec{
+				Instance: apiV1.PgInstanceRef{
+					Namespace: "default",
+					Name:      "does-not-exist",
+				},
+				DefaultPrivileges: []apiV1.PgDatabaseDefaultPrivileges{},
+				Extensions:        []string{},
+				DeletionBehavior: apiV1.PgDatabaseDeletion{
+					Drop: false,
+					Wait: false,
+				},
+				PublicPrivileges: apiV1.PgDatabasePublicPrivileges{},
+				PublicSchema:     apiV1.PgDatabasePublicSchema{},
+			},
+			Status: apiV1.PgDatabaseStatus{},
+		}
+		err := k8sClient.Create(ctx, &orphan)
+		Expect(err).To(BeNil())
+
+		request := reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Namespace: "default",
+				Name:      "orphan",
+			},
+		}
+
+		// when
+		result, err := reconciler.Reconcile(ctx, request)
+
+		// then reconcile fails cleanly (a panic would abort the test run, not surface here)
+		Expect(err).ToNot(BeNil())
+		Expect(kErrors.IsNotFound(err)).To(BeTrue())
+		Expect(result.RequeueAfter).To(Equal(time.Minute))
+
+		// and the connected condition reflects the missing instance
+		database := apiV1.PgDatabase{}
+		err = k8sClient.Get(ctx, request.NamespacedName, &database)
+		Expect(err).To(BeNil())
+		connectionCondition := meta.FindStatusCondition(database.Status.Conditions, apiV1.PgConnectedConditionType)
+		Expect(connectionCondition).ToNot(BeNil())
+		Expect(connectionCondition.Status).To(Equal(v1.ConditionFalse))
+		Expect(connectionCondition.Reason).To(Equal(apiV1.PgConnectedConditionReasonInstanceNotFound))
 	})
 })
