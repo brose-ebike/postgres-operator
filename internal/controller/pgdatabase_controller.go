@@ -22,6 +22,7 @@ import (
 	"reflect"
 	"time"
 
+	kErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -165,9 +166,19 @@ func (r *PgDatabaseReconciler) createPgApi(ctx context.Context, database *apiV1.
 	instanceId := database.GetInstanceId()
 	var instance apiV1.PgInstance
 	exists, err := getResource(ctx, r, instanceId, &instance)
-	if !exists || err != nil {
+	if err != nil {
 		logger.Error(err, "Unable to fetch PgInstance", "instance", instanceId.String())
 		return nil, err
+	}
+	if !exists {
+		notFoundErr := kErrors.NewNotFound(apiV1.GroupVersion.WithResource("pginstances").GroupResource(), instanceId.String())
+		logger.Error(notFoundErr, "Unable to fetch PgInstance", "instance", instanceId.String())
+		// Update connection status
+		if err := setCondition(ctx, r.Status(), database, apiV1.PgConnectedConditionType, false, apiV1.PgConnectedConditionReasonInstanceNotFound, notFoundErr.Error()); err != nil {
+			logger.Error(err, "Unable to update condition", "database", database.ToNamespacedName())
+			return nil, err
+		}
+		return nil, notFoundErr
 	}
 
 	// Connect to Instance
