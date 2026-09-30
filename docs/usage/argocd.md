@@ -114,6 +114,6 @@ See [here](https://argo-cd.readthedocs.io/en/stable/operator-manual/custom-style
 .application-resource-tree__node--pguser .application-resource-tree__node-kind-icon div:first-child span,
 .application-resource-tree__node--pgdatabase .application-resource-tree__node-kind-icon div:first-child span,
 .application-resource-tree__node--pginstance .application-resource-tree__node-kind-icon div:first-child span {
-    display: none;
+    display: none !important;
 }
 ```
