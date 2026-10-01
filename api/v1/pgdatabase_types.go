@@ -27,6 +27,18 @@ const DefaultFinalizerPgDatabase = "postgres.oebc.tools/pgdatabase"
 const PgDatabaseExistsConditionType string = "pgdatabase.postgres.oebc.tools/exists"
 const PgDatabaseExtensionsConditionType string = "pgdatabase.postgres.oebc.tools/extensions"
 const PgDatabaseDefaultPrivilegesConditionType string = "pgdatabase.postgres.oebc.tools/default-privileges"
+const PgDatabasePublicPrivilegesConditionType string = "pgdatabase.postgres.oebc.tools/public-privileges"
+const PgDatabasePublicSchemaConditionType string = "pgdatabase.postgres.oebc.tools/public-schema"
+
+const (
+	PgDatabasePublicPrivilegesConditionReasonSucceeded = "PublicPrivilegesUpdated"
+	PgDatabasePublicPrivilegesConditionReasonFailed    = "PublicPrivilegesUpdateFailed"
+)
+
+const (
+	PgDatabasePublicSchemaConditionReasonSucceeded = "PublicSchemaUpdated"
+	PgDatabasePublicSchemaConditionReasonFailed    = "PublicSchemaUpdateFailed"
+)
 
 // +kubebuilder:validation:Enum=USAGE;CREATE
 type SchemaPrivilege string

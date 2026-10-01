@@ -26,6 +26,18 @@ import (
 const DefaultFinalizerPgUser = "postgres.oebc.tools/pgloginrole"
 const PgUserExistsConditionType string = "pguser.postgres.oebc.tools/exists"
 const PgUserDatabasesExistsConditionType string = "pguser.postgres.oebc.tools/databases"
+const PgUserSecretConditionType string = "pguser.postgres.oebc.tools/secret"
+const PgUserOwnershipConditionType string = "pguser.postgres.oebc.tools/ownership"
+
+const (
+	PgUserSecretConditionReasonSucceeded = "SecretReady"
+	PgUserSecretConditionReasonFailed    = "SecretUpdateFailed"
+)
+
+const (
+	PgUserOwnershipConditionReasonSucceeded = "OwnershipAndPrivilegesUpdated"
+	PgUserOwnershipConditionReasonFailed    = "OwnershipOrPrivilegesUpdateFailed"
+)
 
 // +kubebuilder:validation:Enum=CONNECT;CREATE
 type DatabasePrivilege string

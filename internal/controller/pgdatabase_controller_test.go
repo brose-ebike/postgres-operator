@@ -40,6 +40,7 @@ type dummyDB struct {
 
 type pgDatabaseMock struct {
 	databases                         map[string]dummyDB
+	forceErr                          map[string]error
 	callsIsDatabaseExisting           int
 	callsCreateDatabase               int
 	callsDeleteDatabase               int
@@ -63,6 +64,9 @@ type pgDatabaseMock struct {
 
 func (m *pgDatabaseMock) IsDatabaseExisting(databaseName string) (bool, error) {
 	m.callsIsDatabaseExisting += 1
+	if err, ok := m.forceErr["IsDatabaseExisting"]; ok {
+		return false, err
+	}
 	_, exists := m.databases[databaseName]
 	return exists, nil
 }
@@ -115,6 +119,9 @@ func (m *pgDatabaseMock) ResetDatabaseOwner(databaseName string) error {
 
 func (m *pgDatabaseMock) UpdateDatabasePrivileges(databaseName string, roleName string, privileges []string) error {
 	m.callsUpdateDatabasePrivileges += 1
+	if err, ok := m.forceErr["UpdateDatabasePrivileges"]; ok {
+		return err
+	}
 	_, exists := m.databases[databaseName]
 	if !exists {
 		return errors.New("Database does not exist")
@@ -124,6 +131,9 @@ func (m *pgDatabaseMock) UpdateDatabasePrivileges(databaseName string, roleName 
 
 func (m *pgDatabaseMock) IsSchemaInDatabase(databaseName string, schemaName string) (bool, error) {
 	m.callsIsSchemaInDatabase += 1
+	if err, ok := m.forceErr["IsSchemaInDatabase"]; ok {
+		return false, err
+	}
 	_, exists := m.databases[databaseName]
 	if !exists {
 		return false, errors.New("Database does not exist")
@@ -311,7 +321,7 @@ var _ = Describe("PgInstanceReconciler", func() {
 		var database apiV1.PgDatabase
 		err = k8sClient.Get(ctx, request.NamespacedName, &database)
 		Expect(err).To(BeNil())
-		Expect(database.Status.Conditions).To(HaveLen(4))
+		Expect(database.Status.Conditions).To(HaveLen(6))
 		// and Connected Condition is true
 		connectionCondition := meta.FindStatusCondition(database.Status.Conditions, apiV1.PgConnectedConditionType)
 		Expect(connectionCondition.Status).To(Equal(v1.ConditionTrue))
@@ -324,6 +334,12 @@ var _ = Describe("PgInstanceReconciler", func() {
 		// and Default Privileges Condition is true
 		defaultPrivilegesCondition := meta.FindStatusCondition(database.Status.Conditions, apiV1.PgDatabaseDefaultPrivilegesConditionType)
 		Expect(defaultPrivilegesCondition.Status).To(Equal(v1.ConditionTrue))
+		// and Public Privileges Condition is true
+		publicPrivilegesCondition := meta.FindStatusCondition(database.Status.Conditions, apiV1.PgDatabasePublicPrivilegesConditionType)
+		Expect(publicPrivilegesCondition.Status).To(Equal(v1.ConditionTrue))
+		// and Public Schema Condition is true
+		publicSchemaCondition := meta.FindStatusCondition(database.Status.Conditions, apiV1.PgDatabasePublicSchemaConditionType)
+		Expect(publicSchemaCondition.Status).To(Equal(v1.ConditionTrue))
 
 		// and
 		database = apiV1.PgDatabase{}
@@ -445,5 +461,110 @@ var _ = Describe("PgInstanceReconciler", func() {
 		Expect(connectionCondition).ToNot(BeNil())
 		Expect(connectionCondition.Status).To(Equal(v1.ConditionFalse))
 		Expect(connectionCondition.Reason).To(Equal(apiV1.PgConnectedConditionReasonInstanceNotFound))
+	})
+
+	It("sets the database exists condition to false when creating the database fails", func() {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		// given
+		pgApiMock.(*pgDatabaseMock).forceErr = map[string]error{
+			"IsDatabaseExisting": errors.New("connection refused"),
+		}
+		request := reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Namespace: "default",
+				Name:      "dummy",
+			},
+		}
+
+		// when
+		result, err := reconciler.Reconcile(ctx, request)
+
+		// then
+		Expect(err).ToNot(BeNil())
+		Expect(result.RequeueAfter).To(Equal(time.Minute))
+
+		// and
+		database := apiV1.PgDatabase{}
+		err = k8sClient.Get(ctx, request.NamespacedName, &database)
+		Expect(err).To(BeNil())
+		databaseCondition := meta.FindStatusCondition(database.Status.Conditions, apiV1.PgDatabaseExistsConditionType)
+		Expect(databaseCondition).ToNot(BeNil())
+		Expect(databaseCondition.Status).To(Equal(v1.ConditionFalse))
+		Expect(databaseCondition.Reason).To(Equal("DatabaseQueryFailed"))
+	})
+
+	It("sets the public privileges condition to false when revoking public privileges fails", func() {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		// given
+		pgApiMock.(*pgDatabaseMock).forceErr = map[string]error{
+			"UpdateDatabasePrivileges": errors.New("permission denied"),
+		}
+		database := apiV1.PgDatabase{}
+		err := k8sClient.Get(ctx, types.NamespacedName{Namespace: "default", Name: "dummy"}, &database)
+		Expect(err).To(BeNil())
+		database.Spec.PublicPrivileges = apiV1.PgDatabasePublicPrivileges{Revoke: true}
+		err = k8sClient.Update(ctx, &database)
+		Expect(err).To(BeNil())
+
+		request := reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Namespace: "default",
+				Name:      "dummy",
+			},
+		}
+
+		// when
+		result, err := reconciler.Reconcile(ctx, request)
+
+		// then
+		Expect(err).ToNot(BeNil())
+		Expect(result.RequeueAfter).To(Equal(time.Minute))
+
+		// and
+		err = k8sClient.Get(ctx, request.NamespacedName, &database)
+		Expect(err).To(BeNil())
+		publicPrivilegesCondition := meta.FindStatusCondition(database.Status.Conditions, apiV1.PgDatabasePublicPrivilegesConditionType)
+		Expect(publicPrivilegesCondition).ToNot(BeNil())
+		Expect(publicPrivilegesCondition.Status).To(Equal(v1.ConditionFalse))
+		Expect(publicPrivilegesCondition.Reason).To(Equal(apiV1.PgDatabasePublicPrivilegesConditionReasonFailed))
+	})
+
+	It("sets the public schema condition to false when dropping the public schema fails", func() {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		// given
+		pgApiMock.(*pgDatabaseMock).forceErr = map[string]error{
+			"IsSchemaInDatabase": errors.New("connection refused"),
+		}
+		database := apiV1.PgDatabase{}
+		err := k8sClient.Get(ctx, types.NamespacedName{Namespace: "default", Name: "dummy"}, &database)
+		Expect(err).To(BeNil())
+		database.Spec.PublicSchema = apiV1.PgDatabasePublicSchema{Drop: true}
+		err = k8sClient.Update(ctx, &database)
+		Expect(err).To(BeNil())
+
+		request := reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Namespace: "default",
+				Name:      "dummy",
+			},
+		}
+
+		// when
+		result, err := reconciler.Reconcile(ctx, request)
+
+		// then
+		Expect(err).ToNot(BeNil())
+		Expect(result.RequeueAfter).To(Equal(time.Minute))
+
+		// and
+		err = k8sClient.Get(ctx, request.NamespacedName, &database)
+		Expect(err).To(BeNil())
+		publicSchemaCondition := meta.FindStatusCondition(database.Status.Conditions, apiV1.PgDatabasePublicSchemaConditionType)
+		Expect(publicSchemaCondition).ToNot(BeNil())
+		Expect(publicSchemaCondition.Status).To(Equal(v1.ConditionFalse))
+		Expect(publicSchemaCondition.Reason).To(Equal(apiV1.PgDatabasePublicSchemaConditionReasonFailed))
 	})
 })
