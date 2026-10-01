@@ -24,6 +24,7 @@ import (
 	"github.com/brose-ebike/postgres-operator/pkg/pgapi"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -32,6 +33,7 @@ import (
 )
 
 type pgConnectorMock struct {
+	forceErr error
 }
 
 func (a *pgConnectorMock) IsConnected() bool {
@@ -39,6 +41,9 @@ func (a *pgConnectorMock) IsConnected() bool {
 }
 
 func (a *pgConnectorMock) TestConnection() error {
+	if a.forceErr != nil {
+		return a.forceErr
+	}
 	return nil
 }
 
@@ -193,5 +198,34 @@ var _ = Describe("PgInstanceReconciler", func() {
 		Expect(err).To(BeNil())
 		Expect(instance.Status.Conditions).To(HaveLen(1))
 		Expect(instance.Status.Conditions[0].Status).To(Equal(metaV1.ConditionFalse))
+	})
+
+	It("sets the connected condition to false when TestConnection fails", func() {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		// given
+		pgApiMock.(*pgConnectorMock).forceErr = errors.New("connection refused")
+		request := reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Namespace: "default",
+				Name:      "dummy",
+			},
+		}
+
+		// when
+		result, err := reconciler.Reconcile(ctx, request)
+
+		// then
+		Expect(err).ToNot(BeNil())
+		Expect(result.RequeueAfter).NotTo(BeZero())
+
+		// and
+		var instance apiV1.PgInstance
+		err = k8sClient.Get(ctx, request.NamespacedName, &instance)
+		Expect(err).To(BeNil())
+		connectionCondition := meta.FindStatusCondition(instance.Status.Conditions, apiV1.PgConnectedConditionType)
+		Expect(connectionCondition).ToNot(BeNil())
+		Expect(connectionCondition.Status).To(Equal(metaV1.ConditionFalse))
+		Expect(connectionCondition.Reason).To(Equal(apiV1.PgConnectedConditionReasonConFailed))
 	})
 })

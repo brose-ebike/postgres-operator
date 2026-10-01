@@ -81,6 +81,10 @@ you'll see:
 | `PgDatabase` | `pgdatabase.postgres.oebc.tools/default-privileges`     | Whether all `spec.defaultPrivileges` grants were applied successfully |
 | `PgUser`     | `pguser.postgres.oebc.tools/exists`                    | Whether the login role exists on the instance                        |
 | `PgUser`     | `pguser.postgres.oebc.tools/databases`                 | Whether all databases in `spec.databases` currently exist            |
+| `PgDatabase` | `pgdatabase.postgres.oebc.tools/public-privileges`      | Whether `spec.publicPrivileges` revocation was applied successfully   |
+| `PgDatabase` | `pgdatabase.postgres.oebc.tools/public-schema`          | Whether `spec.publicSchema` drop was applied successfully             |
+| `PgUser`     | `pguser.postgres.oebc.tools/secret`                    | Whether the credentials Secret and instance password are up to date  |
+| `PgUser`     | `pguser.postgres.oebc.tools/ownership`                 | Whether database ownership/privileges in `spec.databases` were applied|
 
 These are also what the [ArgoCD health checks](./argocd.md) are built on, so the same condition
 types apply whether or not you use ArgoCD.

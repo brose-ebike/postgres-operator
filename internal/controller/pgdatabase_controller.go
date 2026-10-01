@@ -94,11 +94,6 @@ func (r *PgDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{RequeueAfter: time.Minute}, err
 	}
 
-	// Update Database Exists Condition
-	if err := setCondition(ctx, r.Status(), &database, apiV1.PgDatabaseExistsConditionType, true, "DatabaseExists", "-"); err != nil {
-		return ctrl.Result{RequeueAfter: time.Minute}, err
-	}
-
 	// Install Extensions if missing
 	if err := r.handleExtensions(ctx, pgApi, &database); err != nil {
 		logger.Error(err, "Unable to create extensions", "database", database.Name, "instance", database.GetInstanceIdString())
@@ -251,6 +246,7 @@ func (r *PgDatabaseReconciler) createDatabaseIfNotExists(ctx context.Context, pg
 	exists, err := pgApi.IsDatabaseExisting(databaseName)
 	if err != nil {
 		logger.Error(err, "Unable to query database "+databaseName)
+		setCondition(ctx, r.Status(), database, apiV1.PgDatabaseExistsConditionType, false, "DatabaseQueryFailed", err.Error())
 		return err
 	}
 
@@ -258,11 +254,13 @@ func (r *PgDatabaseReconciler) createDatabaseIfNotExists(ctx context.Context, pg
 	if !exists {
 		if err := pgApi.CreateDatabase(databaseName); err != nil {
 			logger.Error(err, "Unable to create database "+databaseName)
+			setCondition(ctx, r.Status(), database, apiV1.PgDatabaseExistsConditionType, false, "DatabaseCreateFailed", err.Error())
 			return err
 		}
 		logger.Info("Created database " + databaseName)
 	}
-	return nil
+	// Update Database Exists Condition
+	return setCondition(ctx, r.Status(), database, apiV1.PgDatabaseExistsConditionType, true, "DatabaseExists", "-")
 }
 
 func (r *PgDatabaseReconciler) handleExtensions(ctx context.Context, pgApi PgDatabaseAPI, database *apiV1.PgDatabase) error {
@@ -343,38 +341,43 @@ func (r *PgDatabaseReconciler) handleDefaultPrivileges(ctx context.Context, pgAp
 func (r *PgDatabaseReconciler) handlePublicPrivileges(ctx context.Context, pgApi PgDatabaseAPI, database *apiV1.PgDatabase) error {
 	// TODO update public privileges if needed
 	if !database.Spec.PublicPrivileges.Revoke {
-		return nil
+		return setCondition(ctx, r.Status(), database, apiV1.PgDatabasePublicPrivilegesConditionType, true, apiV1.PgDatabasePublicPrivilegesConditionReasonSucceeded, "-")
 	}
 	// Revoke all privileges for public on database
 	if err := pgApi.UpdateDatabasePrivileges(database.Name, "public", []string{}); err != nil {
+		setCondition(ctx, r.Status(), database, apiV1.PgDatabasePublicPrivilegesConditionType, false, apiV1.PgDatabasePublicPrivilegesConditionReasonFailed, err.Error())
 		return err
 	}
 
 	exists, err := pgApi.IsSchemaInDatabase(database.Name, "public")
 	if err != nil {
+		setCondition(ctx, r.Status(), database, apiV1.PgDatabasePublicPrivilegesConditionType, false, apiV1.PgDatabasePublicPrivilegesConditionReasonFailed, err.Error())
 		return err
 	}
 	if exists {
 		// Revoke all privileges for public on schema
 		if err := pgApi.DeleteAllPrivilegesOnSchema(database.Name, "public", "public"); err != nil {
+			setCondition(ctx, r.Status(), database, apiV1.PgDatabasePublicPrivilegesConditionType, false, apiV1.PgDatabasePublicPrivilegesConditionReasonFailed, err.Error())
 			return err
 		}
 	}
-	return nil
+	return setCondition(ctx, r.Status(), database, apiV1.PgDatabasePublicPrivilegesConditionType, true, apiV1.PgDatabasePublicPrivilegesConditionReasonSucceeded, "-")
 }
 
 func (r *PgDatabaseReconciler) handlePublicSchema(ctx context.Context, pgApi PgDatabaseAPI, database *apiV1.PgDatabase) error {
 	if !database.Spec.PublicSchema.Drop {
-		return nil
+		return setCondition(ctx, r.Status(), database, apiV1.PgDatabasePublicSchemaConditionType, true, apiV1.PgDatabasePublicSchemaConditionReasonSucceeded, "-")
 	}
 	exists, err := pgApi.IsSchemaInDatabase(database.Name, "public")
 	if err != nil {
+		setCondition(ctx, r.Status(), database, apiV1.PgDatabasePublicSchemaConditionType, false, apiV1.PgDatabasePublicSchemaConditionReasonFailed, err.Error())
 		return err
 	}
 	if exists {
 		if err := pgApi.DeleteSchema(database.Name, "public"); err != nil {
+			setCondition(ctx, r.Status(), database, apiV1.PgDatabasePublicSchemaConditionType, false, apiV1.PgDatabasePublicSchemaConditionReasonFailed, err.Error())
 			return err
 		}
 	}
-	return nil
+	return setCondition(ctx, r.Status(), database, apiV1.PgDatabasePublicSchemaConditionType, true, apiV1.PgDatabasePublicSchemaConditionReasonSucceeded, "-")
 }
