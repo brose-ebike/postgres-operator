@@ -48,6 +48,16 @@ data:
                             hs.message = condition.message
                             return hs
                         end
+                        if condition.type == "pguser.postgres.oebc.tools/secret" and condition.status == "False" then
+                            hs.status = "Degraded"
+                            hs.message = condition.message
+                            return hs
+                        end
+                        if condition.type == "pguser.postgres.oebc.tools/ownership" and condition.status == "False" then
+                            hs.status = "Degraded"
+                            hs.message = condition.message
+                            return hs
+                        end
                     end
                 end
             end
@@ -81,6 +91,16 @@ data:
                             hs.message = condition.message
                             return hs
                         end  
+                        if condition.type == "pgdatabase.postgres.oebc.tools/public-privileges" and condition.status == "False" then
+                            hs.status = "Degraded"
+                            hs.message = condition.message
+                            return hs
+                        end
+                        if condition.type == "pgdatabase.postgres.oebc.tools/public-schema" and condition.status == "False" then
+                            hs.status = "Degraded"
+                            hs.message = condition.message
+                            return hs
+                        end
                     end
                 end
             end

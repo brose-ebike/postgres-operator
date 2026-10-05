@@ -65,3 +65,8 @@ The following privileges need to be assigned to the user or to one of the assign
     * `CREATEUSER` is needed to create new users, which can be managed by the `PgUser` resource
 * Database Privileges:
     * `CONNECT` for the given database is needed to establish the initial connection
+
+## Status Conditions
+
+See [Status & Conditions](./index.md#status-conditions) for the condition types set on this
+resource.

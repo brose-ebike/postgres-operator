@@ -100,20 +100,23 @@ func (r *PgUserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	if err := r.createLoginRoleIfNotExists(ctx, pgApi, &user); err != nil {
 		return ctrl.Result{RequeueAfter: time.Minute}, err
 	}
-	// Update Login Role Exists Condition
-	if err := setCondition(ctx, r.Status(), &user, apiV1.PgUserExistsConditionType, true, "UserExists", "-"); err != nil {
-		return ctrl.Result{RequeueAfter: time.Minute}, err
-	}
 
 	// create update k8s secret
 	password, err := r.createOrUpdateSecret(ctx, pgApi, &user)
 	if err != nil {
+		setCondition(ctx, r.Status(), &user, apiV1.PgUserSecretConditionType, false, apiV1.PgUserSecretConditionReasonFailed, err.Error())
 		return ctrl.Result{RequeueAfter: time.Minute}, err
 	}
 
 	// update login role with password in postgres instance
 	if err := pgApi.UpdateUserPassword(user.Name, password); err != nil {
 		logger.Error(err, "Unable to update role password for role "+user.Name+" on instance "+user.GetInstanceIdString())
+		setCondition(ctx, r.Status(), &user, apiV1.PgUserSecretConditionType, false, apiV1.PgUserSecretConditionReasonFailed, err.Error())
+		return ctrl.Result{RequeueAfter: time.Minute}, err
+	}
+
+	// Update Secret Condition
+	if err := setCondition(ctx, r.Status(), &user, apiV1.PgUserSecretConditionType, true, apiV1.PgUserSecretConditionReasonSucceeded, "-"); err != nil {
 		return ctrl.Result{RequeueAfter: time.Minute}, err
 	}
 
@@ -254,6 +257,7 @@ func (r *PgUserReconciler) createLoginRoleIfNotExists(ctx context.Context, pgApi
 	exists, err := pgApi.IsRoleExisting(roleName)
 	if err != nil {
 		logger.Error(err, fmt.Sprintf("Unable to query login role %s", roleName))
+		setCondition(ctx, r.Status(), user, apiV1.PgUserExistsConditionType, false, "RoleQueryFailed", err.Error())
 		return err
 	}
 
@@ -261,11 +265,13 @@ func (r *PgUserReconciler) createLoginRoleIfNotExists(ctx context.Context, pgApi
 	if !exists {
 		if err := pgApi.CreateRole(roleName); err != nil {
 			logger.Error(err, fmt.Sprintf("Unable to create login role %s", roleName))
+			setCondition(ctx, r.Status(), user, apiV1.PgUserExistsConditionType, false, "RoleCreateFailed", err.Error())
 			return err
 		}
 		logger.Info(fmt.Sprintf("Created login role %s", roleName))
 	}
-	return nil
+	// Update Login Role Exists Condition
+	return setCondition(ctx, r.Status(), user, apiV1.PgUserExistsConditionType, true, "UserExists", "-")
 }
 
 func (r *PgUserReconciler) createOrUpdateSecret(ctx context.Context, pgApi PgRoleAPI, user *apiV1.PgUser) (string, error) {
@@ -361,6 +367,7 @@ func (r *PgUserReconciler) checkIfDatabasesExist(ctx context.Context, pgApi PgRo
 	for _, item := range user.Spec.Databases {
 		exists, err := pgApi.IsDatabaseExisting(item.Name)
 		if err != nil {
+			setCondition(ctx, r.Status(), user, apiV1.PgUserDatabasesExistsConditionType, false, "DatabaseQueryFailed", err.Error())
 			return false, err
 		}
 		databaseNames[item.Name] = exists
@@ -392,11 +399,13 @@ func (r *PgUserReconciler) updateDatabaseOwnershipAndPrivileges(ctx context.Cont
 		exists, err := pgApi.IsDatabaseExisting(database.Name)
 		if err != nil {
 			logger.Error(err, "Unable to query for the database "+database.Name)
+			setCondition(ctx, r.Status(), user, apiV1.PgUserOwnershipConditionType, false, apiV1.PgUserOwnershipConditionReasonFailed, err.Error())
 			return err
 		}
 		if !exists {
 			err = errors.New("Database " + database.Name + " does not exists")
 			logger.Error(err, "Database "+database.Name+" does not exists")
+			setCondition(ctx, r.Status(), user, apiV1.PgUserOwnershipConditionType, false, apiV1.PgUserOwnershipConditionReasonFailed, err.Error())
 			return err
 		}
 
@@ -404,6 +413,7 @@ func (r *PgUserReconciler) updateDatabaseOwnershipAndPrivileges(ctx context.Cont
 		currentOwner, err := pgApi.GetDatabaseOwner(database.Name)
 		if err != nil {
 			logger.Error(err, "Unable to query for the database "+database.Name)
+			setCondition(ctx, r.Status(), user, apiV1.PgUserOwnershipConditionType, false, apiV1.PgUserOwnershipConditionReasonFailed, err.Error())
 			return err
 		}
 		// Case 1: Login Role should be owner of database and is currently owner of database  => Do nothing
@@ -411,6 +421,7 @@ func (r *PgUserReconciler) updateDatabaseOwnershipAndPrivileges(ctx context.Cont
 		if currentOwner != user.Name && database.IsOwner() { // Case 3: Login Role should be owner of database and is currently not owner of database
 			if err := pgApi.UpdateDatabaseOwner(database.Name, user.Name); err != nil {
 				logger.Error(err, "Unable to update database owner")
+				setCondition(ctx, r.Status(), user, apiV1.PgUserOwnershipConditionType, false, apiV1.PgUserOwnershipConditionReasonFailed, err.Error())
 				return err
 			}
 		} else if currentOwner == user.Name && !database.IsOwner() { // Case 4: Login Role should not be owner of database and is currently owner of database
@@ -418,6 +429,7 @@ func (r *PgUserReconciler) updateDatabaseOwnershipAndPrivileges(ctx context.Cont
 			err = pgApi.ResetDatabaseOwner(database.Name)
 			if err != nil {
 				logger.Error(err, "Unable to reset database owner")
+				setCondition(ctx, r.Status(), user, apiV1.PgUserOwnershipConditionType, false, apiV1.PgUserOwnershipConditionReasonFailed, err.Error())
 				return err
 			}
 		}
@@ -432,9 +444,10 @@ func (r *PgUserReconciler) updateDatabaseOwnershipAndPrivileges(ctx context.Cont
 			// update privileges
 			if err := pgApi.UpdateDatabasePrivileges(database.Name, user.Name, privileges); err != nil {
 				logger.Error(err, "Unable to update database privileges")
+				setCondition(ctx, r.Status(), user, apiV1.PgUserOwnershipConditionType, false, apiV1.PgUserOwnershipConditionReasonFailed, err.Error())
 				return err
 			}
 		}
 	}
-	return nil
+	return setCondition(ctx, r.Status(), user, apiV1.PgUserOwnershipConditionType, true, apiV1.PgUserOwnershipConditionReasonSucceeded, "-")
 }

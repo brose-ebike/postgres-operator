@@ -37,6 +37,7 @@ import (
 type pgRoleMock struct {
 	databases                       map[string]dummyDB
 	roles                           map[string]bool
+	forceErr                        map[string]error
 	callsIsRoleExisting             int
 	callsCreateRole                 int
 	callsDeleteRole                 int
@@ -57,6 +58,9 @@ type pgRoleMock struct {
 
 func (r *pgRoleMock) IsRoleExisting(roleName string) (bool, error) {
 	r.callsIsRoleExisting += 1
+	if err, ok := r.forceErr["IsRoleExisting"]; ok {
+		return false, err
+	}
 	_, exists := r.roles[roleName]
 	return exists, nil
 }
@@ -73,6 +77,9 @@ func (r *pgRoleMock) DeleteRole(name string) error {
 
 func (r *pgRoleMock) UpdateUserPassword(name string, password string) error {
 	r.callsUpdateUserPassword += 1
+	if err, ok := r.forceErr["UpdateUserPassword"]; ok {
+		return err
+	}
 	return nil
 }
 
@@ -109,11 +116,17 @@ func (r *pgRoleMock) DeleteDatabase(name string) error {
 
 func (r *pgRoleMock) GetDatabaseOwner(name string) (string, error) {
 	r.callsGetDatabaseOwner += 1
+	if err, ok := r.forceErr["GetDatabaseOwner"]; ok {
+		return "", err
+	}
 	return "", nil
 }
 
 func (r *pgRoleMock) IsDatabaseExisting(databaseName string) (bool, error) {
 	r.callsIsDatabaseExisting += 1
+	if err, ok := r.forceErr["IsDatabaseExisting"]; ok {
+		return false, err
+	}
 	_, exists := r.databases[databaseName]
 	return exists, nil
 }
@@ -260,7 +273,7 @@ var _ = Describe("PgUserReconciler", func() {
 		var user apiV1.PgUser
 		err = k8sClient.Get(ctx, request.NamespacedName, &user)
 		Expect(err).To(BeNil())
-		Expect(user.Status.Conditions).To(HaveLen(3))
+		Expect(user.Status.Conditions).To(HaveLen(5))
 		// and connection is true
 		connectionCondition := meta.FindStatusCondition(user.Status.Conditions, apiV1.PgConnectedConditionType)
 		Expect(connectionCondition.Status).To(Equal(v1.ConditionTrue))
@@ -270,6 +283,12 @@ var _ = Describe("PgUserReconciler", func() {
 		// and database is true
 		databaseCondition := meta.FindStatusCondition(user.Status.Conditions, apiV1.PgUserDatabasesExistsConditionType)
 		Expect(databaseCondition.Status).To(Equal(v1.ConditionTrue))
+		// and secret is true
+		secretCondition := meta.FindStatusCondition(user.Status.Conditions, apiV1.PgUserSecretConditionType)
+		Expect(secretCondition.Status).To(Equal(v1.ConditionTrue))
+		// and ownership is true
+		ownershipCondition := meta.FindStatusCondition(user.Status.Conditions, apiV1.PgUserOwnershipConditionType)
+		Expect(ownershipCondition.Status).To(Equal(v1.ConditionTrue))
 
 		// and
 		user = apiV1.PgUser{}
@@ -326,6 +345,107 @@ var _ = Describe("PgUserReconciler", func() {
 		// then
 		Expect(err).NotTo(BeNil())
 		Expect(result.RequeueAfter).NotTo(BeZero())
+
+		// and the secret condition reflects the missing spec.secret
+		err = k8sClient.Get(ctx, request.NamespacedName, &user)
+		Expect(err).To(BeNil())
+		secretCondition := meta.FindStatusCondition(user.Status.Conditions, apiV1.PgUserSecretConditionType)
+		Expect(secretCondition).ToNot(BeNil())
+		Expect(secretCondition.Status).To(Equal(v1.ConditionFalse))
+		Expect(secretCondition.Reason).To(Equal(apiV1.PgUserSecretConditionReasonFailed))
+	})
+
+	It("sets the user exists condition to false when querying the login role fails", func() {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		// given
+		pgApiMock.(*pgRoleMock).forceErr = map[string]error{
+			"IsRoleExisting": errors.New("connection refused"),
+		}
+		request := reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Namespace: "default",
+				Name:      "dummy",
+			},
+		}
+
+		// when
+		result, err := reconciler.Reconcile(ctx, request)
+
+		// then
+		Expect(err).ToNot(BeNil())
+		Expect(result.RequeueAfter).To(Equal(time.Minute))
+
+		// and
+		user := apiV1.PgUser{}
+		err = k8sClient.Get(ctx, request.NamespacedName, &user)
+		Expect(err).To(BeNil())
+		userCondition := meta.FindStatusCondition(user.Status.Conditions, apiV1.PgUserExistsConditionType)
+		Expect(userCondition).ToNot(BeNil())
+		Expect(userCondition.Status).To(Equal(v1.ConditionFalse))
+		Expect(userCondition.Reason).To(Equal("RoleQueryFailed"))
+	})
+
+	It("sets the secret condition to false when updating the instance password fails", func() {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		// given
+		pgApiMock.(*pgRoleMock).forceErr = map[string]error{
+			"UpdateUserPassword": errors.New("connection refused"),
+		}
+		request := reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Namespace: "default",
+				Name:      "dummy",
+			},
+		}
+
+		// when
+		result, err := reconciler.Reconcile(ctx, request)
+
+		// then
+		Expect(err).ToNot(BeNil())
+		Expect(result.RequeueAfter).To(Equal(time.Minute))
+
+		// and
+		user := apiV1.PgUser{}
+		err = k8sClient.Get(ctx, request.NamespacedName, &user)
+		Expect(err).To(BeNil())
+		secretCondition := meta.FindStatusCondition(user.Status.Conditions, apiV1.PgUserSecretConditionType)
+		Expect(secretCondition).ToNot(BeNil())
+		Expect(secretCondition.Status).To(Equal(v1.ConditionFalse))
+		Expect(secretCondition.Reason).To(Equal(apiV1.PgUserSecretConditionReasonFailed))
+	})
+
+	It("sets the ownership condition to false when querying the database owner fails", func() {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		// given
+		pgApiMock.(*pgRoleMock).forceErr = map[string]error{
+			"GetDatabaseOwner": errors.New("connection refused"),
+		}
+		request := reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Namespace: "default",
+				Name:      "dummy",
+			},
+		}
+
+		// when
+		result, err := reconciler.Reconcile(ctx, request)
+
+		// then
+		Expect(err).ToNot(BeNil())
+		Expect(result.RequeueAfter).To(Equal(time.Minute))
+
+		// and
+		user := apiV1.PgUser{}
+		err = k8sClient.Get(ctx, request.NamespacedName, &user)
+		Expect(err).To(BeNil())
+		ownershipCondition := meta.FindStatusCondition(user.Status.Conditions, apiV1.PgUserOwnershipConditionType)
+		Expect(ownershipCondition).ToNot(BeNil())
+		Expect(ownershipCondition.Status).To(Equal(v1.ConditionFalse))
+		Expect(ownershipCondition.Reason).To(Equal(apiV1.PgUserOwnershipConditionReasonFailed))
 	})
 
 	It("reconciles on delete of PgDatabase", func() {
@@ -428,6 +548,37 @@ var _ = Describe("PgUserReconciler", func() {
 		// then
 		Expect(err).To(BeNil())
 		Expect(result.RequeueAfter).To(BeZero())
+	})
+
+	It("sets the databases condition to false when checking if a database exists fails", func() {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		// given
+		pgApiMock.(*pgRoleMock).forceErr = map[string]error{
+			"IsDatabaseExisting": errors.New("connection refused"),
+		}
+		request := reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Namespace: "default",
+				Name:      "dummy",
+			},
+		}
+
+		// when
+		result, err := reconciler.Reconcile(ctx, request)
+
+		// then
+		Expect(err).ToNot(BeNil())
+		Expect(result.RequeueAfter).To(Equal(time.Minute))
+
+		// and
+		user := apiV1.PgUser{}
+		err = k8sClient.Get(ctx, request.NamespacedName, &user)
+		Expect(err).To(BeNil())
+		databaseCondition := meta.FindStatusCondition(user.Status.Conditions, apiV1.PgUserDatabasesExistsConditionType)
+		Expect(databaseCondition).ToNot(BeNil())
+		Expect(databaseCondition.Status).To(Equal(v1.ConditionFalse))
+		Expect(databaseCondition.Reason).To(Equal("DatabaseQueryFailed"))
 	})
 })
 
