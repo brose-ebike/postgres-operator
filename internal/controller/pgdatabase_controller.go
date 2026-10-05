@@ -267,6 +267,7 @@ func (r *PgDatabaseReconciler) handleExtensions(ctx context.Context, pgApi PgDat
 	for _, extension := range database.Spec.Extensions {
 		exists, err := pgApi.IsDatabaseExtensionPresent(database.Name, extension)
 		if err != nil {
+			setCondition(ctx, r.Status(), database, apiV1.PgDatabaseExtensionsConditionType, false, "ExtensionCheckFailed", err.Error())
 			return err
 		}
 		if exists {

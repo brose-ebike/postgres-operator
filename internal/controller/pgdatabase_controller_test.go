@@ -179,6 +179,9 @@ func (m *pgDatabaseMock) DeleteAllPrivilegesOnSchema(databaseName string, schema
 
 func (m *pgDatabaseMock) IsDatabaseExtensionPresent(databaseName string, extension string) (bool, error) {
 	m.callsIsDatabaseExtensionPresent += 1
+	if err, ok := m.forceErr["IsDatabaseExtensionPresent"]; ok {
+		return false, err
+	}
 	return true, nil
 }
 
@@ -566,5 +569,42 @@ var _ = Describe("PgInstanceReconciler", func() {
 		Expect(publicSchemaCondition).ToNot(BeNil())
 		Expect(publicSchemaCondition.Status).To(Equal(v1.ConditionFalse))
 		Expect(publicSchemaCondition.Reason).To(Equal(apiV1.PgDatabasePublicSchemaConditionReasonFailed))
+	})
+
+	It("sets the extensions condition to false when checking for an extension fails", func() {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		// given
+		pgApiMock.(*pgDatabaseMock).forceErr = map[string]error{
+			"IsDatabaseExtensionPresent": errors.New("connection refused"),
+		}
+		database := apiV1.PgDatabase{}
+		err := k8sClient.Get(ctx, types.NamespacedName{Namespace: "default", Name: "dummy"}, &database)
+		Expect(err).To(BeNil())
+		database.Spec.Extensions = []string{"pg_trgm"}
+		err = k8sClient.Update(ctx, &database)
+		Expect(err).To(BeNil())
+
+		request := reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Namespace: "default",
+				Name:      "dummy",
+			},
+		}
+
+		// when
+		result, err := reconciler.Reconcile(ctx, request)
+
+		// then
+		Expect(err).ToNot(BeNil())
+		Expect(result.RequeueAfter).To(Equal(time.Minute))
+
+		// and
+		err = k8sClient.Get(ctx, request.NamespacedName, &database)
+		Expect(err).To(BeNil())
+		extensionCondition := meta.FindStatusCondition(database.Status.Conditions, apiV1.PgDatabaseExtensionsConditionType)
+		Expect(extensionCondition).ToNot(BeNil())
+		Expect(extensionCondition.Status).To(Equal(v1.ConditionFalse))
+		Expect(extensionCondition.Reason).To(Equal("ExtensionCheckFailed"))
 	})
 })

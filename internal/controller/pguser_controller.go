@@ -367,6 +367,7 @@ func (r *PgUserReconciler) checkIfDatabasesExist(ctx context.Context, pgApi PgRo
 	for _, item := range user.Spec.Databases {
 		exists, err := pgApi.IsDatabaseExisting(item.Name)
 		if err != nil {
+			setCondition(ctx, r.Status(), user, apiV1.PgUserDatabasesExistsConditionType, false, "DatabaseQueryFailed", err.Error())
 			return false, err
 		}
 		databaseNames[item.Name] = exists

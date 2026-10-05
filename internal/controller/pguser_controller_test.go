@@ -124,6 +124,9 @@ func (r *pgRoleMock) GetDatabaseOwner(name string) (string, error) {
 
 func (r *pgRoleMock) IsDatabaseExisting(databaseName string) (bool, error) {
 	r.callsIsDatabaseExisting += 1
+	if err, ok := r.forceErr["IsDatabaseExisting"]; ok {
+		return false, err
+	}
 	_, exists := r.databases[databaseName]
 	return exists, nil
 }
@@ -545,6 +548,37 @@ var _ = Describe("PgUserReconciler", func() {
 		// then
 		Expect(err).To(BeNil())
 		Expect(result.RequeueAfter).To(BeZero())
+	})
+
+	It("sets the databases condition to false when checking if a database exists fails", func() {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		// given
+		pgApiMock.(*pgRoleMock).forceErr = map[string]error{
+			"IsDatabaseExisting": errors.New("connection refused"),
+		}
+		request := reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Namespace: "default",
+				Name:      "dummy",
+			},
+		}
+
+		// when
+		result, err := reconciler.Reconcile(ctx, request)
+
+		// then
+		Expect(err).ToNot(BeNil())
+		Expect(result.RequeueAfter).To(Equal(time.Minute))
+
+		// and
+		user := apiV1.PgUser{}
+		err = k8sClient.Get(ctx, request.NamespacedName, &user)
+		Expect(err).To(BeNil())
+		databaseCondition := meta.FindStatusCondition(user.Status.Conditions, apiV1.PgUserDatabasesExistsConditionType)
+		Expect(databaseCondition).ToNot(BeNil())
+		Expect(databaseCondition.Status).To(Equal(v1.ConditionFalse))
+		Expect(databaseCondition.Reason).To(Equal("DatabaseQueryFailed"))
 	})
 })
 
