@@ -26,6 +26,7 @@ import (
 	apiV1 "github.com/brose-ebike/postgres-operator/api/v1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	coreV1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -606,5 +607,107 @@ var _ = Describe("PgInstanceReconciler", func() {
 		Expect(extensionCondition).ToNot(BeNil())
 		Expect(extensionCondition.Status).To(Equal(v1.ConditionFalse))
 		Expect(extensionCondition.Reason).To(Equal("ExtensionCheckFailed"))
+	})
+
+	It("does not set the backup-policy-found condition when spec.backupPolicy is unset", func() {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		request := reconcile.Request{
+			NamespacedName: types.NamespacedName{Namespace: "default", Name: "dummy"},
+		}
+
+		_, err := reconciler.Reconcile(ctx, request)
+		Expect(err).To(BeNil())
+
+		database := apiV1.PgDatabase{}
+		err = k8sClient.Get(ctx, request.NamespacedName, &database)
+		Expect(err).To(BeNil())
+		Expect(meta.FindStatusCondition(database.Status.Conditions, apiV1.PgDatabaseBackupPolicyFoundConditionType)).To(BeNil())
+	})
+
+	It("sets the backup-policy-found condition to true when the referenced PgBackupPolicy exists", func() {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		// given
+		policy := apiV1.PgBackupPolicy{
+			ObjectMeta: v1.ObjectMeta{Namespace: "default", Name: "backup-policy"},
+			Spec: apiV1.PgBackupPolicySpec{
+				Schedule: "0 2 * * *",
+				Storage: apiV1.PgBackupStorage{
+					Type: apiV1.PgBackupStorageTypeS3,
+					S3: &apiV1.PgBackupStorageS3{
+						Endpoint:  "minio.example.com",
+						Bucket:    "pg-backups",
+						SecretRef: coreV1.LocalObjectReference{Name: "storage-creds"},
+					},
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, &policy)).To(Succeed())
+
+		database := apiV1.PgDatabase{}
+		err := k8sClient.Get(ctx, types.NamespacedName{Namespace: "default", Name: "dummy"}, &database)
+		Expect(err).To(BeNil())
+		database.Spec.BackupPolicy = &apiV1.PgInstanceRef{Namespace: "default", Name: "backup-policy"}
+		err = k8sClient.Update(ctx, &database)
+		Expect(err).To(BeNil())
+
+		request := reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Namespace: "default",
+				Name:      "dummy",
+			},
+		}
+
+		// when
+		result, err := reconciler.Reconcile(ctx, request)
+
+		// then
+		Expect(err).To(BeNil())
+		Expect(result.RequeueAfter).To(BeZero())
+
+		// and
+		err = k8sClient.Get(ctx, request.NamespacedName, &database)
+		Expect(err).To(BeNil())
+		backupPolicyCondition := meta.FindStatusCondition(database.Status.Conditions, apiV1.PgDatabaseBackupPolicyFoundConditionType)
+		Expect(backupPolicyCondition).ToNot(BeNil())
+		Expect(backupPolicyCondition.Status).To(Equal(v1.ConditionTrue))
+		Expect(backupPolicyCondition.Reason).To(Equal(apiV1.PgDatabaseBackupPolicyFoundConditionReasonSucceeded))
+
+		Expect(k8sClient.Delete(ctx, &policy)).To(Succeed())
+	})
+
+	It("sets the backup-policy-found condition to false when the referenced PgBackupPolicy does not exist", func() {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		database := apiV1.PgDatabase{}
+		err := k8sClient.Get(ctx, types.NamespacedName{Namespace: "default", Name: "dummy"}, &database)
+		Expect(err).To(BeNil())
+		database.Spec.BackupPolicy = &apiV1.PgInstanceRef{Namespace: "default", Name: "does-not-exist"}
+		err = k8sClient.Update(ctx, &database)
+		Expect(err).To(BeNil())
+
+		request := reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Namespace: "default",
+				Name:      "dummy",
+			},
+		}
+
+		// when
+		result, err := reconciler.Reconcile(ctx, request)
+
+		// then
+		Expect(err).To(BeNil())
+		Expect(result.RequeueAfter).To(BeZero())
+
+		// and
+		err = k8sClient.Get(ctx, request.NamespacedName, &database)
+		Expect(err).To(BeNil())
+		backupPolicyCondition := meta.FindStatusCondition(database.Status.Conditions, apiV1.PgDatabaseBackupPolicyFoundConditionType)
+		Expect(backupPolicyCondition).ToNot(BeNil())
+		Expect(backupPolicyCondition.Status).To(Equal(v1.ConditionFalse))
+		Expect(backupPolicyCondition.Reason).To(Equal(apiV1.PgDatabaseBackupPolicyFoundConditionReasonFailed))
 	})
 })

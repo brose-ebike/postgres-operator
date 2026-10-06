@@ -80,7 +80,10 @@ func setCondition(
 	return r.Update(ctx, obj)
 }
 
-// removeCondition removes the condition with the given type from the given object
+// removeCondition removes the condition with the given type from the given
+// object. No-ops (skipping the Update call) if the condition was not
+// present, so repeatedly calling this on an object that never had the
+// condition set doesn't churn its resourceVersion on every reconcile.
 func removeCondition(
 	ctx context.Context,
 	r client.StatusWriter,
@@ -88,7 +91,9 @@ func removeCondition(
 	conditionType string,
 ) error {
 	conditions := obj.GetConditions()
-	meta.RemoveStatusCondition(&conditions, conditionType)
+	if !meta.RemoveStatusCondition(&conditions, conditionType) {
+		return nil
+	}
 	obj.SetConditions(conditions)
 	return r.Update(ctx, obj)
 }
