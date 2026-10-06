@@ -1,0 +1,31 @@
+# permissions for end users to edit pgbackupinstances.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: pgbackupinstance-editor-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: postgres-operator
+    app.kubernetes.io/part-of: postgres-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: pgbackupinstance-editor-role
+rules:
+- apiGroups:
+  - postgres.oebc.tools
+  resources:
+  - pgbackupinstances
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - postgres.oebc.tools
+  resources:
+  - pgbackupinstances/status
+  verbs:
+  - get
