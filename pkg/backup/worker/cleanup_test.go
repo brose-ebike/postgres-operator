@@ -21,8 +21,8 @@ import (
 	"testing"
 	"time"
 
-	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kErrors "k8s.io/apimachinery/pkg/api/errors"
+	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
