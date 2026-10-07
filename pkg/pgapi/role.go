@@ -34,6 +34,12 @@ type PgRoleAPI interface {
 	DeleteRole(name string) error
 	// UpdateUserPassword changes the password for the given role
 	UpdateUserPassword(name string, password string) error
+	// GrantPredefinedRole grants membership in a built-in/predefined
+	// Postgres role (e.g. "pg_read_all_data") to the given role.
+	GrantPredefinedRole(name string, predefinedRole string) error
+	// RevokePredefinedRole revokes membership in a built-in/predefined
+	// Postgres role previously granted via GrantPredefinedRole.
+	RevokePredefinedRole(name string, predefinedRole string) error
 }
 
 func (s *pgInstanceAPIImpl) IsRoleExisting(roleName string) (exists bool, err error) {
@@ -104,6 +110,36 @@ func (s *pgInstanceAPIImpl) DeleteRole(name string) (err error) {
 	const queryDrop = "drop user %s;"
 	_, err = conn.ExecContext(s.ctx, formatQueryObj(queryDrop, name))
 	return WrapSqlExecutionError(err, queryDrop, name)
+}
+
+func (s *pgInstanceAPIImpl) GrantPredefinedRole(name string, predefinedRole string) (err error) {
+	conn, err := s.newConnection()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if closeErr := conn.Close(); closeErr != nil {
+			err = errors.Join(err, closeErr)
+		}
+	}()
+	const query = "grant %s to %s;"
+	_, err = conn.ExecContext(s.ctx, formatQueryObj(query, predefinedRole, name))
+	return WrapSqlExecutionError(err, query, predefinedRole, name)
+}
+
+func (s *pgInstanceAPIImpl) RevokePredefinedRole(name string, predefinedRole string) (err error) {
+	conn, err := s.newConnection()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if closeErr := conn.Close(); closeErr != nil {
+			err = errors.Join(err, closeErr)
+		}
+	}()
+	const query = "revoke %s from %s;"
+	_, err = conn.ExecContext(s.ctx, formatQueryObj(query, predefinedRole, name))
+	return WrapSqlExecutionError(err, query, predefinedRole, name)
 }
 
 func (s *pgInstanceAPIImpl) UpdateUserPassword(name string, password string) (err error) {
