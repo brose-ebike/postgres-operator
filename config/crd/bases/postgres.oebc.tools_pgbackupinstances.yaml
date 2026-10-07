@@ -1,0 +1,262 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.21.0
+  name: pgbackupinstances.postgres.oebc.tools
+spec:
+  group: postgres.oebc.tools
+  names:
+    kind: PgBackupInstance
+    listKind: PgBackupInstanceList
+    plural: pgbackupinstances
+    singular: pgbackupinstance
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: PgBackupInstance is the Schema for the pgbackupinstances API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: PgBackupInstanceSpec defines the desired state of PgBackupInstance
+            properties:
+              backupPolicy:
+                description: BackupPolicy identifies the PgBackupPolicy that triggered
+                  this backup.
+                properties:
+                  name:
+                    description: Name identifies the PgInstanceConnection which should
+                      be used
+                    type: string
+                  namespace:
+                    description: Namespace defines the namespace in which the PgInstanceConnection
+                      is located
+                    type: string
+                required:
+                - name
+                - namespace
+                type: object
+              database:
+                description: Database identifies the PgDatabase this backup was taken
+                  of.
+                properties:
+                  name:
+                    description: Name identifies the PgInstanceConnection which should
+                      be used
+                    type: string
+                  namespace:
+                    description: Namespace defines the namespace in which the PgInstanceConnection
+                      is located
+                    type: string
+                required:
+                - name
+                - namespace
+                type: object
+            required:
+            - backupPolicy
+            - database
+            type: object
+          status:
+            description: PgBackupInstanceStatus defines the observed state of PgBackupInstance
+            properties:
+              conditions:
+                description: Conditions represent the current state of this backup.
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              dumpOptions:
+                description: |-
+                  DumpOptions is a snapshot of the options actually used for this
+                  backup, independent of later policy edits.
+                properties:
+                  compressionLevel:
+                    description: CompressionLevel is passed as pg_dump --compress=<n>.
+                    format: int32
+                    maximum: 9
+                    minimum: 0
+                    type: integer
+                  format:
+                    default: custom
+                    description: |-
+                      Format selects the pg_dump --format value. The "directory" format is
+                      tarred and gzipped into a single object before upload.
+                    enum:
+                    - plain
+                    - custom
+                    - tar
+                    - directory
+                    type: string
+                type: object
+              expiresAt:
+                description: |-
+                  ExpiresAt is an informational cache computed from FinishedAt and the
+                  policy's retention settings at the time of the backup. Cleanup always
+                  recomputes retention from FinishedAt against the policy's current
+                  settings rather than trusting this field.
+                format: date-time
+                type: string
+              finishedAt:
+                description: |-
+                  FinishedAt is when the backup attempt finished (success or failure).
+                  This is the authoritative timestamp used by the retention/cleanup
+                  salvage algorithm.
+                format: date-time
+                type: string
+              location:
+                description: |-
+                  Location is where the (possibly encrypted) dump object was stored.
+                  Only populated once Phase is Success. Same discriminated-union shape
+                  as PgBackupPolicySpec.Storage.
+                properties:
+                  s3:
+                    description: S3 holds the configuration when Type is "s3".
+                    properties:
+                      bucket:
+                        description: |-
+                          Bucket is the name of the bucket dumps are stored in. It is created
+                          automatically if it does not exist.
+                        type: string
+                      endpoint:
+                        description: Endpoint is the S3-compatible endpoint, host[:port],
+                          without scheme.
+                        type: string
+                      prefix:
+                        description: Prefix is an optional key prefix under which
+                          objects are stored.
+                        type: string
+                      secretRef:
+                        description: |-
+                          SecretRef references a Secret containing the access/secret key pair,
+                          under the keys PgBackupStorageS3SecretKeyAccessKey/SecretKey.
+                        properties:
+                          name:
+                            default: ""
+                            description: |-
+                              Name of the referent.
+                              This field is effectively required, but due to backwards compatibility is
+                              allowed to be empty. Instances of this type with an empty value here are
+                              almost certainly wrong.
+                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                            type: string
+                        type: object
+                        x-kubernetes-map-type: atomic
+                      secure:
+                        default: true
+                        description: |-
+                          Secure selects whether TLS is used to talk to the endpoint.
+                          A *bool, not bool: with a plain bool, encoding/json's "omitempty"
+                          drops an explicit "false" from the request body indistinguishably
+                          from "unset", so the apiserver's CRD default (true) would silently
+                          override it on every create/update.
+                        type: boolean
+                      url:
+                        description: |-
+                          URL is populated only in PgBackupInstanceStatus.Location, giving the
+                          fully resolved object address. Unused in PgBackupPolicySpec.Storage.
+                        type: string
+                    type: object
+                  type:
+                    description: Type selects which of the sub-structs below is populated.
+                    enum:
+                    - s3
+                    type: string
+                required:
+                - type
+                type: object
+              message:
+                description: Message carries a human readable status/error message.
+                type: string
+              phase:
+                default: Pending
+                description: Phase is the current lifecycle phase of this backup attempt.
+                enum:
+                - Pending
+                - Success
+                - Failure
+                type: string
+              sizeBytes:
+                description: SizeBytes is the size in bytes of the stored (possibly
+                  encrypted) object.
+                format: int64
+                type: integer
+              startedAt:
+                description: StartedAt is when the backup attempt started.
+                format: date-time
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

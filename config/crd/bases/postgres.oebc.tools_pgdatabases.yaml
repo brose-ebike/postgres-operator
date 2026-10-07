@@ -39,6 +39,23 @@ spec:
           spec:
             description: PgDatabaseSpec defines the desired state of PgDatabase
             properties:
+              backupPolicy:
+                description: |-
+                  BackupPolicy optionally references a PgBackupPolicy (same namespace)
+                  that should back this database up on its schedule.
+                properties:
+                  name:
+                    description: Name identifies the PgInstanceConnection which should
+                      be used
+                    type: string
+                  namespace:
+                    description: Namespace defines the namespace in which the PgInstanceConnection
+                      is located
+                    type: string
+                required:
+                - name
+                - namespace
+                type: object
               defaultPrivileges:
                 description: DefaultPrivileges defines the default privileges for
                   schemas in this database

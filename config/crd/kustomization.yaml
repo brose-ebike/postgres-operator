@@ -5,6 +5,8 @@ resources:
 - bases/postgres.oebc.tools_pginstances.yaml
 - bases/postgres.oebc.tools_pgdatabases.yaml
 - bases/postgres.oebc.tools_pgusers.yaml
+- bases/postgres.oebc.tools_pgbackuppolicies.yaml
+- bases/postgres.oebc.tools_pgbackupinstances.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:
