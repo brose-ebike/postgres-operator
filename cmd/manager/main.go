@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"flag"
 	"os"
@@ -25,10 +26,13 @@ import (
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	coreV1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
@@ -55,11 +59,17 @@ func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
 	var probeAddr string
+	var backupWorkerImage string
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8443", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
+	flag.StringVar(&backupWorkerImage, "backup-worker-image", "",
+		"Container image reference used for PgBackupPolicy dump/cleanup CronJobs. "+
+			"If unset, resolved automatically from this Pod's own \"manager\" container "+
+			"image via the POD_NAME/POD_NAMESPACE downward-API env vars - set this flag "+
+			"explicitly only for local development outside a Pod.")
 	opts := zap.Options{
 		Development: true,
 	}
@@ -124,6 +134,28 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "PgUser")
 		os.Exit(1)
 	}
+
+	resolvedBackupWorkerImage := resolveBackupWorkerImage(context.Background(), mgr.GetAPIReader(), backupWorkerImage)
+	if resolvedBackupWorkerImage == "" {
+		setupLog.Info("backup worker image not configured - PgBackupPolicy reconciliation will report " +
+			"not-ready until --backup-worker-image is set or this Pod's own image can be resolved " +
+			"via POD_NAME/POD_NAMESPACE")
+	}
+	if err = (&controller.PgBackupPolicyReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+		Image:  resolvedBackupWorkerImage,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "PgBackupPolicy")
+		os.Exit(1)
+	}
+	if err = (&controller.PgBackupInstanceReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "PgBackupInstance")
+		os.Exit(1)
+	}
 	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
@@ -140,4 +172,40 @@ func main() {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+}
+
+// resolveBackupWorkerImage decides which image reference PgBackupPolicy's
+// CronJobs should use for the backup-worker container. An explicit flag
+// value always wins (useful for local development outside a Pod, where
+// POD_NAME/POD_NAMESPACE aren't set). Otherwise it reads this Pod's own
+// "manager" container image via the Kubernetes API - necessarily the exact
+// image this process is running as, including the /backup-worker binary
+// built into the same multi-stage image - rather than relying on any
+// kustomize manifest-level string substitution, which only rewrites a
+// container's own image: field, never arbitrary env/arg strings. Returns
+// "" if neither resolves; callers must not silently create CronJobs with
+// an empty image.
+func resolveBackupWorkerImage(ctx context.Context, r client.Reader, flagValue string) string {
+	if flagValue != "" {
+		return flagValue
+	}
+
+	podName := os.Getenv("POD_NAME")
+	podNamespace := os.Getenv("POD_NAMESPACE")
+	if podName == "" || podNamespace == "" {
+		return ""
+	}
+
+	var pod coreV1.Pod
+	if err := r.Get(ctx, types.NamespacedName{Namespace: podNamespace, Name: podName}, &pod); err != nil {
+		setupLog.Error(err, "unable to resolve own Pod for backup-worker image self-lookup", "pod", podNamespace+"/"+podName)
+		return ""
+	}
+	for _, container := range pod.Spec.Containers {
+		if container.Name == "manager" {
+			return container.Image
+		}
+	}
+	setupLog.Info("own Pod has no container named \"manager\"; cannot resolve backup-worker image", "pod", podNamespace+"/"+podName)
+	return ""
 }
