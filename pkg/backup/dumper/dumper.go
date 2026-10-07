@@ -90,9 +90,15 @@ func Dump(ctx context.Context, opts Options) (string, error) {
 	outputPath := opts.OutputPath
 	args := []string{
 		"--no-password",
-		fmt.Sprintf("--compress=%d", opts.CompressionLevel),
 		"--format=" + formatFlag(opts.Format),
 		"--file=" + outputPath,
+	}
+	// pg_dump rejects --compress outright for the tar format ("compression
+	// is not supported by tar archive format") - tar archives must stay a
+	// standard, seekable tar structure, unlike custom/directory/plain,
+	// which all support an internal compressed stream.
+	if opts.Format != apiV1.PgBackupDumpFormatTar {
+		args = append(args, fmt.Sprintf("--compress=%d", opts.CompressionLevel))
 	}
 
 	cmd := exec.CommandContext(ctx, "pg_dump", args...)
