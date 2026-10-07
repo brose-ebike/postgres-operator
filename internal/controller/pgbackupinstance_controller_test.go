@@ -46,16 +46,17 @@ var _ = Describe("PgBackupInstanceReconciler", func() {
 				Database:     apiV1.PgInstanceRef{Namespace: "default", Name: database},
 				BackupPolicy: apiV1.PgInstanceRef{Namespace: "default", Name: policy},
 			},
-			Status: apiV1.PgBackupInstanceStatus{
-				Phase:      phase,
-				StartedAt:  &startedAt,
-				FinishedAt: &finishedAt,
-			},
 		}
 		Expect(k8sClient.Create(ctx, instance)).To(Succeed())
-		// Status is a separate subresource - Create() above ignores it, so
-		// it must be persisted via a follow-up status update, same as the
-		// real worker would do.
+		// Status is a separate subresource - Create() above both ignores
+		// any Status set on the input object AND overwrites our local copy
+		// with the server's (status-less) response, so the fields must be
+		// set *after* Create, not before, then persisted via Status().Update().
+		instance.Status = apiV1.PgBackupInstanceStatus{
+			Phase:      phase,
+			StartedAt:  &startedAt,
+			FinishedAt: &finishedAt,
+		}
 		Expect(k8sClient.Status().Update(ctx, instance)).To(Succeed())
 		return instance
 	}
@@ -86,13 +87,15 @@ var _ = Describe("PgBackupInstanceReconciler", func() {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
+		// older is reconciled while it's genuinely the only instance for
+		// this database - a real cluster never reconciles an object before
+		// a later sibling exists, so the test shouldn't either.
 		older := createInstance(ctx, "gauge-older", "gauge-policy-1", "gauge-db-1", apiV1.PgBackupInstancePhaseSuccess, v1.NewTime(time.Now().Add(-time.Hour)))
-		newer := createInstance(ctx, "gauge-newer", "gauge-policy-1", "gauge-db-1", apiV1.PgBackupInstancePhaseFailure, v1.NewTime(time.Now()))
-
 		reconcileInstance(ctx, older.Name)
 		Expect(phaseValue("gauge-policy-1", "gauge-db-1", apiV1.PgBackupInstancePhaseSuccess)).To(Equal(1.0))
 		Expect(phaseValue("gauge-policy-1", "gauge-db-1", apiV1.PgBackupInstancePhaseFailure)).To(Equal(0.0))
 
+		newer := createInstance(ctx, "gauge-newer", "gauge-policy-1", "gauge-db-1", apiV1.PgBackupInstancePhaseFailure, v1.NewTime(time.Now()))
 		reconcileInstance(ctx, newer.Name)
 		Expect(phaseValue("gauge-policy-1", "gauge-db-1", apiV1.PgBackupInstancePhaseFailure)).To(Equal(1.0))
 		Expect(phaseValue("gauge-policy-1", "gauge-db-1", apiV1.PgBackupInstancePhaseSuccess)).To(Equal(0.0))
@@ -109,9 +112,9 @@ var _ = Describe("PgBackupInstanceReconciler", func() {
 		defer cancel()
 
 		older := createInstance(ctx, "gauge-older-2", "gauge-policy-2", "gauge-db-2", apiV1.PgBackupInstancePhaseSuccess, v1.NewTime(time.Now().Add(-time.Hour)))
-		newer := createInstance(ctx, "gauge-newer-2", "gauge-policy-2", "gauge-db-2", apiV1.PgBackupInstancePhaseFailure, v1.NewTime(time.Now()))
-
 		reconcileInstance(ctx, older.Name)
+
+		newer := createInstance(ctx, "gauge-newer-2", "gauge-policy-2", "gauge-db-2", apiV1.PgBackupInstancePhaseFailure, v1.NewTime(time.Now()))
 		reconcileInstance(ctx, newer.Name)
 		Expect(phaseValue("gauge-policy-2", "gauge-db-2", apiV1.PgBackupInstancePhaseFailure)).To(Equal(1.0))
 
