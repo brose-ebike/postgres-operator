@@ -63,7 +63,12 @@ func WithBucket(bucket string) MinioContainerOption {
 // SetupMinio creates an instance of the minio container type
 func SetupMinio(ctx context.Context, opts ...MinioContainerOption) (*MinioContainer, error) {
 	tcReq := testcontainers.ContainerRequest{
-		Image:        "minio/minio:RELEASE.2025-04-08T15-41-24Z",
+		// quay.io, not Docker Hub's minio/minio: MinIO restricted anonymous
+		// pulls of their official image on Docker Hub, so an unauthenticated
+		// pull now fails with "pull access denied ... may require 'docker
+		// login'". quay.io/minio/minio is MinIO's own registry and stays
+		// open to anonymous pulls.
+		Image:        "quay.io/minio/minio:RELEASE.2025-04-08T15-41-24Z",
 		Env:          map[string]string{},
 		ExposedPorts: []string{"9000/tcp"},
 		Cmd:          []string{"server", "/data"},
