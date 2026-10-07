@@ -160,8 +160,12 @@ spec:
                         x-kubernetes-map-type: atomic
                       secure:
                         default: true
-                        description: Secure selects whether TLS is used to talk to
-                          the endpoint.
+                        description: |-
+                          Secure selects whether TLS is used to talk to the endpoint.
+                          A *bool, not bool: with a plain bool, encoding/json's "omitempty"
+                          drops an explicit "false" from the request body indistinguishably
+                          from "unset", so the apiserver's CRD default (true) would silently
+                          override it on every create/update.
                         type: boolean
                       url:
                         description: |-

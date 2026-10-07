@@ -60,9 +60,13 @@ type PgBackupStorageS3 struct {
 	// +optional
 	Prefix string `json:"prefix,omitempty"`
 	// Secure selects whether TLS is used to talk to the endpoint.
+	// A *bool, not bool: with a plain bool, encoding/json's "omitempty"
+	// drops an explicit "false" from the request body indistinguishably
+	// from "unset", so the apiserver's CRD default (true) would silently
+	// override it on every create/update.
 	// +kubebuilder:default=true
 	// +optional
-	Secure bool `json:"secure,omitempty"`
+	Secure *bool `json:"secure,omitempty"`
 	// SecretRef references a Secret containing the access/secret key pair,
 	// under the keys PgBackupStorageS3SecretKeyAccessKey/SecretKey.
 	// +optional
@@ -71,6 +75,13 @@ type PgBackupStorageS3 struct {
 	// fully resolved object address. Unused in PgBackupPolicySpec.Storage.
 	// +optional
 	URL string `json:"url,omitempty"`
+}
+
+// IsSecure reports whether TLS should be used, defaulting to true (matching
+// the CRD's kubebuilder default) when unset - relevant for Go-constructed
+// values that never round-trip through the apiserver's CRD defaulting.
+func (s *PgBackupStorageS3) IsSecure() bool {
+	return s.Secure == nil || *s.Secure
 }
 
 // PgBackupStorage is a discriminated union selecting the storage backend.

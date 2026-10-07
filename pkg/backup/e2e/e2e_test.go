@@ -32,6 +32,7 @@ import (
 	coreV1 "k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	apiV1 "github.com/brose-ebike/postgres-operator/api/v1"
@@ -140,7 +141,7 @@ var _ = Describe("backup-worker dump and cleanup, end to end", func() {
 					S3: &apiV1.PgBackupStorageS3{
 						Endpoint:  endpoint,
 						Bucket:    bucket,
-						Secure:    false,
+						Secure:    ptr.To(false),
 						SecretRef: coreV1.LocalObjectReference{Name: name + "-storage"},
 					},
 				},

@@ -38,7 +38,7 @@ type s3Destination struct {
 func newS3Destination(ctx context.Context, cfg *apiV1.PgBackupStorageS3, accessKey string, secretKey string) (*s3Destination, error) {
 	client, err := minio.New(cfg.Endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
-		Secure: cfg.Secure,
+		Secure: cfg.IsSecure(),
 	})
 	if err != nil {
 		return nil, err

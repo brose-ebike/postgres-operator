@@ -1,4 +1,4 @@
-site_name: Postgres Controller
+hsite_name: Postgres Controller
 plugins:
   - search
   - markdownextradata

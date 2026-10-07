@@ -23,6 +23,8 @@ import (
 	"sort"
 	"testing"
 
+	"k8s.io/utils/ptr"
+
 	apiV1 "github.com/brose-ebike/postgres-operator/api/v1"
 	"github.com/brose-ebike/postgres-operator/pkg/tcminio"
 )
@@ -44,7 +46,7 @@ func setupTestDestination(t *testing.T, ctx context.Context, prefix string) (*s3
 		Endpoint: endpoint,
 		Bucket:   "pg-backups",
 		Prefix:   prefix,
-		Secure:   false,
+		Secure:   ptr.To(false),
 	}, container.AccessKey(), container.SecretKey())
 	if err != nil {
 		t.Fatalf("unable to construct s3 destination: %v", err)
