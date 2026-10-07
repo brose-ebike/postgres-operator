@@ -14,6 +14,14 @@ A `PgUser` referencing databases in its `spec.databases` list expects those data
 exist — reconciliation waits (fast-retrying) until they do, so `PgDatabase` and `PgUser` resources
 for the same database can be applied at the same time without ordering them manually.
 
+Two further resources add optional, native logical backups on top of the three above:
+
+4. **[PgBackupPolicy](./backup-policy.md)** — where backups are stored, how they're encrypted, how
+   long they're kept, and on what schedule. A `PgDatabase` opts in via its own
+   `spec.backupPolicy` field.
+5. **[PgBackupInstance](./backup-instance.md)** — one record per backup attempt, created and
+   managed by the operator's `backup-worker`, not normally created by hand.
+
 ## Quickstart
 
 ```yaml
@@ -85,6 +93,8 @@ you'll see:
 | `PgDatabase` | `pgdatabase.postgres.oebc.tools/public-schema`          | Whether `spec.publicSchema` drop was applied successfully             |
 | `PgUser`     | `pguser.postgres.oebc.tools/secret`                    | Whether the credentials Secret and instance password are up to date  |
 | `PgUser`     | `pguser.postgres.oebc.tools/ownership`                 | Whether database ownership/privileges in `spec.databases` were applied|
+| `PgDatabase` | `pgdatabase.postgres.oebc.tools/backup-policy-found`   | Set only when `spec.backupPolicy` is non-nil — whether the referenced `PgBackupPolicy` exists |
+| `PgBackupPolicy` | `pgbackuppolicy.postgres.oebc.tools/ready`         | Whether `spec.storage`'s (and, if set, `spec.encryption`'s) secret resolves |
 
 These are also what the [ArgoCD health checks](./argocd.md) are built on, so the same condition
 types apply whether or not you use ArgoCD.
