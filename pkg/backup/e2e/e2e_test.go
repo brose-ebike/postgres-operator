@@ -187,6 +187,8 @@ var _ = Describe("backup-worker dump and cleanup, end to end", func() {
 		// Seed a second, older Success instance pointing at a real (but
 		// separately uploaded) object, so cleanup's minCount=1 retention
 		// has something genuine to delete.
+		minioEndpoint, err := minioContainer.Endpoint(ctx)
+		Expect(err).NotTo(HaveOccurred())
 		olderFinishedAt := metaV1.NewTime(time.Now().Add(-48 * time.Hour))
 		olderInstance := &apiV1.PgBackupInstance{
 			ObjectMeta: metaV1.ObjectMeta{Namespace: namespace, Name: policyName + "-older"},
@@ -205,8 +207,10 @@ var _ = Describe("backup-worker dump and cleanup, end to end", func() {
 			Location: &apiV1.PgBackupStorage{
 				Type: apiV1.PgBackupStorageTypeS3,
 				S3: &apiV1.PgBackupStorageS3{
-					Bucket: bucket,
-					URL:    "s3://" + bucket + "/" + olderTargetKey,
+					Endpoint: minioEndpoint,
+					Bucket:   bucket,
+					Secure:   ptr.To(false),
+					URL:      "s3://" + bucket + "/" + olderTargetKey,
 				},
 			},
 		}

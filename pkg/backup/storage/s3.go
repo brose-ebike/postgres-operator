@@ -19,6 +19,7 @@ package storage
 import (
 	"context"
 	"strings"
+	"time"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -44,7 +45,7 @@ func newS3Destination(ctx context.Context, cfg *apiV1.PgBackupStorageS3, accessK
 		return nil, err
 	}
 
-	exists, err := client.BucketExists(ctx, cfg.Bucket)
+	exists, err := bucketExistsWithRetry(ctx, client, cfg.Bucket)
 	if err != nil {
 		return nil, err
 	}
@@ -59,6 +60,33 @@ func newS3Destination(ctx context.Context, cfg *apiV1.PgBackupStorageS3, accessK
 		bucket: cfg.Bucket,
 		prefix: strings.Trim(cfg.Prefix, "/"),
 	}, nil
+}
+
+// bucketExistsWithRetry retries BucketExists a handful of times with a
+// short backoff. A storage backend can report its health check ready
+// slightly before it can actually serve bucket operations (MinIO: "Server
+// not initialized yet, please try again.", HTTP 503) - this covers that
+// startup window for both the real worker and tests against a fresh
+// container, without masking a genuinely broken endpoint/credentials.
+func bucketExistsWithRetry(ctx context.Context, client *minio.Client, bucket string) (exists bool, err error) {
+	const attempts = 5
+	backoff := 250 * time.Millisecond
+	for i := 0; i < attempts; i++ {
+		exists, err = client.BucketExists(ctx, bucket)
+		if err == nil {
+			return exists, nil
+		}
+		if i == attempts-1 {
+			break
+		}
+		select {
+		case <-ctx.Done():
+			return false, ctx.Err()
+		case <-time.After(backoff):
+		}
+		backoff *= 2
+	}
+	return false, err
 }
 
 // objectKey joins the configured prefix and target exactly like
