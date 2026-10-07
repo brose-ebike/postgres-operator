@@ -27,6 +27,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -37,10 +38,23 @@ import (
 	"github.com/brose-ebike/postgres-operator/pkg/backup/dumper"
 	"github.com/brose-ebike/postgres-operator/pkg/backup/encryption"
 	"github.com/brose-ebike/postgres-operator/pkg/backup/storage"
+	"github.com/brose-ebike/postgres-operator/pkg/pgapi"
+	"github.com/brose-ebike/postgres-operator/pkg/security"
 	"github.com/brose-ebike/postgres-operator/pkg/services"
 )
 
 const defaultCompressionLevel = int32(6)
+
+// backupRolePredefinedRole is the built-in, read-only Postgres role granted
+// to a per-dump temporary role, instead of running pg_dump as the
+// PgInstance's admin connection directly.
+const backupRolePredefinedRole = "pg_read_all_data"
+
+// backupRoleName derives a deterministic, unique-per-attempt Postgres role
+// name from the (already-unique) generated PgBackupInstance name.
+func backupRoleName(instanceName string) string {
+	return "pgbackup_" + strings.ReplaceAll(instanceName, "-", "_")
+}
 
 // RunDump discovers every PgDatabase in the policy's namespace whose
 // spec.backupPolicy references policyRef, dumps each one (encrypting and
@@ -149,16 +163,22 @@ func runDumpPipeline(ctx context.Context, c client.Client, workspaceDir string, 
 	}
 	cs := pgApi.ConnectionString()
 
-	artifactPath, err := dumper.Dump(ctx, dumper.Options{
-		Host:             cs.Hostname(),
-		Port:             cs.Port(),
-		Username:         cs.Username(),
-		Password:         cs.Password(),
-		SSLMode:          cs.SSLMode(),
-		Database:         database.Name,
-		Format:           dumpOptions.Format,
-		CompressionLevel: *dumpOptions.CompressionLevel,
-		OutputPath:       filepath.Join(workspaceDir, instance.Name+".dump"),
+	var artifactPath string
+	roleName := backupRoleName(instance.Name)
+	err = withTemporaryBackupRole(pgApi, roleName, database.Name, func(username, password string) error {
+		var dumpErr error
+		artifactPath, dumpErr = dumper.Dump(ctx, dumper.Options{
+			Host:             cs.Hostname(),
+			Port:             cs.Port(),
+			Username:         username,
+			Password:         password,
+			SSLMode:          cs.SSLMode(),
+			Database:         database.Name,
+			Format:           dumpOptions.Format,
+			CompressionLevel: *dumpOptions.CompressionLevel,
+			OutputPath:       filepath.Join(workspaceDir, instance.Name+".dump"),
+		})
+		return dumpErr
 	})
 	if err != nil {
 		return fmt.Errorf("dump failed: %w", err)
@@ -213,6 +233,43 @@ func runDumpPipeline(ctx context.Context, c client.Client, workspaceDir string, 
 		instance.Status.ExpiresAt = &expiresAt
 	}
 	return c.Status().Update(ctx, instance)
+}
+
+// withTemporaryBackupRole creates a dedicated, read-only login role scoped
+// to pg_read_all_data (plus CONNECT on the one target database, since a
+// hardened database may have revoked PUBLIC's default CONNECT grant via
+// PgDatabase.spec.publicPrivileges.revoke) for the duration of fn, then
+// best-effort revokes and drops it again - pg_dump never runs as the
+// PgInstance's admin connection directly. Cleanup errors are joined into
+// the returned error (so they're visible and don't silently leave a
+// credential behind) but never suppress fn's own result.
+func withTemporaryBackupRole(pgApi pgapi.PgInstanceAPI, roleName string, databaseName string, fn func(username, password string) error) error {
+	password := security.GeneratePassword()
+	if err := pgApi.CreateRole(roleName); err != nil {
+		return fmt.Errorf("unable to create backup role: %w", err)
+	}
+	if err := pgApi.UpdateUserPassword(roleName, password); err != nil {
+		_ = pgApi.DeleteRole(roleName)
+		return fmt.Errorf("unable to set backup role password: %w", err)
+	}
+	if err := pgApi.UpdateDatabasePrivileges(databaseName, roleName, []string{"CONNECT"}); err != nil {
+		_ = pgApi.DeleteRole(roleName)
+		return fmt.Errorf("unable to grant CONNECT to backup role: %w", err)
+	}
+	if err := pgApi.GrantPredefinedRole(roleName, backupRolePredefinedRole); err != nil {
+		_ = pgApi.DeleteRole(roleName)
+		return fmt.Errorf("unable to grant %s to backup role: %w", backupRolePredefinedRole, err)
+	}
+
+	fnErr := fn(roleName, password)
+
+	revokeErr := pgApi.RevokePredefinedRole(roleName, backupRolePredefinedRole)
+	deleteErr := pgApi.DeleteRole(roleName)
+	var cleanupErr error
+	if revokeErr != nil || deleteErr != nil {
+		cleanupErr = fmt.Errorf("unable to fully clean up temporary backup role %q (manual cleanup needed): %w", roleName, errors.Join(revokeErr, deleteErr))
+	}
+	return errors.Join(fnErr, cleanupErr)
 }
 
 // buildDestination resolves the storage secret and constructs the
