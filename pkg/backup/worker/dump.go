@@ -84,13 +84,15 @@ func RunDump(ctx context.Context, c client.Client, policyRef types.NamespacedNam
 	return errors.Join(errs...)
 }
 
-// listDatabasesForPolicy lists PgDatabase objects in policyRef's namespace
-// whose spec.backupPolicy matches policyRef. Same-namespace-only by
-// design: cross-namespace backupPolicy references are unsupported, so the
-// worker never needs cluster-wide PgDatabase list permission.
+// listDatabasesForPolicy lists every PgDatabase cluster-wide whose
+// spec.backupPolicy matches policyRef - a PgDatabase can reference a
+// PgBackupPolicy in a different namespace, so this cannot be scoped to the
+// policy's own namespace. The worker's ClusterRole (see
+// internal/controller/pgbackuppolicy_controller.go's workerClusterRoleRules)
+// grants the cluster-wide list this requires.
 func listDatabasesForPolicy(ctx context.Context, c client.Client, policyRef types.NamespacedName) ([]apiV1.PgDatabase, error) {
 	var all apiV1.PgDatabaseList
-	if err := c.List(ctx, &all, client.InNamespace(policyRef.Namespace)); err != nil {
+	if err := c.List(ctx, &all); err != nil {
 		return nil, err
 	}
 	var matched []apiV1.PgDatabase

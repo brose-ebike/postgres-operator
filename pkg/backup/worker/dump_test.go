@@ -18,6 +18,7 @@ package worker
 
 import (
 	"context"
+	"sort"
 	"testing"
 
 	coreV1 "k8s.io/api/core/v1"
@@ -75,8 +76,11 @@ func TestListDatabasesForPolicy(t *testing.T) {
 
 	c := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(
 		testDatabase("default", "matches", "default", "nightly"),
+		// Cross-namespace reference: the database lives in a different
+		// namespace than the policy but still references it - must be
+		// included (this is the whole point of the cluster-wide list).
+		testDatabase("other-ns", "matches-cross-namespace", "default", "nightly"),
 		testDatabase("default", "different-policy", "default", "other-policy"),
-		testDatabase("other-ns", "wrong-namespace", "default", "nightly"),
 		&apiV1.PgDatabase{ObjectMeta: metaV1.ObjectMeta{Namespace: "default", Name: "no-policy"}, Spec: apiV1.PgDatabaseSpec{Instance: apiV1.PgInstanceRef{Namespace: "default", Name: "x"}}},
 	).Build()
 
@@ -84,12 +88,14 @@ func TestListDatabasesForPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("listDatabasesForPolicy failed: %v", err)
 	}
-	if len(databases) != 1 || databases[0].Name != "matches" {
-		names := make([]string, len(databases))
-		for i, d := range databases {
-			names[i] = d.Name
-		}
-		t.Fatalf("expected only 'matches', got %v", names)
+	names := make([]string, len(databases))
+	for i, d := range databases {
+		names[i] = d.Name
+	}
+	sort.Strings(names)
+	want := []string{"matches", "matches-cross-namespace"}
+	if len(names) != len(want) || names[0] != want[0] || names[1] != want[1] {
+		t.Fatalf("expected %v, got %v", want, names)
 	}
 }
 

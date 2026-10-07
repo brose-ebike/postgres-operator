@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+	"strings"
 
 	apiV1 "github.com/brose-ebike/postgres-operator/api/v1"
 	. "github.com/onsi/ginkgo/v2"
@@ -58,6 +59,27 @@ var _ = Describe("PgBackupPolicyReconciler", func() {
 		}
 		Expect(k8sClient.DeleteAllOf(ctx, &apiV1.PgBackupPolicy{}, client.InNamespace("default"))).To(Succeed())
 		Expect(k8sClient.DeleteAllOf(ctx, &coreV1.Secret{}, client.InNamespace("default"))).To(Succeed())
+
+		// ClusterRole/ClusterRoleBinding are cluster-scoped and deliberately
+		// not owned (see the comment in Reconcile's deletion branch), so
+		// stripping the policy's finalizer above and deleting it directly
+		// (rather than going through the controller's own deletion branch)
+		// never cleans these up - do it explicitly here instead, since this
+		// envtest instance is shared across every test in the suite.
+		var clusterRoles rbacv1.ClusterRoleList
+		Expect(k8sClient.List(ctx, &clusterRoles)).To(Succeed())
+		for i := range clusterRoles.Items {
+			if strings.HasSuffix(clusterRoles.Items[i].Name, "-backup-worker") {
+				Expect(k8sClient.Delete(ctx, &clusterRoles.Items[i])).To(Succeed())
+			}
+		}
+		var clusterRoleBindings rbacv1.ClusterRoleBindingList
+		Expect(k8sClient.List(ctx, &clusterRoleBindings)).To(Succeed())
+		for i := range clusterRoleBindings.Items {
+			if strings.HasSuffix(clusterRoleBindings.Items[i].Name, "-backup-worker") {
+				Expect(k8sClient.Delete(ctx, &clusterRoleBindings.Items[i])).To(Succeed())
+			}
+		}
 	})
 
 	createStorageSecret := func(ctx context.Context, name string) {
@@ -140,6 +162,46 @@ var _ = Describe("PgBackupPolicyReconciler", func() {
 		Expect(roleBinding.RoleRef.Name).To(Equal("policy-1-backup-worker"))
 		Expect(roleBinding.Subjects).To(HaveLen(1))
 		Expect(roleBinding.Subjects[0].Name).To(Equal("policy-1-backup-worker"))
+
+		// Cluster-wide, read-only RBAC for cross-namespace PgDatabase
+		// discovery - deliberately NOT owned (cluster-scoped objects can't
+		// carry a namespaced owner reference), so these must still exist
+		// by name rather than via an owner-ref check.
+		clusterRoleName := "default-policy-1-backup-worker"
+		var clusterRole rbacv1.ClusterRole
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Name: clusterRoleName}, &clusterRole)).To(Succeed())
+		Expect(clusterRole.Rules).ToNot(BeEmpty())
+
+		var clusterRoleBinding rbacv1.ClusterRoleBinding
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Name: clusterRoleName}, &clusterRoleBinding)).To(Succeed())
+		Expect(clusterRoleBinding.RoleRef.Name).To(Equal(clusterRoleName))
+		Expect(clusterRoleBinding.RoleRef.Kind).To(Equal("ClusterRole"))
+		Expect(clusterRoleBinding.Subjects).To(HaveLen(1))
+		Expect(clusterRoleBinding.Subjects[0].Name).To(Equal("policy-1-backup-worker"))
+		Expect(clusterRoleBinding.Subjects[0].Namespace).To(Equal("default"))
+	})
+
+	It("deletes the worker ClusterRole/ClusterRoleBinding when the policy is deleted", func() {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		createStorageSecret(ctx, "storage-creds-5")
+		policy := newPolicy("policy-5", "storage-creds-5", "0 2 * * *")
+		Expect(k8sClient.Create(ctx, policy)).To(Succeed())
+		_, err := reconcilePolicy(ctx, policy.Name)
+		Expect(err).To(BeNil())
+
+		clusterRoleName := "default-policy-5-backup-worker"
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Name: clusterRoleName}, &rbacv1.ClusterRole{})).To(Succeed())
+
+		Expect(k8sClient.Delete(ctx, policy)).To(Succeed())
+		_, err = reconcilePolicy(ctx, policy.Name)
+		Expect(err).To(BeNil())
+
+		err = k8sClient.Get(ctx, types.NamespacedName{Name: clusterRoleName}, &rbacv1.ClusterRole{})
+		Expect(err).ToNot(BeNil())
+		err = k8sClient.Get(ctx, types.NamespacedName{Name: clusterRoleName}, &rbacv1.ClusterRoleBinding{})
+		Expect(err).ToNot(BeNil())
 	})
 
 	It("sets ready=false and does not create any CronJob when the storage secret is missing", func() {

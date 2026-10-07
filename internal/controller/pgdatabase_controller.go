@@ -373,8 +373,9 @@ func (r *PgDatabaseReconciler) handlePublicPrivileges(ctx context.Context, pgApi
 }
 
 // handleBackupPolicy sets the backup-policy-found condition when
-// spec.backupPolicy is set, verifying the referenced PgBackupPolicy exists
-// (same namespace only). No-op/removed when spec.backupPolicy is nil.
+// spec.backupPolicy is set, verifying the referenced PgBackupPolicy exists -
+// cross-namespace references are supported, same as spec.instance. No-op/
+// removed when spec.backupPolicy is nil.
 func (r *PgDatabaseReconciler) handleBackupPolicy(ctx context.Context, database *apiV1.PgDatabase) error {
 	if database.Spec.BackupPolicy == nil {
 		return removeCondition(ctx, r.Status(), database, apiV1.PgDatabaseBackupPolicyFoundConditionType)

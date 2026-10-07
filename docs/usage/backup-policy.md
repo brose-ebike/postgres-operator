@@ -43,6 +43,17 @@ dump job on `spec.schedule`, and a cleanup job on a fixed daily schedule that en
 under a dedicated, per-policy `ServiceAccount`/`Role`/`RoleBinding` the operator also creates and
 owns.
 
+!!! note "Cross-namespace databases"
+    A `PgDatabase` may reference a `PgBackupPolicy` in a different namespace (same as
+    `PgDatabase.spec.instance` already allows for `PgInstance`). To support this, the operator also
+    creates a per-policy, cluster-scoped `ClusterRole`/`ClusterRoleBinding` granting the worker
+    read-only, cluster-wide access to `PgDatabase`/`PgInstance` and the `Secret`/`ConfigMap` objects
+    their credentials resolve from — it has no way to know in advance which namespaces a policy's
+    databases will live in. Unlike the namespaced `ServiceAccount`/`Role`/`RoleBinding` above, these
+    two objects cannot carry an owner reference (Kubernetes does not support a cluster-scoped object
+    being owned by a namespaced one) and are deleted explicitly by the operator when the policy is
+    deleted, rather than garbage-collected automatically.
+
 ## Attribute Description
 
 | Attribute                        | Description                                                                                   | Required |

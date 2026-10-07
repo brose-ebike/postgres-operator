@@ -24,6 +24,7 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	coreV1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	kErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -62,6 +63,8 @@ type PgBackupPolicyReconciler struct {
 //+kubebuilder:rbac:groups=core,resources=serviceaccounts,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=rolebindings,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterrolebindings,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
 //+kubebuilder:rbac:groups=core,resources=pods,verbs=get
 
@@ -91,8 +94,21 @@ func (r *PgBackupPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	// garbage-collect automatically via owner references - there is no
 	// Postgres-side or storage-side state to tear down here (deleting a
 	// policy intentionally does not delete already-stored backup objects,
-	// see docs/usage/backup-policy.md).
+	// see docs/usage/backup-policy.md). The ClusterRole/ClusterRoleBinding
+	// are the one exception: Kubernetes does not honor an owner reference
+	// from a cluster-scoped object to a namespaced one, so they are never
+	// garbage-collected automatically and must be deleted explicitly here.
 	if policy.DeletionTimestamp != nil {
+		clusterRoleName := workerClusterRoleName(&policy)
+		if err := r.Delete(ctx, &rbacv1.ClusterRoleBinding{ObjectMeta: metaV1.ObjectMeta{Name: clusterRoleName}}); err != nil && !kErrors.IsNotFound(err) {
+			logger.Error(err, "Unable to delete worker ClusterRoleBinding", "policy", policy.ToNamespacedName())
+			return ctrl.Result{RequeueAfter: time.Minute}, err
+		}
+		if err := r.Delete(ctx, &rbacv1.ClusterRole{ObjectMeta: metaV1.ObjectMeta{Name: clusterRoleName}}); err != nil && !kErrors.IsNotFound(err) {
+			logger.Error(err, "Unable to delete worker ClusterRole", "policy", policy.ToNamespacedName())
+			return ctrl.Result{RequeueAfter: time.Minute}, err
+		}
+
 		if controllerutil.ContainsFinalizer(&policy, apiV1.DefaultFinalizerPgBackupPolicy) {
 			controllerutil.RemoveFinalizer(&policy, apiV1.DefaultFinalizerPgBackupPolicy)
 			if err := r.Update(ctx, &policy); err != nil {
@@ -204,6 +220,14 @@ func workerServiceAccountName(policy *apiV1.PgBackupPolicy) string {
 	return policy.Name + "-backup-worker"
 }
 
+// workerClusterRoleName must be globally unique (ClusterRoles/
+// ClusterRoleBindings share one flat, namespace-less name space), unlike
+// workerServiceAccountName which only needs to be unique within the
+// policy's own namespace.
+func workerClusterRoleName(policy *apiV1.PgBackupPolicy) string {
+	return policy.Namespace + "-" + policy.Name + "-backup-worker"
+}
+
 func (r *PgBackupPolicyReconciler) dumpCronJobName(policy *apiV1.PgBackupPolicy) string {
 	return policy.Name + "-dump"
 }
@@ -212,10 +236,19 @@ func (r *PgBackupPolicyReconciler) cleanupCronJobName(policy *apiV1.PgBackupPoli
 	return policy.Name + "-cleanup"
 }
 
-// reconcileWorkerRBAC creates/updates a per-policy ServiceAccount, Role, and
-// RoleBinding (not a namespace-shared one) so they garbage-collect via the
-// same owner-reference mechanism as the CronJobs, with no orphan-cleanup
-// logic needed. Returns the ServiceAccount name the CronJobs should run as.
+// reconcileWorkerRBAC creates/updates the per-policy ServiceAccount plus two
+// kinds of permission:
+//   - a namespaced Role/RoleBinding (owned, garbage-collects with the
+//     policy) for write access to PgBackupInstance in the policy's own
+//     namespace.
+//   - a cluster-scoped ClusterRole/ClusterRoleBinding (NOT owned - see the
+//     comment in Reconcile's deletion branch) for read-only, cluster-wide
+//     access to PgDatabase/PgInstance/secrets/configmaps, since a
+//     cross-namespace PgDatabase.spec.backupPolicy reference means a
+//     matching database - and the PgInstance/credentials it in turn
+//     references - can live in any namespace, not just the policy's own.
+//
+// Returns the ServiceAccount name the CronJobs should run as.
 func (r *PgBackupPolicyReconciler) reconcileWorkerRBAC(ctx context.Context, policy *apiV1.PgBackupPolicy) (string, error) {
 	name := workerServiceAccountName(policy)
 
@@ -243,21 +276,50 @@ func (r *PgBackupPolicyReconciler) reconcileWorkerRBAC(ctx context.Context, poli
 		return "", fmt.Errorf("role binding: %w", err)
 	}
 
+	clusterRoleName := workerClusterRoleName(policy)
+	clusterRole := &rbacv1.ClusterRole{ObjectMeta: metaV1.ObjectMeta{Name: clusterRoleName}}
+	if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, clusterRole, func() error {
+		clusterRole.Rules = workerClusterRoleRules()
+		return nil
+	}); err != nil {
+		return "", fmt.Errorf("cluster role: %w", err)
+	}
+
+	clusterRoleBinding := &rbacv1.ClusterRoleBinding{ObjectMeta: metaV1.ObjectMeta{Name: clusterRoleName}}
+	if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, clusterRoleBinding, func() error {
+		clusterRoleBinding.RoleRef = rbacv1.RoleRef{APIGroup: rbacv1.GroupName, Kind: "ClusterRole", Name: clusterRoleName}
+		clusterRoleBinding.Subjects = []rbacv1.Subject{{Kind: "ServiceAccount", Name: name, Namespace: policy.Namespace}}
+		return nil
+	}); err != nil {
+		return "", fmt.Errorf("cluster role binding: %w", err)
+	}
+
 	return name, nil
 }
 
-// workerRoleRules grants only what backup-worker needs. secrets/configmaps
-// get is intentionally broad (all in-namespace, no resourceNames scoping):
-// the worker must resolve arbitrary PgInstance/PgDatabase credential
-// secrets discovered at runtime via PgProperty, which can't be enumerated
-// up front.
+// workerRoleRules grants namespace-scoped write access to this policy's own
+// backup records, plus read access to its own PgBackupPolicy object.
 func workerRoleRules() []rbacv1.PolicyRule {
+	return []rbacv1.PolicyRule{
+		{APIGroups: []string{apiV1.GroupVersion.Group}, Resources: []string{"pgbackuppolicies"}, Verbs: []string{"get"}},
+		{APIGroups: []string{apiV1.GroupVersion.Group}, Resources: []string{"pgbackupinstances"}, Verbs: []string{"get", "list", "create", "patch", "update", "delete"}},
+		{APIGroups: []string{apiV1.GroupVersion.Group}, Resources: []string{"pgbackupinstances/status"}, Verbs: []string{"get", "patch", "update"}},
+	}
+}
+
+// workerClusterRoleRules grants read-only, cluster-wide access needed
+// because a referenced PgDatabase (and the PgInstance/credentials it in
+// turn references) can live in any namespace, not just the policy's own -
+// get/list is as narrow as this can be scoped: resourceNames can't help
+// here since the set of matching objects is only known at runtime. secrets/
+// configmaps get is correspondingly broad for the same reason PgProperty
+// resolution always has been (it must resolve arbitrary credential refs
+// discovered at runtime).
+func workerClusterRoleRules() []rbacv1.PolicyRule {
 	return []rbacv1.PolicyRule{
 		{APIGroups: []string{""}, Resources: []string{"secrets"}, Verbs: []string{"get"}},
 		{APIGroups: []string{""}, Resources: []string{"configmaps"}, Verbs: []string{"get"}},
-		{APIGroups: []string{apiV1.GroupVersion.Group}, Resources: []string{"pgdatabases", "pginstances", "pgbackuppolicies"}, Verbs: []string{"get", "list"}},
-		{APIGroups: []string{apiV1.GroupVersion.Group}, Resources: []string{"pgbackupinstances"}, Verbs: []string{"get", "list", "create", "patch", "update", "delete"}},
-		{APIGroups: []string{apiV1.GroupVersion.Group}, Resources: []string{"pgbackupinstances/status"}, Verbs: []string{"get", "patch", "update"}},
+		{APIGroups: []string{apiV1.GroupVersion.Group}, Resources: []string{"pgdatabases", "pginstances"}, Verbs: []string{"get", "list"}},
 	}
 }
 
