@@ -11,7 +11,7 @@ kubectl apply -f https://github.com/brose-ebike/postgres-operator/releases/lates
 ```
 
 ## Description
-The Yamaha Motor eBike Systems Postgres Operator manages Postgres Databases and Users on existing instances.
+The Yamaha Motor eBike Systems Postgres Operator manages Postgres Databases and Users on existing instances, and can optionally take native, encrypted logical backups of those databases on a schedule.
 If you want to create Postgres instances in K8s checkout the [Zalando Postgres Operator](https://github.com/zalando/postgres-operator). When using this operator you need a user with `superuser` like privileges.
 Checkout the [documentation](https://brose-ebike.github.io/postgres-operator/) for more information.
 
@@ -111,6 +111,47 @@ spec:
 ```
 
 Checkout the [documentation](https://brose-ebike.github.io/postgres-operator/) for more information.
+
+### PgBackupPolicy
+
+The `PgBackupPolicy` resource configures a logical (`pg_dump`) backup schedule: where dumps are
+stored, whether they're encrypted, how long they're kept, and the `pg_dump` options used. A
+`PgDatabase` opts into a policy via its own `spec.backupPolicy` field — the schedule lives on the
+policy, not on each database.
+
+```yaml
+apiVersion: postgres.oebc.tools/v1
+kind: PgBackupPolicy
+metadata:
+  name: nightly-backup
+spec:
+  schedule: "0 2 * * *"
+  storage:
+    type: s3
+    s3:
+      endpoint: "s3.example.com"
+      bucket: "pg-backups"
+      secretRef:
+        name: "backup-storage-credentials"
+  retention:
+    minCount: 7
+    maxAge: "720h"
+```
+
+Creating this resource makes the operator reconcile a dump `CronJob` (on `spec.schedule`) and a
+cleanup `CronJob` (fixed daily schedule, enforcing `spec.retention` per database) in the same
+namespace.
+Checkout the [documentation](https://brose-ebike.github.io/postgres-operator/) for more information,
+including encryption and the retention/salvage semantics.
+
+### PgBackupInstance
+
+A `PgBackupInstance` records one dump attempt of one database — created and managed by the
+operator's `backup-worker` binary, not normally created by hand. Its `status.phase` moves
+`Pending` → `Success`/`Failure`, and `status.location` records where the (possibly encrypted) dump
+was stored.
+Checkout the [documentation](https://brose-ebike.github.io/postgres-operator/) for the full
+lifecycle and the Prometheus metrics it drives.
 
 ## License
 

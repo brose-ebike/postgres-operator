@@ -55,8 +55,11 @@ func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
 	var probeAddr string
+	var backupWorkerImage string
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8443", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
+	flag.StringVar(&backupWorkerImage, "backup-worker-image", "",
+		"Container image reference used for PgBackupPolicy dump/cleanup CronJobs.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
@@ -122,6 +125,29 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "PgUser")
+		os.Exit(1)
+	}
+	// POD_NAMESPACE/POD_SERVICE_ACCOUNT_NAME are populated via the
+	// downward API (config/manager/manager.yaml) - no RBAC needed, the
+	// kubelet fills these in directly. The backup CronJobs run as this
+	// same ServiceAccount in this same namespace rather than a
+	// dynamically-created per-policy one (see PgBackupPolicyReconciler's
+	// doc comments for why).
+	if err = (&controller.PgBackupPolicyReconciler{
+		Client:                     mgr.GetClient(),
+		Scheme:                     mgr.GetScheme(),
+		Image:                      backupWorkerImage,
+		OperatorNamespace:          os.Getenv("POD_NAMESPACE"),
+		OperatorServiceAccountName: os.Getenv("POD_SERVICE_ACCOUNT_NAME"),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "PgBackupPolicy")
+		os.Exit(1)
+	}
+	if err = (&controller.PgBackupInstanceReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "PgBackupInstance")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder

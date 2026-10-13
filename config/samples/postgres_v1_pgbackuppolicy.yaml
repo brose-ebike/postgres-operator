@@ -1,0 +1,33 @@
+apiVersion: postgres.oebc.tools/v1
+kind: PgBackupPolicy
+metadata:
+  labels:
+    app.kubernetes.io/name: pgbackuppolicy
+    app.kubernetes.io/instance: pgbackuppolicy-sample
+    app.kubernetes.io/part-of: postgres-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: postgres-operator
+  name: nightly-backup
+spec:
+  schedule: "0 2 * * *"
+  storage:
+    type: s3
+    s3:
+      endpoint: "s3.hetzner.example.com"
+      bucket: "pg-backups"
+      prefix: "mydb" # optional
+      secure: true # optional, default true
+      secretRef:
+        name: "backup-storage-credentials" # keys: accessKey, secretKey
+  encryption: # optional, omit for unencrypted dumps
+    type: gpg-aes
+    secretKeyRef:
+      name: "backup-encryption-key"
+      key: "passphrase"
+  retention:
+    minCount: 7 # optional, hard floor per database
+    maxAge: "720h" # optional, 30 days
+  dumpOptions: # optional
+    format: custom # optional, default custom
+    compressionLevel: 6 # optional, 0-9
+  workspaceSizeLimit: "10Gi" # optional, default 10Gi

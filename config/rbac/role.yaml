@@ -25,8 +25,22 @@ rules:
   - update
   - watch
 - apiGroups:
+  - batch
+  resources:
+  - cronjobs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - postgres.oebc.tools
   resources:
+  - pgbackupinstances
+  - pgbackuppolicies
   - pgdatabases
   - pginstances
   - pgusers
@@ -41,6 +55,8 @@ rules:
 - apiGroups:
   - postgres.oebc.tools
   resources:
+  - pgbackupinstances/finalizers
+  - pgbackuppolicies/finalizers
   - pgdatabases/finalizers
   - pginstances/finalizers
   - pgusers/finalizers
@@ -49,6 +65,8 @@ rules:
 - apiGroups:
   - postgres.oebc.tools
   resources:
+  - pgbackupinstances/status
+  - pgbackuppolicies/status
   - pgdatabases/status
   - pginstances/status
   - pgusers/status

@@ -26,6 +26,9 @@ spec:
     revoke: false # revoke all public privileges from the database
   publicSchema:
     drop: false # drop the public schema from the database
+  backupPolicy: # optional
+    namespace: "default"
+    name: "nightly-backup"
 ```
 
 When creating the resource a deletion strategy can be specified.
@@ -42,6 +45,7 @@ This allows the database resource to be deleted, without deleting the actual dat
 | `defaultPrivileges`            | List of schema/role privilege grants, see below                                               | :x: |
 | `publicPrivileges.revoke`      | If `true`, revokes all database-level and `public`-schema privileges from the `public` role    | :white_check_mark: |
 | `publicSchema.drop`            | If `true`, drops the `public` schema from the database (if it exists)                          | :white_check_mark: |
+| `backupPolicy.namespace`/`.name` | Reference to a [`PgBackupPolicy`](./backup-policy.md) — may be in a different namespace than this `PgDatabase` — that should back this database up on its schedule. No schedule field lives here — scheduling is entirely on the policy. | :x: |
 
 `publicPrivileges` and `publicSchema` are always required in the manifest (even if both are set
 to `false`), since Postgres grants broad `public` access to every new database by default and the

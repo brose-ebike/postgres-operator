@@ -29,6 +29,7 @@ const PgDatabaseExtensionsConditionType string = "pgdatabase.postgres.oebc.tools
 const PgDatabaseDefaultPrivilegesConditionType string = "pgdatabase.postgres.oebc.tools/default-privileges"
 const PgDatabasePublicPrivilegesConditionType string = "pgdatabase.postgres.oebc.tools/public-privileges"
 const PgDatabasePublicSchemaConditionType string = "pgdatabase.postgres.oebc.tools/public-schema"
+const PgDatabaseBackupPolicyFoundConditionType string = "pgdatabase.postgres.oebc.tools/backup-policy-found"
 
 const (
 	PgDatabasePublicPrivilegesConditionReasonSucceeded = "PublicPrivilegesUpdated"
@@ -38,6 +39,11 @@ const (
 const (
 	PgDatabasePublicSchemaConditionReasonSucceeded = "PublicSchemaUpdated"
 	PgDatabasePublicSchemaConditionReasonFailed    = "PublicSchemaUpdateFailed"
+)
+
+const (
+	PgDatabaseBackupPolicyFoundConditionReasonSucceeded = "BackupPolicyFound"
+	PgDatabaseBackupPolicyFoundConditionReasonFailed    = "BackupPolicyNotFound"
 )
 
 // +kubebuilder:validation:Enum=USAGE;CREATE
@@ -142,6 +148,10 @@ type PgDatabaseSpec struct {
 	PublicPrivileges PgDatabasePublicPrivileges `json:"publicPrivileges"`
 	// PublicSchema dropped
 	PublicSchema PgDatabasePublicSchema `json:"publicSchema"`
+	// BackupPolicy optionally references a PgBackupPolicy (same namespace)
+	// that should back this database up on its schedule.
+	// +optional
+	BackupPolicy *PgInstanceRef `json:"backupPolicy,omitempty"`
 }
 
 // PgDatabaseStatus defines the observed state of PgDatabase

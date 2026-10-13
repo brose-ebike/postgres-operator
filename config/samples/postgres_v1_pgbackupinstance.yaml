@@ -1,0 +1,20 @@
+# PgBackupInstance objects are normally created and managed by the
+# backup-worker binary (one per dump attempt), not created by hand. This
+# sample shows the shape of a completed, successful backup record.
+apiVersion: postgres.oebc.tools/v1
+kind: PgBackupInstance
+metadata:
+  labels:
+    app.kubernetes.io/name: pgbackupinstance
+    app.kubernetes.io/instance: pgbackupinstance-sample
+    app.kubernetes.io/part-of: postgres-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: postgres-operator
+  name: nightly-backup-mydb-sample
+spec:
+  database:
+    namespace: "default"
+    name: "mydb"
+  backupPolicy:
+    namespace: "default"
+    name: "nightly-backup"
