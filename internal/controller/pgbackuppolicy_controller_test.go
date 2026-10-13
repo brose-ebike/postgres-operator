@@ -42,6 +42,16 @@ var _ = Describe("PgBackupPolicyReconciler", func() {
 	var reconciler *PgBackupPolicyReconciler
 
 	BeforeEach(func() {
+		ctx := context.Background()
+		// A real apiserver (unlike a fake client) rejects creating objects
+		// in a namespace that doesn't exist - the operator's own namespace
+		// always exists in production (the operator runs in it), but this
+		// envtest suite never creates one, so the CronJobs' namespace must
+		// be created here. Idempotent: every spec in this suite shares one
+		// envtest instance.
+		ns := &coreV1.Namespace{ObjectMeta: v1.ObjectMeta{Name: testOperatorNamespace}}
+		Expect(client.IgnoreAlreadyExists(k8sClient.Create(ctx, ns))).To(Succeed())
+
 		reconciler = &PgBackupPolicyReconciler{
 			Client:                     k8sClient,
 			Scheme:                     scheme.Scheme,
