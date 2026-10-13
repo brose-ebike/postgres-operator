@@ -17,17 +17,27 @@ spec:
   storage:
     type: s3
     s3:
-      endpoint: "s3.hetzner.example.com"
-      bucket: "pg-backups"
-      prefix: "mydb" # optional
+      endpoint:
+        value: "s3.hetzner.example.com"
+      bucket:
+        value: "pg-backups"
+      prefix: # optional
+        value: "mydb"
       secure: true # optional, default true
-      secretRef:
-        name: "backup-storage-credentials" # keys: accessKey, secretKey
+      accessKey:
+        secretKeyRef:
+          name: "backup-storage-credentials"
+          key: "accessKey"
+      secretKey:
+        secretKeyRef:
+          name: "backup-storage-credentials"
+          key: "secretKey"
   encryption: # optional - omit for unencrypted dumps
     type: gpg-aes
-    secretKeyRef:
-      name: "backup-encryption-key"
-      key: "passphrase"
+    passphrase:
+      secretKeyRef:
+        name: "backup-encryption-key"
+        key: "passphrase"
   retention:
     minCount: 7 # optional, hard floor - applies per database, not across the whole policy
     maxAge: "720h" # optional, 30 days
@@ -62,13 +72,20 @@ The operator's existing `ClusterRole` already carries everything the worker need
 |------------------------------------|-------------------------------------------------------------------------------------------------|----------|
 | `schedule`                       | Cron expression controlling the dump `CronJob`. The cleanup `CronJob` runs on a fixed daily schedule and is not configurable. | :white_check_mark: |
 | `storage.type`                   | Storage backend. Only `s3` is implemented today.                                                | :white_check_mark: |
-| `storage.s3.endpoint`            | S3-compatible endpoint, `host[:port]`, without scheme                                           | :white_check_mark: |
-| `storage.s3.bucket`              | Bucket dumps are stored in. Created automatically if it does not exist.                         | :white_check_mark: |
-| `storage.s3.prefix`              | Optional key prefix under which objects are stored                                              | :x: |
-| `storage.s3.secure`              | Whether TLS is used to talk to the endpoint. Default `true`.                                     | :x: |
-| `storage.s3.secretRef.name`      | Name of a Secret (same namespace) with `accessKey`/`secretKey` keys                              | :white_check_mark: |
+| `storage.s3.endpoint`            | S3-compatible endpoint, `host[:port]`, without scheme. A `PgProperty` — see below.                | :white_check_mark: |
+| `storage.s3.bucket`              | Bucket dumps are stored in. Created automatically if it does not exist. A `PgProperty`.          | :white_check_mark: |
+| `storage.s3.prefix`              | Optional key prefix under which objects are stored. A `PgProperty`.                              | :x: |
+| `storage.s3.secure`              | Whether TLS is used to talk to the endpoint. Plain boolean, default `true` (not a `PgProperty` — there's no realistic case for sourcing a TLS toggle from a Secret/ConfigMap). | :x: |
+| `storage.s3.accessKey`           | S3 access key. A `PgProperty`.                                                                   | :white_check_mark: |
+| `storage.s3.secretKey`           | S3 secret key. A `PgProperty`.                                                                   | :white_check_mark: |
 | `encryption.type`                | `gpg-rsa` (public-key) or `gpg-aes` (passphrase-based symmetric). Omit `encryption` entirely for unencrypted dumps. | :x: |
-| `encryption.secretKeyRef`        | Key material: an armored public key for `gpg-rsa`, a passphrase for `gpg-aes`                   | :x: at the schema level, but required if `encryption` is set |
+| `encryption.publicKey`           | Armored GPG public key. A `PgProperty`, required when `type` is `gpg-rsa`.                       | :x: at the schema level, required by CEL validation when `type: gpg-rsa` |
+| `encryption.passphrase`          | Symmetric passphrase. A `PgProperty`, required when `type` is `gpg-aes`.                         | :x: at the schema level, required by CEL validation when `type: gpg-aes` |
+
+Every `PgProperty` field above can be set from a literal `value`, a `configMapKeyRef`, or a
+`secretKeyRef` — the same pattern [`PgInstance`](./instance.md) uses for its own connection fields.
+Credentials aren't singled out for special treatment; the whole destination config is uniformly
+resolvable, consistent with the rest of this operator's CRDs.
 | `retention.minCount`             | Hard floor: at least this many of the newest backups of **each database** are always kept, regardless of `maxAge` | :x: |
 | `retention.maxAge`               | Maximum age before a backup becomes eligible for deletion (subject to `minCount` salvage)        | :x: |
 | `dumpOptions.format`             | `plain`, `custom`, `tar`, or `directory` (tarred+gzipped into one object before upload). Default `custom`. | :x: |

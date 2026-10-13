@@ -19,8 +19,6 @@ package v1
 import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	coreV1 "k8s.io/api/core/v1"
 )
 
 const DefaultFinalizerPgBackupPolicy = "postgres.oebc.tools/pgbackuppolicy"
@@ -39,26 +37,25 @@ type PgBackupStorageType string
 
 const PgBackupStorageTypeS3 PgBackupStorageType = "s3"
 
-const (
-	PgBackupStorageS3SecretKeyAccessKey = "accessKey"
-	PgBackupStorageS3SecretKeySecretKey = "secretKey"
-)
-
-// PgBackupStorageS3 configures an S3-compatible (MinIO) destination.
-// Endpoint/Bucket/SecretRef are required when used in PgBackupPolicySpec.Storage
-// (enforced by the reconciler, not by JSON required-ness, since this type is
-// also reused for PgBackupInstanceStatus.Location where only URL is set).
+// PgBackupStorageS3 configures an S3-compatible (MinIO) destination. Every
+// field is a PgProperty (sourceable from a literal value, a ConfigMap, or a
+// Secret), matching the convention PgInstance already uses for its own
+// connection fields - credentials aren't singled out for special
+// treatment, the whole destination config is uniformly resolvable.
+// Secure is the one exception: it stays a plain *bool (see IsSecure's doc
+// comment) since PgProperty only ever resolves to a string, and there's no
+// realistic case for sourcing a TLS on/off toggle from a Secret/ConfigMap.
 type PgBackupStorageS3 struct {
 	// Endpoint is the S3-compatible endpoint, host[:port], without scheme.
 	// +optional
-	Endpoint string `json:"endpoint,omitempty"`
+	Endpoint PgProperty `json:"endpoint,omitempty"`
 	// Bucket is the name of the bucket dumps are stored in. It is created
 	// automatically if it does not exist.
 	// +optional
-	Bucket string `json:"bucket,omitempty"`
+	Bucket PgProperty `json:"bucket,omitempty"`
 	// Prefix is an optional key prefix under which objects are stored.
 	// +optional
-	Prefix string `json:"prefix,omitempty"`
+	Prefix PgProperty `json:"prefix,omitempty"`
 	// Secure selects whether TLS is used to talk to the endpoint.
 	// A *bool, not bool: with a plain bool, encoding/json's "omitempty"
 	// drops an explicit "false" from the request body indistinguishably
@@ -67,14 +64,12 @@ type PgBackupStorageS3 struct {
 	// +kubebuilder:default=true
 	// +optional
 	Secure *bool `json:"secure,omitempty"`
-	// SecretRef references a Secret containing the access/secret key pair,
-	// under the keys PgBackupStorageS3SecretKeyAccessKey/SecretKey.
+	// AccessKey resolves the S3 access key.
 	// +optional
-	SecretRef coreV1.LocalObjectReference `json:"secretRef,omitempty"`
-	// URL is populated only in PgBackupInstanceStatus.Location, giving the
-	// fully resolved object address. Unused in PgBackupPolicySpec.Storage.
+	AccessKey PgProperty `json:"accessKey,omitempty"`
+	// SecretKey resolves the S3 secret key.
 	// +optional
-	URL string `json:"url,omitempty"`
+	SecretKey PgProperty `json:"secretKey,omitempty"`
 }
 
 // IsSecure reports whether TLS should be used, defaulting to true (matching
@@ -85,9 +80,10 @@ func (s *PgBackupStorageS3) IsSecure() bool {
 }
 
 // PgBackupStorage is a discriminated union selecting the storage backend.
-// Exactly the sub-struct matching Type is expected to be populated. This
-// same type is reused for PgBackupPolicySpec.Storage and
-// PgBackupInstanceStatus.Location.
+// Exactly the sub-struct matching Type is expected to be populated. Used by
+// PgBackupPolicySpec.Storage; PgBackupInstanceStatus.Location uses the
+// separate PgBackupStorageLocation type instead (see its doc comment for
+// why they aren't shared).
 // +kubebuilder:validation:XValidation:rule="self.type != 's3' || has(self.s3)",message="s3 must be set when type is \"s3\""
 type PgBackupStorage struct {
 	// Type selects which of the sub-structs below is populated.
@@ -95,6 +91,36 @@ type PgBackupStorage struct {
 	// S3 holds the configuration when Type is "s3".
 	// +optional
 	S3 *PgBackupStorageS3 `json:"s3,omitempty"`
+}
+
+// PgBackupStorageS3Location records where a specific backup was actually
+// stored - resolved, observed values, not PgProperty references. Unlike
+// PgBackupStorageS3, there's no AccessKey/SecretKey here at all: credentials
+// always come from the policy's *current* storage config, never a stale
+// snapshot (see pkg/backup/worker's locationFor/destinationFromLocation).
+type PgBackupStorageS3Location struct {
+	// Endpoint is the resolved S3-compatible endpoint used for this backup.
+	Endpoint string `json:"endpoint,omitempty"`
+	// Bucket is the bucket this backup was stored in.
+	Bucket string `json:"bucket,omitempty"`
+	// Secure is whether TLS was used for this backup.
+	Secure bool `json:"secure,omitempty"`
+	// URL gives the fully resolved object address.
+	URL string `json:"url,omitempty"`
+}
+
+// PgBackupStorageLocation is a discriminated union mirroring PgBackupStorage,
+// used for PgBackupInstanceStatus.Location. Deliberately a separate type
+// rather than reusing PgBackupStorage: a status field should record
+// resolved facts about where a backup landed, not another layer of
+// PgProperty references (which would always sit empty here - a status
+// object isn't where you configure a Secret/ConfigMap lookup).
+type PgBackupStorageLocation struct {
+	// Type selects which of the sub-structs below is populated.
+	Type PgBackupStorageType `json:"type"`
+	// S3 holds the configuration when Type is "s3".
+	// +optional
+	S3 *PgBackupStorageS3Location `json:"s3,omitempty"`
 }
 
 // +kubebuilder:validation:Enum=gpg-rsa;gpg-aes
@@ -106,14 +132,22 @@ const (
 )
 
 // PgBackupEncryption configures at-rest encryption of the dump before
-// upload. gpg-rsa expects SecretKeyRef to point at an armored public key;
-// gpg-aes expects SecretKeyRef to point at a symmetric passphrase.
+// upload. Exactly one of PublicKey (gpg-rsa, an armored public key) or
+// Passphrase (gpg-aes, a symmetric passphrase) is expected to be populated,
+// matching Type - two explicit, named fields rather than one generic
+// "key material" property so the CRD schema itself documents which value
+// each scheme needs.
+// +kubebuilder:validation:XValidation:rule="self.type != 'gpg-rsa' || has(self.publicKey)",message="publicKey must be set when type is \"gpg-rsa\""
+// +kubebuilder:validation:XValidation:rule="self.type != 'gpg-aes' || has(self.passphrase)",message="passphrase must be set when type is \"gpg-aes\""
 type PgBackupEncryption struct {
 	// Type selects the encryption scheme.
 	Type PgBackupEncryptionType `json:"type"`
-	// SecretKeyRef selects the key material (public key for gpg-rsa,
-	// passphrase for gpg-aes).
-	SecretKeyRef coreV1.SecretKeySelector `json:"secretKeyRef"`
+	// PublicKey resolves an armored GPG public key, used when Type is gpg-rsa.
+	// +optional
+	PublicKey *PgProperty `json:"publicKey,omitempty"`
+	// Passphrase resolves a symmetric passphrase, used when Type is gpg-aes.
+	// +optional
+	Passphrase *PgProperty `json:"passphrase,omitempty"`
 }
 
 // PgBackupRetention configures how many / how long backups are kept. See

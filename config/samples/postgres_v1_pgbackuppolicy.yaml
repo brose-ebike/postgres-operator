@@ -13,17 +13,27 @@ spec:
   storage:
     type: s3
     s3:
-      endpoint: "s3.hetzner.example.com"
-      bucket: "pg-backups"
-      prefix: "mydb" # optional
+      endpoint:
+        value: "s3.hetzner.example.com"
+      bucket:
+        value: "pg-backups"
+      prefix: # optional
+        value: "mydb"
       secure: true # optional, default true
-      secretRef:
-        name: "backup-storage-credentials" # keys: accessKey, secretKey
+      accessKey:
+        secretKeyRef:
+          name: "backup-storage-credentials"
+          key: "accessKey"
+      secretKey:
+        secretKeyRef:
+          name: "backup-storage-credentials"
+          key: "secretKey"
   encryption: # optional, omit for unencrypted dumps
     type: gpg-aes
-    secretKeyRef:
-      name: "backup-encryption-key"
-      key: "passphrase"
+    passphrase:
+      secretKeyRef:
+        name: "backup-encryption-key"
+        key: "passphrase"
   retention:
     minCount: 7 # optional, hard floor per database
     maxAge: "720h" # optional, 30 days

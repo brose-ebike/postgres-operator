@@ -21,7 +21,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"strings"
 	"time"
 
 	batchv1 "k8s.io/api/batch/v1"
@@ -30,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -175,58 +173,65 @@ func (r *PgBackupPolicyReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-// validateSecrets resolves spec.storage's secretRef and, if spec.encryption
-// is set, its secretKeyRef - checking not just that the Secret exists but
-// that it actually carries the key(s) the worker will read later, so a
-// typo'd key surfaces on the Ready condition instead of at the next
-// scheduled dump.
+// namedProperty pairs a PgProperty with the field name used to label
+// resolution errors - kept as an ordered slice (not a map) so
+// validateSecrets' error messages are deterministic even when more than one
+// property is misconfigured at once.
+type namedProperty struct {
+	name     string
+	property *apiV1.PgProperty
+}
+
+// validateSecrets resolves every PgProperty field the worker will need -
+// storage's endpoint/bucket/accessKey/secretKey, and encryption's key
+// material if configured - using the same PgProperty.GetPropertyValue
+// every other CRD in this repo already uses, rather than a bespoke
+// Secret-existence check. This catches a typo'd key or a missing
+// ConfigMap/Secret on the Ready condition instead of at the next scheduled
+// dump. Prefix is deliberately not validated here: it's optional, and an
+// unset PgProperty is a real (not erroneous) value for it.
 func (r *PgBackupPolicyReconciler) validateSecrets(ctx context.Context, policy *apiV1.PgBackupPolicy) error {
 	switch policy.Spec.Storage.Type {
 	case apiV1.PgBackupStorageTypeS3:
-		if policy.Spec.Storage.S3 == nil {
+		s3 := policy.Spec.Storage.S3
+		if s3 == nil {
 			return fmt.Errorf("storage type is %q but s3 configuration is not set", policy.Spec.Storage.Type)
 		}
-		if err := r.checkSecretHasKeys(ctx, policy.Namespace, policy.Spec.Storage.S3.SecretRef.Name,
-			apiV1.PgBackupStorageS3SecretKeyAccessKey, apiV1.PgBackupStorageS3SecretKeySecretKey); err != nil {
-			return fmt.Errorf("storage secret: %w", err)
+		required := []namedProperty{
+			{"endpoint", &s3.Endpoint},
+			{"bucket", &s3.Bucket},
+			{"accessKey", &s3.AccessKey},
+			{"secretKey", &s3.SecretKey},
+		}
+		for _, p := range required {
+			if _, err := p.property.GetPropertyValue(ctx, r, policy.Namespace, p.name); err != nil {
+				return fmt.Errorf("storage.%s: %w", p.name, err)
+			}
 		}
 	default:
 		return fmt.Errorf("unsupported storage type %q", policy.Spec.Storage.Type)
 	}
 
-	if policy.Spec.Encryption != nil {
-		if err := r.checkSecretHasKeys(ctx, policy.Namespace, policy.Spec.Encryption.SecretKeyRef.Name, policy.Spec.Encryption.SecretKeyRef.Key); err != nil {
-			return fmt.Errorf("encryption secret: %w", err)
+	if policy.Spec.Encryption == nil {
+		return nil
+	}
+	switch policy.Spec.Encryption.Type {
+	case apiV1.PgBackupEncryptionTypeGPGRSA:
+		if policy.Spec.Encryption.PublicKey == nil {
+			return fmt.Errorf("encryption type is %q but publicKey is not set", policy.Spec.Encryption.Type)
 		}
-	}
-	return nil
-}
-
-// checkSecretHasKeys verifies the named Secret exists AND carries every
-// key in requiredKeys. Checking existence alone (the previous behavior)
-// let a misnamed key pass the Ready condition and only fail once the dump
-// CronJob actually ran and tried to read it.
-func (r *PgBackupPolicyReconciler) checkSecretHasKeys(ctx context.Context, namespace string, name string, requiredKeys ...string) error {
-	if name == "" {
-		return fmt.Errorf("secret name is empty")
-	}
-	var secret coreV1.Secret
-	exists, err := getResource(ctx, r, types.NamespacedName{Namespace: namespace, Name: name}, &secret)
-	if err != nil {
-		return err
-	}
-	if !exists {
-		return fmt.Errorf("secret %q not found", name)
-	}
-
-	var missing []string
-	for _, key := range requiredKeys {
-		if _, ok := secret.Data[key]; !ok {
-			missing = append(missing, key)
+		if _, err := policy.Spec.Encryption.PublicKey.GetPropertyValue(ctx, r, policy.Namespace, "publicKey"); err != nil {
+			return fmt.Errorf("encryption.publicKey: %w", err)
 		}
-	}
-	if len(missing) > 0 {
-		return fmt.Errorf("secret %q is missing required key(s): %s", name, strings.Join(missing, ", "))
+	case apiV1.PgBackupEncryptionTypeGPGAES:
+		if policy.Spec.Encryption.Passphrase == nil {
+			return fmt.Errorf("encryption type is %q but passphrase is not set", policy.Spec.Encryption.Type)
+		}
+		if _, err := policy.Spec.Encryption.Passphrase.GetPropertyValue(ctx, r, policy.Namespace, "passphrase"); err != nil {
+			return fmt.Errorf("encryption.passphrase: %w", err)
+		}
+	default:
+		return fmt.Errorf("unsupported encryption type %q", policy.Spec.Encryption.Type)
 	}
 	return nil
 }

@@ -46,10 +46,11 @@ type PgBackupInstanceStatus struct {
 	// +optional
 	Phase PgBackupInstancePhase `json:"phase,omitempty"`
 	// Location is where the (possibly encrypted) dump object was stored.
-	// Only populated once Phase is Success. Same discriminated-union shape
-	// as PgBackupPolicySpec.Storage.
+	// Only populated once Phase is Success. A separate discriminated-union
+	// type from PgBackupPolicySpec.Storage (see PgBackupStorageLocation's
+	// doc comment) - this records resolved facts, not PgProperty references.
 	// +optional
-	Location *PgBackupStorage `json:"location,omitempty"`
+	Location *PgBackupStorageLocation `json:"location,omitempty"`
 	// DumpOptions is a snapshot of the options actually used for this
 	// backup, independent of later policy edits.
 	// +optional

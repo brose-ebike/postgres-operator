@@ -636,9 +636,10 @@ var _ = Describe("PgInstanceReconciler", func() {
 				Storage: apiV1.PgBackupStorage{
 					Type: apiV1.PgBackupStorageTypeS3,
 					S3: &apiV1.PgBackupStorageS3{
-						Endpoint:  "minio.example.com",
-						Bucket:    "pg-backups",
-						SecretRef: coreV1.LocalObjectReference{Name: "storage-creds"},
+						Endpoint:  apiV1.PgProperty{Value: "minio.example.com"},
+						Bucket:    apiV1.PgProperty{Value: "pg-backups"},
+						AccessKey: apiV1.PgProperty{SecretKeyRef: &coreV1.SecretKeySelector{LocalObjectReference: coreV1.LocalObjectReference{Name: "storage-creds"}, Key: "accessKey"}},
+						SecretKey: apiV1.PgProperty{SecretKeyRef: &coreV1.SecretKeySelector{LocalObjectReference: coreV1.LocalObjectReference{Name: "storage-creds"}, Key: "secretKey"}},
 					},
 				},
 			},

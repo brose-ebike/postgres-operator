@@ -90,11 +90,15 @@ var _ = Describe("PgBackupPolicyReconciler", func() {
 		secret := &coreV1.Secret{
 			ObjectMeta: v1.ObjectMeta{Namespace: "default", Name: name},
 			StringData: map[string]string{
-				apiV1.PgBackupStorageS3SecretKeyAccessKey: "access",
-				apiV1.PgBackupStorageS3SecretKeySecretKey: "secret",
+				"accessKey": "access",
+				"secretKey": "secret",
 			},
 		}
 		Expect(k8sClient.Create(ctx, secret)).To(Succeed())
+	}
+
+	secretProperty := func(secretName string, key string) apiV1.PgProperty {
+		return apiV1.PgProperty{SecretKeyRef: &coreV1.SecretKeySelector{LocalObjectReference: coreV1.LocalObjectReference{Name: secretName}, Key: key}}
 	}
 
 	newPolicy := func(name string, storageSecretName string, schedule string) *apiV1.PgBackupPolicy {
@@ -105,9 +109,10 @@ var _ = Describe("PgBackupPolicyReconciler", func() {
 				Storage: apiV1.PgBackupStorage{
 					Type: apiV1.PgBackupStorageTypeS3,
 					S3: &apiV1.PgBackupStorageS3{
-						Endpoint:  "minio.example.com",
-						Bucket:    "pg-backups",
-						SecretRef: coreV1.LocalObjectReference{Name: storageSecretName},
+						Endpoint:  apiV1.PgProperty{Value: "minio.example.com"},
+						Bucket:    apiV1.PgProperty{Value: "pg-backups"},
+						AccessKey: secretProperty(storageSecretName, "accessKey"),
+						SecretKey: secretProperty(storageSecretName, "secretKey"),
 					},
 				},
 				Retention: apiV1.PgBackupRetention{},
@@ -202,7 +207,7 @@ var _ = Describe("PgBackupPolicyReconciler", func() {
 		secret := &coreV1.Secret{
 			ObjectMeta: v1.ObjectMeta{Namespace: "default", Name: "storage-creds-6"},
 			StringData: map[string]string{
-				apiV1.PgBackupStorageS3SecretKeyAccessKey: "access",
+				"accessKey": "access",
 				// secretKey deliberately omitted - this is the typo'd/
 				// missing-key scenario the Ready condition must catch.
 			},
@@ -219,7 +224,7 @@ var _ = Describe("PgBackupPolicyReconciler", func() {
 		readyCondition := meta.FindStatusCondition(reconciled.Status.Conditions, apiV1.PgBackupPolicyReadyConditionType)
 		Expect(readyCondition).ToNot(BeNil())
 		Expect(readyCondition.Status).To(Equal(v1.ConditionFalse))
-		Expect(readyCondition.Message).To(ContainSubstring(apiV1.PgBackupStorageS3SecretKeySecretKey))
+		Expect(readyCondition.Message).To(ContainSubstring("secretKey"))
 	})
 
 	It("sets ready=false when encryption is configured but its secret is missing, even though storage resolves", func() {
@@ -228,9 +233,10 @@ var _ = Describe("PgBackupPolicyReconciler", func() {
 
 		createStorageSecret(ctx, "storage-creds-3")
 		policy := newPolicy("policy-3", "storage-creds-3", "0 2 * * *")
+		passphrase := secretProperty("missing-encryption-secret", "passphrase")
 		policy.Spec.Encryption = &apiV1.PgBackupEncryption{
-			Type:         apiV1.PgBackupEncryptionTypeGPGAES,
-			SecretKeyRef: coreV1.SecretKeySelector{LocalObjectReference: coreV1.LocalObjectReference{Name: "missing-encryption-secret"}, Key: "passphrase"},
+			Type:       apiV1.PgBackupEncryptionTypeGPGAES,
+			Passphrase: &passphrase,
 		}
 		Expect(k8sClient.Create(ctx, policy)).To(Succeed())
 

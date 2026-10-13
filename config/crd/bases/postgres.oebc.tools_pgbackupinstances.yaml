@@ -176,54 +176,25 @@ spec:
               location:
                 description: |-
                   Location is where the (possibly encrypted) dump object was stored.
-                  Only populated once Phase is Success. Same discriminated-union shape
-                  as PgBackupPolicySpec.Storage.
+                  Only populated once Phase is Success. A separate discriminated-union
+                  type from PgBackupPolicySpec.Storage (see PgBackupStorageLocation's
+                  doc comment) - this records resolved facts, not PgProperty references.
                 properties:
                   s3:
                     description: S3 holds the configuration when Type is "s3".
                     properties:
                       bucket:
-                        description: |-
-                          Bucket is the name of the bucket dumps are stored in. It is created
-                          automatically if it does not exist.
+                        description: Bucket is the bucket this backup was stored in.
                         type: string
                       endpoint:
-                        description: Endpoint is the S3-compatible endpoint, host[:port],
-                          without scheme.
+                        description: Endpoint is the resolved S3-compatible endpoint
+                          used for this backup.
                         type: string
-                      prefix:
-                        description: Prefix is an optional key prefix under which
-                          objects are stored.
-                        type: string
-                      secretRef:
-                        description: |-
-                          SecretRef references a Secret containing the access/secret key pair,
-                          under the keys PgBackupStorageS3SecretKeyAccessKey/SecretKey.
-                        properties:
-                          name:
-                            default: ""
-                            description: |-
-                              Name of the referent.
-                              This field is effectively required, but due to backwards compatibility is
-                              allowed to be empty. Instances of this type with an empty value here are
-                              almost certainly wrong.
-                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                            type: string
-                        type: object
-                        x-kubernetes-map-type: atomic
                       secure:
-                        default: true
-                        description: |-
-                          Secure selects whether TLS is used to talk to the endpoint.
-                          A *bool, not bool: with a plain bool, encoding/json's "omitempty"
-                          drops an explicit "false" from the request body indistinguishably
-                          from "unset", so the apiserver's CRD default (true) would silently
-                          override it on every create/update.
+                        description: Secure is whether TLS was used for this backup.
                         type: boolean
                       url:
-                        description: |-
-                          URL is populated only in PgBackupInstanceStatus.Location, giving the
-                          fully resolved object address. Unused in PgBackupPolicySpec.Storage.
+                        description: URL gives the fully resolved object address.
                         type: string
                     type: object
                   type:
@@ -234,9 +205,6 @@ spec:
                 required:
                 - type
                 type: object
-                x-kubernetes-validations:
-                - message: s3 must be set when type is "s3"
-                  rule: self.type != 's3' || has(self.s3)
               message:
                 description: Message carries a human readable status/error message.
                 type: string
