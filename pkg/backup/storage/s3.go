@@ -56,6 +56,13 @@ func newS3Destination(ctx context.Context, endpoint string, bucket string, prefi
 	return &s3Destination{
 		client: client,
 		bucket: bucket,
+		// Unlike cloud-pgdumper, an empty prefix is NOT defaulted to
+		// "pgbackups/": the worker's target keys already carry full
+		// "<namespace>/<database>/<instance>.dump" structure before Store
+		// is ever called (see pkg/backup/worker), so there's no shared-
+		// bucket collision risk a default prefix would be guarding
+		// against here. prefix stays purely opt-in, for callers who want
+		// an additional namespace layer on top.
 		prefix: strings.Trim(prefix, "/"),
 	}, nil
 }
