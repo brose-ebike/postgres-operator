@@ -41,8 +41,9 @@ spec:
             properties:
               backupPolicy:
                 description: |-
-                  BackupPolicy optionally references a PgBackupPolicy (same namespace)
-                  that should back this database up on its schedule.
+                  BackupPolicy optionally references a PgBackupPolicy (may be in a
+                  different namespace, same as spec.instance) that should back this
+                  database up on its schedule.
                 properties:
                   name:
                     description: Name identifies the PgInstanceConnection which should

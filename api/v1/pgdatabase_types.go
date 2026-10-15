@@ -148,8 +148,9 @@ type PgDatabaseSpec struct {
 	PublicPrivileges PgDatabasePublicPrivileges `json:"publicPrivileges"`
 	// PublicSchema dropped
 	PublicSchema PgDatabasePublicSchema `json:"publicSchema"`
-	// BackupPolicy optionally references a PgBackupPolicy (same namespace)
-	// that should back this database up on its schedule.
+	// BackupPolicy optionally references a PgBackupPolicy (may be in a
+	// different namespace, same as spec.instance) that should back this
+	// database up on its schedule.
 	// +optional
 	BackupPolicy *PgInstanceRef `json:"backupPolicy,omitempty"`
 }

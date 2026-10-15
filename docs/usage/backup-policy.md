@@ -105,8 +105,8 @@ encryption both need headroom before the final (smaller) artifact is uploaded an
 reclaimed.
 
 !!! warning "Deleting a policy does not delete stored backups"
-    Deleting a `PgBackupPolicy` cascades to delete its owned `PgBackupInstance` records, `CronJob`s,
-    and worker RBAC — but **never** the underlying objects already stored at `spec.storage`. This is
+    Deleting a `PgBackupPolicy` cascades to delete its owned `PgBackupInstance` records and
+    `CronJob`s — but **never** the underlying objects already stored at `spec.storage`. This is
     intentional: an accidental `kubectl delete pgbackuppolicy` must not silently destroy backup
     data. Objects are only ever removed via the normal retention/cleanup path while the policy
     existed, or by manual action directly against the storage backend.
