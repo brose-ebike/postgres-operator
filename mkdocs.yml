@@ -38,6 +38,8 @@ nav:
     - Create Instance: usage/instance.md
     - Create Database: usage/database.md
     - Create User: usage/user.md
+    - Configure Backups: usage/backup-policy.md
+    - Backup Instances: usage/backup-instance.md
     - ArgoCD: usage/argocd.md
     - Azure: usage/azure.md
   - Contribution: contribution.md

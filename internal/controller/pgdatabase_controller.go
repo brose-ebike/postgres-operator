@@ -43,6 +43,7 @@ type PgDatabaseReconciler struct {
 //+kubebuilder:rbac:groups=postgres.oebc.tools,resources=pgdatabases,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=postgres.oebc.tools,resources=pgdatabases/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=postgres.oebc.tools,resources=pgdatabases/finalizers,verbs=update
+//+kubebuilder:rbac:groups=postgres.oebc.tools,resources=pgbackuppolicies,verbs=get
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch
 
@@ -124,6 +125,12 @@ func (r *PgDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// Drop Public Schema if needed
 	if err := r.handlePublicSchema(ctx, pgApi, &database); err != nil {
 		logger.Error(err, "Unable to update public schema", "database", database.ToNamespacedName(), "instance", database.GetInstanceIdString())
+		return ctrl.Result{RequeueAfter: time.Minute}, err
+	}
+
+	// Check if the referenced backup policy exists, if one is set
+	if err := r.handleBackupPolicy(ctx, &database); err != nil {
+		logger.Error(err, "Unable to update backup policy condition", "database", database.ToNamespacedName())
 		return ctrl.Result{RequeueAfter: time.Minute}, err
 	}
 
@@ -363,6 +370,25 @@ func (r *PgDatabaseReconciler) handlePublicPrivileges(ctx context.Context, pgApi
 		}
 	}
 	return setCondition(ctx, r.Status(), database, apiV1.PgDatabasePublicPrivilegesConditionType, true, apiV1.PgDatabasePublicPrivilegesConditionReasonSucceeded, "-")
+}
+
+// handleBackupPolicy sets the backup-policy-found condition when
+// spec.backupPolicy is set, verifying the referenced PgBackupPolicy exists -
+// cross-namespace references are supported, same as spec.instance. No-op/
+// removed when spec.backupPolicy is nil.
+func (r *PgDatabaseReconciler) handleBackupPolicy(ctx context.Context, database *apiV1.PgDatabase) error {
+	if database.Spec.BackupPolicy == nil {
+		return removeCondition(ctx, r.Status(), database, apiV1.PgDatabaseBackupPolicyFoundConditionType)
+	}
+	var policy apiV1.PgBackupPolicy
+	exists, err := getResource(ctx, r, database.Spec.BackupPolicy.ToNamespacedName(), &policy)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return setCondition(ctx, r.Status(), database, apiV1.PgDatabaseBackupPolicyFoundConditionType, false, apiV1.PgDatabaseBackupPolicyFoundConditionReasonFailed, "referenced PgBackupPolicy not found")
+	}
+	return setCondition(ctx, r.Status(), database, apiV1.PgDatabaseBackupPolicyFoundConditionType, true, apiV1.PgDatabaseBackupPolicyFoundConditionReasonSucceeded, "-")
 }
 
 func (r *PgDatabaseReconciler) handlePublicSchema(ctx context.Context, pgApi PgDatabaseAPI, database *apiV1.PgDatabase) error {
