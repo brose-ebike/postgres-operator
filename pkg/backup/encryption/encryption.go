@@ -59,6 +59,25 @@ func NewEncryptor(encType apiV1.PgBackupEncryptionType, keyMaterial string) (Enc
 	}
 }
 
+// ctxReader wraps an io.Reader so io.Copy's read loop observes ctx
+// cancellation between chunks, mirroring pkg/backup/storage's
+// s3Destination threading ctx all the way into its minio.Client calls for
+// real interruptibility. Without this, encrypting a large dump (the exact
+// 8MiB+ case TestAESEncryptor_StreamsLargePayloadWithoutTruncation covers)
+// would run to completion even after its context was cancelled or its
+// deadline expired.
+type ctxReader struct {
+	ctx context.Context
+	r   io.Reader
+}
+
+func (r *ctxReader) Read(p []byte) (int, error) {
+	if err := r.ctx.Err(); err != nil {
+		return 0, err
+	}
+	return r.r.Read(p)
+}
+
 // streamEncrypt copies srcPath into the WriteCloser open returns for
 // dstPath, without ever holding the full plaintext or ciphertext in
 // memory - io.Copy uses a small fixed-size internal buffer regardless of
@@ -68,7 +87,7 @@ func NewEncryptor(encType apiV1.PgBackupEncryptionType, keyMaterial string) (Enc
 // otherwise produce a truncated, silently corrupt encrypted backup that
 // still reports success - the same class of bug flagged in review for
 // pkg/backup/dumper/archive.go's tar/gzip writers.
-func streamEncrypt(srcPath string, dstPath string, open func(dst *os.File) (io.WriteCloser, error)) (err error) {
+func streamEncrypt(ctx context.Context, srcPath string, dstPath string, open func(dst *os.File) (io.WriteCloser, error)) (err error) {
 	src, err := os.Open(srcPath)
 	if err != nil {
 		return err
@@ -88,7 +107,7 @@ func streamEncrypt(srcPath string, dstPath string, open func(dst *os.File) (io.W
 		return err
 	}
 
-	if _, copyErr := io.Copy(encWriter, src); copyErr != nil {
+	if _, copyErr := io.Copy(encWriter, &ctxReader{ctx: ctx, r: src}); copyErr != nil {
 		_ = encWriter.Close()
 		return copyErr
 	}
@@ -101,7 +120,7 @@ type rsaEncryptor struct {
 	publicKeyArmored string
 }
 
-func (e *rsaEncryptor) Encrypt(_ context.Context, srcPath string, dstPath string) error {
+func (e *rsaEncryptor) Encrypt(ctx context.Context, srcPath string, dstPath string) error {
 	key, err := crypto.NewKeyFromArmored(e.publicKeyArmored)
 	if err != nil {
 		return fmt.Errorf("invalid gpg-rsa public key: %w", err)
@@ -111,7 +130,7 @@ func (e *rsaEncryptor) Encrypt(_ context.Context, srcPath string, dstPath string
 		return fmt.Errorf("unable to build gpg-rsa key ring: %w", err)
 	}
 
-	return streamEncrypt(srcPath, dstPath, func(dst *os.File) (io.WriteCloser, error) {
+	return streamEncrypt(ctx, srcPath, dstPath, func(dst *os.File) (io.WriteCloser, error) {
 		return keyRing.EncryptStream(dst, nil, nil)
 	})
 }
@@ -126,8 +145,8 @@ type aesEncryptor struct {
 	passphrase string
 }
 
-func (e *aesEncryptor) Encrypt(_ context.Context, srcPath string, dstPath string) error {
-	return streamEncrypt(srcPath, dstPath, func(dst *os.File) (io.WriteCloser, error) {
+func (e *aesEncryptor) Encrypt(ctx context.Context, srcPath string, dstPath string) error {
+	return streamEncrypt(ctx, srcPath, dstPath, func(dst *os.File) (io.WriteCloser, error) {
 		return openpgp.SymmetricallyEncrypt(dst, []byte(e.passphrase), nil, nil)
 	})
 }

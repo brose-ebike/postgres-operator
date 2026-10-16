@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -238,5 +239,29 @@ func TestAESEncryptor_StreamsLargePayloadWithoutTruncation(t *testing.T) {
 	}
 	if !bytes.Equal(plain.GetBinary(), want) {
 		t.Fatalf("decrypted content does not match the original %d-byte payload (got %d bytes) - streaming likely truncated or corrupted it", len(want), len(plain.GetBinary()))
+	}
+}
+
+func TestAESEncryptor_RespectsCancelledContext(t *testing.T) {
+	enc, err := NewEncryptor(apiV1.PgBackupEncryptionTypeGPGAES, "correct-horse-battery-staple")
+	if err != nil {
+		t.Fatalf("NewEncryptor failed: %v", err)
+	}
+
+	// A large-ish payload so the copy loop would need more than one Read
+	// if it weren't interrupted - proving ctx is actually threaded into
+	// the io.Copy loop, not just accepted and ignored.
+	srcPath, _ := writeLargeRandomFile(t, 4*1024*1024)
+	dstPath := filepath.Join(t.TempDir(), "dump.gpg")
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	err = enc.Encrypt(ctx, srcPath, dstPath)
+	if err == nil {
+		t.Fatal("expected Encrypt to fail with an already-cancelled context")
+	}
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected a context.Canceled error, got: %v", err)
 	}
 }
