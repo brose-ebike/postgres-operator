@@ -93,6 +93,9 @@ func TestDump_AllFormats(t *testing.T) {
 				if artifactPath != opts.OutputPath+".tar.gz" {
 					t.Fatalf("expected directory format to produce %q, got %q", opts.OutputPath+".tar.gz", artifactPath)
 				}
+				if _, err := os.Stat(opts.OutputPath); !os.IsNotExist(err) {
+					t.Fatalf("expected the raw directory %q to be removed after archiving, got err=%v", opts.OutputPath, err)
+				}
 			} else if artifactPath != opts.OutputPath {
 				t.Fatalf("expected artifact path %q, got %q", opts.OutputPath, artifactPath)
 			}

@@ -132,5 +132,15 @@ func Dump(ctx context.Context, opts Options) (string, error) {
 	if err := tarGzipDirectory(outputPath, artifactPath); err != nil {
 		return "", NewDumpError(opts.Database, "failed to archive directory-format dump: "+err.Error(), err)
 	}
+	// outputPath (the raw directory pg_dump wrote) is now fully redundant
+	// with artifactPath. Leaving it around would double this dump's disk
+	// footprint in the workspace for the rest of the job's lifetime - and
+	// a single job dumps multiple PgDatabases in sequence, so leftover
+	// directories from earlier databases keep compounding the exact
+	// disk-pressure scenario this package's Close()-error handling exists
+	// to protect against. Best-effort: a cleanup failure here doesn't
+	// invalidate the already-valid artifactPath, so it isn't turned into a
+	// Dump() failure.
+	_ = os.RemoveAll(outputPath)
 	return artifactPath, nil
 }
