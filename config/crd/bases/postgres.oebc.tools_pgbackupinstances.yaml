@@ -190,6 +190,14 @@ spec:
                         description: Endpoint is the resolved S3-compatible endpoint
                           used for this backup.
                         type: string
+                      prefix:
+                        description: |-
+                          Prefix is the resolved key prefix used for this backup. Required to
+                          rebuild the exact Destination this object was stored under later
+                          (cleanup must apply the same prefix the original upload did, or it
+                          computes the wrong object key and silently fails to delete the real
+                          object while still reporting cleanup success).
+                        type: string
                       secure:
                         description: Secure is whether TLS was used for this backup.
                         type: boolean

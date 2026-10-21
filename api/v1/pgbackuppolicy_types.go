@@ -103,6 +103,12 @@ type PgBackupStorageS3Location struct {
 	Endpoint string `json:"endpoint,omitempty"`
 	// Bucket is the bucket this backup was stored in.
 	Bucket string `json:"bucket,omitempty"`
+	// Prefix is the resolved key prefix used for this backup. Required to
+	// rebuild the exact Destination this object was stored under later
+	// (cleanup must apply the same prefix the original upload did, or it
+	// computes the wrong object key and silently fails to delete the real
+	// object while still reporting cleanup success).
+	Prefix string `json:"prefix,omitempty"`
 	// Secure is whether TLS was used for this backup.
 	Secure bool `json:"secure,omitempty"`
 	// URL gives the fully resolved object address.
