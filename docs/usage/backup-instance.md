@@ -24,6 +24,7 @@ status:
     s3:
       endpoint: "s3.hetzner.example.com"
       bucket: "pg-backups"
+      prefix: "nightly"
       secure: true
       url: "s3://pg-backups/default/mydb/nightly-backup-mydb-abc123.dump.gpg"
   dumpOptions:
@@ -42,7 +43,7 @@ status:
 | `spec.database`              | The `PgDatabase` this is a backup of                                                             |
 | `spec.backupPolicy`          | The `PgBackupPolicy` that triggered this backup                                                  |
 | `status.phase`               | `Pending` → `Success`/`Failure`, see Lifecycle below                                             |
-| `status.location`            | Where the (possibly encrypted) dump was stored — resolved values (not `PgProperty` references like `PgBackupPolicy.spec.storage` uses), since this records an observed fact, not a credential lookup. Only populated once `phase` is `Success`. |
+| `status.location`            | Where the (possibly encrypted) dump was stored — resolved values (not `PgProperty` references like `PgBackupPolicy.spec.storage` uses), since this records an observed fact, not a credential lookup. Includes `prefix` so cleanup can rebuild the exact same storage path later even if the policy's own `spec.storage.s3.prefix` changes afterward. Only populated once `phase` is `Success`. |
 | `status.dumpOptions`         | Snapshot of the `pg_dump` options actually used for this specific backup — independent of later edits to the policy's `spec.dumpOptions` |
 | `status.sizeBytes`           | Size of the stored (possibly encrypted) object                                                   |
 | `status.startedAt`/`.finishedAt` | When the attempt started/finished. `finishedAt` is the timestamp retention is computed from. |
