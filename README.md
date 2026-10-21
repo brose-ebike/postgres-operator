@@ -153,6 +153,24 @@ was stored.
 Checkout the [documentation](https://brose-ebike.github.io/postgres-operator/) for the full
 lifecycle and the Prometheus metrics it drives.
 
+## Development
+
+`make test` runs the full test suite via envtest, but a few packages have their own extra
+requirements beyond Go itself:
+
+- **`pkg/backup/dumper`** shells out to the real `pg_dump` binary (it never links against libpq
+  directly, just invokes the client tool as a subprocess) — install PostgreSQL's client tools
+  locally (e.g. `apt-get install postgresql-client` on Debian/Ubuntu, `brew install libpq` on
+  macOS) so `pg_dump` is on `PATH`. Without it, `pkg/backup/dumper`'s tests fail with
+  `exec: "pg_dump": executable file not found in $PATH` rather than a Postgres-specific error,
+  which can be confusing to debug if you don't already know this package needs it.
+- **`pkg/backup/storage`**, **`pkg/tcminio`**, **`pkg/tcpostgres`**, and anything using
+  testcontainers need a running Docker daemon, since they spin up real Postgres/MinIO containers
+  for integration-style tests.
+
+CI installs `postgresql-client` as part of the `tests` job (see `.github/workflows/ci.yaml`) and
+runs with Docker already available on the runner, so these are local-only setup steps.
+
 ## License
 
 Copyright 2026 Yamaha Motor eBike Systems GmbH.
