@@ -113,12 +113,13 @@ test: manifests generate fmt vet envtest ## Run tests.
 ##@ Build
 
 .PHONY: build
-build: generate fmt vet ## Build manager binary.
-	go build -o bin/manager cmd/main.go
+build: generate fmt vet ## Build manager and backup-worker binaries.
+	go build -o bin/manager cmd/manager/main.go
+	go build -o bin/backup-worker cmd/backup-worker/main.go
 
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.
-	go run ./cmd/main.go
+	go run ./cmd/manager/main.go
 
 # If you wish built the manager image targeting other platforms you can use the --platform flag.
 # (i.e. docker build --platform linux/arm64 ). However, you must enable docker buildKit for it.
@@ -288,6 +289,7 @@ release: kustomize generate fmt vet manifests bundle docker-buildx ## Build a re
 	$(KUSTOMIZE) build config/default > dist/install.yaml
 	for arch in "amd64" "arm" "arm64" ; \
 	do \
-		GOOS=linux GOARCH=$${arch} go build -o dist/pgcontroller_$${arch} ./cmd ; \
+		GOOS=linux GOARCH=$${arch} go build -o dist/pgcontroller_$${arch} ./cmd/manager ; \
+		GOOS=linux GOARCH=$${arch} go build -o dist/backup-worker_$${arch} ./cmd/backup-worker ; \
 	done
 ## $(MAKE) docker-push IMG=$(CATALOG_IMG)
