@@ -42,6 +42,8 @@ type pgRoleMock struct {
 	callsCreateRole                 int
 	callsDeleteRole                 int
 	callsUpdateUserPassword         int
+	callsGrantPredefinedRole        int
+	callsRevokePredefinedRole       int
 	callsConnectionString           int
 	callsTestConnection             int
 	callsIsConnected                int
@@ -78,6 +80,22 @@ func (r *pgRoleMock) DeleteRole(name string) error {
 func (r *pgRoleMock) UpdateUserPassword(name string, password string) error {
 	r.callsUpdateUserPassword += 1
 	if err, ok := r.forceErr["UpdateUserPassword"]; ok {
+		return err
+	}
+	return nil
+}
+
+func (r *pgRoleMock) GrantPredefinedRole(name string, predefinedRole string) error {
+	r.callsGrantPredefinedRole += 1
+	if err, ok := r.forceErr["GrantPredefinedRole"]; ok {
+		return err
+	}
+	return nil
+}
+
+func (r *pgRoleMock) RevokePredefinedRole(name string, predefinedRole string) error {
+	r.callsRevokePredefinedRole += 1
+	if err, ok := r.forceErr["RevokePredefinedRole"]; ok {
 		return err
 	}
 	return nil
