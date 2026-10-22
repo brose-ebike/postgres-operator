@@ -167,6 +167,18 @@ func (r *PgBackupPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 }
 
 // SetupWithManager sets up the controller with the Manager.
+//
+// Deliberately no predicates (e.g. predicate.GenerationChangedPredicate) on
+// the PgBackupPolicy watch: controller-runtime re-lists every existing
+// object when the manager starts and enqueues a reconcile for each one
+// regardless of whether its spec actually changed, and that's exactly the
+// mechanism reconcileCronJob's doc comment relies on to keep every policy's
+// CronJob image in sync with the manager's own image after an operator
+// upgrade. Adding a predicate that filters out these synthetic startup
+// Create events (or any watch option that otherwise skips "nothing about
+// this object changed" reconciles) would silently break that self-healing
+// behaviour - re-verify reconcileCronJob's doc comment still holds before
+// adding one.
 func (r *PgBackupPolicyReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&apiV1.PgBackupPolicy{}).
@@ -285,16 +297,23 @@ func (r *PgBackupPolicyReconciler) deleteCronJob(ctx context.Context, name strin
 // one place instead of N dynamically-created copies, and without any
 // cluster-scoped object whose name could collide across policies.
 //
-// buildCronJobSpec's result (including r.Image) fully replaces the
-// CronJob's spec on every call, rather than patching individual fields -
-// this is what keeps already-existing CronJobs in sync with the manager's
-// own image after an operator upgrade: every PgBackupPolicy gets
-// reconciled again when the new manager Pod starts (controller-runtime
-// re-lists all existing objects on startup, regardless of whether their
-// spec changed), so the next reconcileCronJob call naturally overwrites
-// each CronJob's image with whatever this new Pod resolved
-// resolveBackupWorkerImage to - no separate "fix up old CronJobs" pass is
-// needed.
+// Image staleness after an operator upgrade - how this is avoided without
+// any dedicated "fix up old CronJobs" pass:
+//  1. buildCronJobSpec's result (including r.Image) is assigned wholesale
+//     below ("cronJob.Spec = ..."), replacing the entire spec every call -
+//     never patched field-by-field. If this ever changes to a targeted
+//     patch (e.g. only touching Schedule), a stale Image on an
+//     already-existing CronJob would survive future reconciles instead of
+//     being overwritten.
+//  2. SetupWithManager's doc comment explains the other half: every
+//     PgBackupPolicy gets reconciled again when a new manager Pod starts,
+//     which is exactly when r.Image (resolved once in cmd/manager/main.go
+//     at startup, from this Pod's own image) would have changed.
+//
+// Together: operator upgrades -> new Pod resolves its new image -> every
+// policy reconciles -> every CronJob's image is rebuilt to match. Breaking
+// either (1) or (2) breaks this without necessarily breaking any existing
+// test, so re-check both doc comments before changing either mechanism.
 func (r *PgBackupPolicyReconciler) reconcileCronJob(ctx context.Context, policy *apiV1.PgBackupPolicy, name string, schedule string, subcommand string) error {
 	cronJob := &batchv1.CronJob{ObjectMeta: metaV1.ObjectMeta{Name: name, Namespace: r.OperatorNamespace}}
 	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, cronJob, func() error {
