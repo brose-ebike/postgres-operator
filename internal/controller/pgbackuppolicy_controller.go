@@ -284,6 +284,17 @@ func (r *PgBackupPolicyReconciler) deleteCronJob(ctx context.Context, name strin
 // PgBackupInstance CRUD per this file's RBAC markers) - consolidated in
 // one place instead of N dynamically-created copies, and without any
 // cluster-scoped object whose name could collide across policies.
+//
+// buildCronJobSpec's result (including r.Image) fully replaces the
+// CronJob's spec on every call, rather than patching individual fields -
+// this is what keeps already-existing CronJobs in sync with the manager's
+// own image after an operator upgrade: every PgBackupPolicy gets
+// reconciled again when the new manager Pod starts (controller-runtime
+// re-lists all existing objects on startup, regardless of whether their
+// spec changed), so the next reconcileCronJob call naturally overwrites
+// each CronJob's image with whatever this new Pod resolved
+// resolveBackupWorkerImage to - no separate "fix up old CronJobs" pass is
+// needed.
 func (r *PgBackupPolicyReconciler) reconcileCronJob(ctx context.Context, policy *apiV1.PgBackupPolicy, name string, schedule string, subcommand string) error {
 	cronJob := &batchv1.CronJob{ObjectMeta: metaV1.ObjectMeta{Name: name, Namespace: r.OperatorNamespace}}
 	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, cronJob, func() error {

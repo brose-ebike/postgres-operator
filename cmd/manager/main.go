@@ -59,14 +59,8 @@ func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
 	var probeAddr string
-	var backupWorkerImage string
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8443", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
-	flag.StringVar(&backupWorkerImage, "backup-worker-image", "",
-		"Container image reference used for PgBackupPolicy dump/cleanup CronJobs. "+
-			"If unset, resolved automatically from this Pod's own \"manager\" container "+
-			"image via the POD_NAME/POD_NAMESPACE downward-API env vars - set this flag "+
-			"explicitly only for local development outside a Pod.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
@@ -140,11 +134,11 @@ func main() {
 	// same ServiceAccount in this same namespace rather than a
 	// dynamically-created per-policy one (see PgBackupPolicyReconciler's
 	// doc comments for why).
-	resolvedBackupWorkerImage := resolveBackupWorkerImage(context.Background(), mgr.GetAPIReader(), backupWorkerImage)
+	resolvedBackupWorkerImage := resolveBackupWorkerImage(context.Background(), mgr.GetAPIReader())
 	if resolvedBackupWorkerImage == "" {
 		setupLog.Info("backup worker image not configured - PgBackupPolicy reconciliation will report " +
-			"not-ready until --backup-worker-image is set or this Pod's own image can be resolved " +
-			"via POD_NAME/POD_NAMESPACE")
+			"not-ready until this Pod's own image can be resolved via POD_NAME/POD_NAMESPACE " +
+			"(expected when running outside a Pod, e.g. local development)")
 	}
 	if err = (&controller.PgBackupPolicyReconciler{
 		Client:                     mgr.GetClient(),
@@ -184,21 +178,19 @@ func main() {
 //+kubebuilder:rbac:groups=core,resources=pods,verbs=get
 
 // resolveBackupWorkerImage decides which image reference PgBackupPolicy's
-// CronJobs should use for the backup-worker container. An explicit flag
-// value always wins (useful for local development outside a Pod, where
-// POD_NAME/POD_NAMESPACE aren't set). Otherwise it reads this Pod's own
-// "manager" container image via the Kubernetes API - necessarily the exact
-// image this process is running as, including the /backup-worker binary
-// built into the same multi-stage image - rather than relying on any
-// kustomize manifest-level string substitution, which only rewrites a
-// container's own image: field, never arbitrary env/arg strings. Returns
-// "" if neither resolves; callers must not silently create CronJobs with
-// an empty image.
-func resolveBackupWorkerImage(ctx context.Context, r client.Reader, flagValue string) string {
-	if flagValue != "" {
-		return flagValue
-	}
-
+// CronJobs should use for the backup-worker container. Deliberately not
+// configurable via a flag: the manager and backup-worker binaries ship in
+// one shared multi-stage image, and the CronJobs must always run the exact
+// same image as the manager itself - a manual override would let the two
+// drift apart. This reads this Pod's own "manager" container image via the
+// Kubernetes API - necessarily the exact image this process is running as,
+// including the /backup-worker binary built into the same image - rather
+// than relying on any kustomize manifest-level string substitution, which
+// only rewrites a container's own image: field, never arbitrary env/arg
+// strings. Returns "" if this process isn't running in a Pod (e.g. local
+// development via "go run"); callers must not silently create CronJobs
+// with an empty image.
+func resolveBackupWorkerImage(ctx context.Context, r client.Reader) string {
 	podName := os.Getenv("POD_NAME")
 	podNamespace := os.Getenv("POD_NAMESPACE")
 	if podName == "" || podNamespace == "" {
