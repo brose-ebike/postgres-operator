@@ -188,7 +188,7 @@ func runDumpPipeline(ctx context.Context, c client.Client, workspaceDir string, 
 	}
 
 	uploadPath := artifactPath
-	targetKey := database.Namespace + "/" + database.Name + "/" + instance.Name + ".dump"
+	targetKey := targetKeyFor(database.Namespace, database.Name, artifactPath)
 	if policy.Spec.Encryption != nil {
 		encryptedPath, err := encryptArtifact(ctx, c, policy, artifactPath)
 		if err != nil {
@@ -228,6 +228,16 @@ func runDumpPipeline(ctx context.Context, c client.Client, workspaceDir string, 
 		instance.Status.ExpiresAt = &expiresAt
 	}
 	return c.Status().Update(ctx, instance)
+}
+
+// targetKeyFor builds the storage object key for one database's dump
+// artifact, using artifactPath's own file name rather than a hardcoded
+// ".dump" - a directory-format dump's artifact is actually a
+// "<name>.dump.tar.gz" (dumper.Dump tars+gzips the directory pg_dump wrote,
+// see pkg/backup/dumper), and the uploaded key should reflect that real
+// extension rather than claiming it's a plain .dump file.
+func targetKeyFor(databaseNamespace string, databaseName string, artifactPath string) string {
+	return databaseNamespace + "/" + databaseName + "/" + filepath.Base(artifactPath)
 }
 
 // encryptArtifact encrypts artifactPath into "<artifactPath>.gpg" and

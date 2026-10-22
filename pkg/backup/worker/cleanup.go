@@ -63,7 +63,7 @@ func RunCleanup(ctx context.Context, c client.Client, policyRef types.Namespaced
 
 	now := time.Now()
 	var errs []error
-	successByDatabase := map[string][]apiV1.PgBackupInstance{}
+	successByDatabase := map[types.NamespacedName][]apiV1.PgBackupInstance{}
 
 	for i := range all.Items {
 		instance := &all.Items[i]
@@ -74,7 +74,8 @@ func RunCleanup(ctx context.Context, c client.Client, policyRef types.Namespaced
 		switch instance.Status.Phase {
 		case apiV1.PgBackupInstancePhaseSuccess:
 			if instance.Status.FinishedAt != nil {
-				successByDatabase[instance.Spec.Database.Name] = append(successByDatabase[instance.Spec.Database.Name], *instance)
+				key := instance.Spec.Database.ToNamespacedName()
+				successByDatabase[key] = append(successByDatabase[key], *instance)
 			}
 		case apiV1.PgBackupInstancePhasePending:
 			if instance.Status.StartedAt != nil && now.Sub(instance.Status.StartedAt.Time) > stalePendingTimeout {

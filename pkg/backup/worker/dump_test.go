@@ -169,6 +169,21 @@ func TestResolveDumpOptions_AppliesDefaults(t *testing.T) {
 	}
 }
 
+func TestTargetKeyFor_ReflectsActualArtifactExtension(t *testing.T) {
+	plain := targetKeyFor("default", "mydb", "/workspace/nightly-mydb-abc123.dump")
+	if plain != "default/mydb/nightly-mydb-abc123.dump" {
+		t.Errorf("expected a plain-format artifact's key to end in .dump, got %q", plain)
+	}
+
+	// dumper.Dump tars+gzips a directory-format dump into "<name>.dump.tar.gz"
+	// (see pkg/backup/dumper) - the uploaded key must reflect that real
+	// extension instead of assuming ".dump".
+	directory := targetKeyFor("default", "mydb", "/workspace/nightly-mydb-abc123.dump.tar.gz")
+	if directory != "default/mydb/nightly-mydb-abc123.dump.tar.gz" {
+		t.Errorf("expected a directory-format artifact's key to reflect its real .tar.gz extension, got %q", directory)
+	}
+}
+
 func TestLocationFor_SnapshotsPrefixAndOmitsCredentials(t *testing.T) {
 	resolved := resolvedS3Storage{
 		endpoint:  "minio.example.com",

@@ -84,6 +84,59 @@ func TestRunCleanup_PerDatabaseGroupingNoDeletionNeeded(t *testing.T) {
 	}
 }
 
+func TestRunCleanup_PerDatabaseGroupingKeysOnNamespaceAndName(t *testing.T) {
+	scheme := newTestScheme(t)
+	minCount := int32(1)
+	policy := testPolicy("default", "nightly")
+	policy.Spec.Retention = apiV1.PgBackupRetention{MinCount: &minCount}
+
+	// Both PgBackupInstance CRs live in the policy's own namespace
+	// ("default"), but their Spec.Database refers to two PgDatabases that
+	// share a name ("mydb") in different namespaces - a supported
+	// cross-namespace PgDatabase -> PgBackupPolicy reference (see
+	// TestListDatabasesForPolicy). Grouping keyed on Spec.Database.Name
+	// alone would merge these into one group of 2; with minCount=1 the
+	// pure count-based branch would then delete the older one, even though
+	// each individual database only has a single backup and neither should
+	// lose anything.
+	older := metaV1.NewTime(time.Now().Add(-2 * time.Hour))
+	newer := metaV1.NewTime(time.Now().Add(-time.Hour))
+	ns1Instance := &apiV1.PgBackupInstance{
+		ObjectMeta: metaV1.ObjectMeta{Namespace: "default", Name: "ns1-mydb"},
+		Spec: apiV1.PgBackupInstanceSpec{
+			Database:     apiV1.PgInstanceRef{Namespace: "ns1", Name: "mydb"},
+			BackupPolicy: apiV1.PgInstanceRef{Namespace: "default", Name: "nightly"},
+		},
+		Status: apiV1.PgBackupInstanceStatus{Phase: apiV1.PgBackupInstancePhaseSuccess, StartedAt: &older, FinishedAt: &older},
+	}
+	ns2Instance := &apiV1.PgBackupInstance{
+		ObjectMeta: metaV1.ObjectMeta{Namespace: "default", Name: "ns2-mydb"},
+		Spec: apiV1.PgBackupInstanceSpec{
+			Database:     apiV1.PgInstanceRef{Namespace: "ns2", Name: "mydb"},
+			BackupPolicy: apiV1.PgInstanceRef{Namespace: "default", Name: "nightly"},
+		},
+		Status: apiV1.PgBackupInstanceStatus{Phase: apiV1.PgBackupInstancePhaseSuccess, StartedAt: &newer, FinishedAt: &newer},
+	}
+
+	c := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithStatusSubresource(&apiV1.PgBackupPolicy{}, &apiV1.PgBackupInstance{}).
+		WithObjects(policy, ns1Instance, ns2Instance).
+		Build()
+
+	if err := RunCleanup(context.Background(), c, types.NamespacedName{Namespace: "default", Name: "nightly"}); err != nil {
+		t.Fatalf("RunCleanup failed: %v", err)
+	}
+
+	var remaining apiV1.PgBackupInstanceList
+	if err := c.List(context.Background(), &remaining); err != nil {
+		t.Fatalf("unable to list remaining instances: %v", err)
+	}
+	if len(remaining.Items) != 2 {
+		t.Fatalf("expected both same-named databases' single backup to survive independently (minCount=1 each, grouped by namespace+name), got %d remaining", len(remaining.Items))
+	}
+}
+
 func TestRunCleanup_StalePendingMarkedFailure(t *testing.T) {
 	scheme := newTestScheme(t)
 	policy := testPolicy("default", "nightly")
