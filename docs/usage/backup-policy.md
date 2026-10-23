@@ -81,16 +81,16 @@ The operator's existing `ClusterRole` already carries everything the worker need
 | `encryption.type`                | `gpg-rsa` (public-key) or `gpg-aes` (passphrase-based symmetric). Omit `encryption` entirely for unencrypted dumps. | :x: |
 | `encryption.publicKey`           | Armored GPG public key. A `PgProperty`, required when `type` is `gpg-rsa`.                       | :x: at the schema level, required by CEL validation when `type: gpg-rsa` |
 | `encryption.passphrase`          | Symmetric passphrase. A `PgProperty`, required when `type` is `gpg-aes`.                         | :x: at the schema level, required by CEL validation when `type: gpg-aes` |
-
-Every `PgProperty` field above can be set from a literal `value`, a `configMapKeyRef`, or a
-`secretKeyRef` — the same pattern [`PgInstance`](./instance.md) uses for its own connection fields.
-Credentials aren't singled out for special treatment; the whole destination config is uniformly
-resolvable, consistent with the rest of this operator's CRDs.
 | `retention.minCount`             | Hard floor: at least this many of the newest backups of **each database** are always kept, regardless of `maxAge` | :x: |
 | `retention.maxAge`               | Maximum age before a backup becomes eligible for deletion (subject to `minCount` salvage)        | :x: |
 | `dumpOptions.format`             | `plain`, `custom`, `tar`, or `directory` (tarred+gzipped into one object before upload). Default `custom`. | :x: |
 | `dumpOptions.compressionLevel`   | `pg_dump --compress=<n>`, `0`-`9`                                                                | :x: |
 | `workspaceSizeLimit`             | Size limit of the scratch `emptyDir` volume used for the dump (and its encrypted copy). Default `10Gi`. | :x: |
+
+Every `PgProperty` field above can be set from a literal `value`, a `configMapKeyRef`, or a
+`secretKeyRef` — the same pattern [`PgInstance`](./instance.md) uses for its own connection fields.
+Credentials aren't singled out for special treatment; the whole destination config is uniformly
+resolvable, consistent with the rest of this operator's CRDs.
 
 !!! warning
     `retention.minCount`/`maxAge` are enforced **per database**, not shared across every database
@@ -113,10 +113,21 @@ reclaimed.
 
 !!! warning "Back up your encryption key outside this cluster's primary environment too"
     If `encryption` is configured, the whole point of an encrypted off-site backup is to survive
-    losing the environment it was taken in. That only works if the key/passphrase in
-    `encryption.secretKeyRef`'s Secret is itself retrievable from somewhere outside that same
-    environment. The operator cannot enforce this — make sure whoever owns that Secret has a copy
-    stored elsewhere.
+    losing the environment it was taken in. That only works if the key/passphrase resolved by
+    `encryption.publicKey`/`encryption.passphrase` is itself retrievable from somewhere outside
+    that same environment. The operator cannot enforce this — make sure whoever owns that
+    Secret has a copy stored elsewhere.
+
+!!! warning "The dump role can read other databases on the same instance"
+    Each dump run creates a temporary, unique-per-attempt Postgres role, grants it the built-in
+    `pg_read_all_data` role for the duration of that one dump, then drops it again — `pg_dump`
+    never runs as the `PgInstance`'s admin connection directly. `pg_read_all_data` is
+    **instance-wide, not scoped to the one database being backed up**: by default every database
+    grants `PUBLIC` a `CONNECT` privilege, so this temporary role can open a connection to any
+    sibling database on the same `PgInstance` and read everything in it for the duration of that
+    dump. If a database on a shared instance shouldn't be readable during another database's
+    backup window, revoke `PUBLIC`'s default `CONNECT` on it via its own
+    [`PgDatabase.spec.publicPrivileges.revoke`](./database.md).
 
 ## Status Conditions
 

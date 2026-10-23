@@ -129,18 +129,22 @@ spec:
   storage:
     type: s3
     s3:
-      endpoint: "s3.example.com"
-      bucket: "pg-backups"
-      secretRef:
-        name: "backup-storage-credentials"
+      endpoint:
+        value: "s3.example.com"
+      bucket:
+        value: "pg-backups"
+      accessKey:
+        secretKeyRef: { name: "backup-storage-credentials", key: "accessKey" }
+      secretKey:
+        secretKeyRef: { name: "backup-storage-credentials", key: "secretKey" }
   retention:
     minCount: 7
     maxAge: "720h"
 ```
 
 Creating this resource makes the operator reconcile a dump `CronJob` (on `spec.schedule`) and a
-cleanup `CronJob` (fixed daily schedule, enforcing `spec.retention` per database) in the same
-namespace.
+cleanup `CronJob` (fixed daily schedule, enforcing `spec.retention` per database), both running
+under the operator's own `ServiceAccount` in the operator's own namespace.
 Checkout the [documentation](https://brose-ebike.github.io/postgres-operator/) for more information,
 including encryption and the retention/salvage semantics.
 
