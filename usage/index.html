@@ -645,6 +645,62 @@
   
   
     <li class="md-nav__item">
+      <a href="backup-policy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configure Backups
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="backup-instance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backup Instances
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="argocd/" class="md-nav__link">
         
   
@@ -810,6 +866,14 @@
 <p>A <code>PgUser</code> referencing databases in its <code>spec.databases</code> list expects those databases to already
 exist — reconciliation waits (fast-retrying) until they do, so <code>PgDatabase</code> and <code>PgUser</code> resources
 for the same database can be applied at the same time without ordering them manually.</p>
+<p>Two further resources add optional, native logical backups on top of the three above:</p>
+<ol>
+<li><strong><a href="backup-policy/">PgBackupPolicy</a></strong> — where backups are stored, how they're encrypted, how
+   long they're kept, and on what schedule. A <code>PgDatabase</code> opts in via its own
+   <code>spec.backupPolicy</code> field.</li>
+<li><strong><a href="backup-instance/">PgBackupInstance</a></strong> — one record per backup attempt, created and
+   managed by the operator's <code>backup-worker</code>, not normally created by hand.</li>
+</ol>
 <h2 id="quickstart">Quickstart</h2>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">postgres.oebc.tools/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PgInstance</span>
@@ -901,6 +965,36 @@ you'll see:</p>
 <td><code>PgUser</code></td>
 <td><code>pguser.postgres.oebc.tools/databases</code></td>
 <td>Whether all databases in <code>spec.databases</code> currently exist</td>
+</tr>
+<tr>
+<td><code>PgDatabase</code></td>
+<td><code>pgdatabase.postgres.oebc.tools/public-privileges</code></td>
+<td>Whether <code>spec.publicPrivileges</code> revocation was applied successfully</td>
+</tr>
+<tr>
+<td><code>PgDatabase</code></td>
+<td><code>pgdatabase.postgres.oebc.tools/public-schema</code></td>
+<td>Whether <code>spec.publicSchema</code> drop was applied successfully</td>
+</tr>
+<tr>
+<td><code>PgUser</code></td>
+<td><code>pguser.postgres.oebc.tools/secret</code></td>
+<td>Whether the credentials Secret and instance password are up to date</td>
+</tr>
+<tr>
+<td><code>PgUser</code></td>
+<td><code>pguser.postgres.oebc.tools/ownership</code></td>
+<td>Whether database ownership/privileges in <code>spec.databases</code> were applied</td>
+</tr>
+<tr>
+<td><code>PgDatabase</code></td>
+<td><code>pgdatabase.postgres.oebc.tools/backup-policy-found</code></td>
+<td>Set only when <code>spec.backupPolicy</code> is non-nil — whether the referenced <code>PgBackupPolicy</code> exists</td>
+</tr>
+<tr>
+<td><code>PgBackupPolicy</code></td>
+<td><code>pgbackuppolicy.postgres.oebc.tools/ready</code></td>
+<td>Whether <code>spec.storage</code>'s (and, if set, <code>spec.encryption</code>'s) secret resolves</td>
 </tr>
 </tbody>
 </table>

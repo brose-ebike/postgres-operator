@@ -9,7 +9,7 @@
       
       
       
-        <link rel="prev" href="../user/">
+        <link rel="prev" href="../backup-instance/">
       
       
         <link rel="next" href="../azure/">
@@ -573,6 +573,62 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../backup-policy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configure Backups
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../backup-instance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backup Instances
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -843,6 +899,16 @@ See <a href="https://argo-cd.readthedocs.io/en/stable/operator-manual/health/#cu
 <span class="w">                            </span><span class="no">hs.message = condition.message</span>
 <span class="w">                            </span><span class="no">return hs</span>
 <span class="w">                        </span><span class="no">end</span>
+<span class="w">                        </span><span class="no">if condition.type == "pguser.postgres.oebc.tools/secret" and condition.status == "False" then</span>
+<span class="w">                            </span><span class="no">hs.status = "Degraded"</span>
+<span class="w">                            </span><span class="no">hs.message = condition.message</span>
+<span class="w">                            </span><span class="no">return hs</span>
+<span class="w">                        </span><span class="no">end</span>
+<span class="w">                        </span><span class="no">if condition.type == "pguser.postgres.oebc.tools/ownership" and condition.status == "False" then</span>
+<span class="w">                            </span><span class="no">hs.status = "Degraded"</span>
+<span class="w">                            </span><span class="no">hs.message = condition.message</span>
+<span class="w">                            </span><span class="no">return hs</span>
+<span class="w">                        </span><span class="no">end</span>
 <span class="w">                    </span><span class="no">end</span>
 <span class="w">                </span><span class="no">end</span>
 <span class="w">            </span><span class="no">end</span>
@@ -876,6 +942,16 @@ See <a href="https://argo-cd.readthedocs.io/en/stable/operator-manual/health/#cu
 <span class="w">                            </span><span class="no">hs.message = condition.message</span>
 <span class="w">                            </span><span class="no">return hs</span>
 <span class="w">                        </span><span class="no">end  </span>
+<span class="w">                        </span><span class="no">if condition.type == "pgdatabase.postgres.oebc.tools/public-privileges" and condition.status == "False" then</span>
+<span class="w">                            </span><span class="no">hs.status = "Degraded"</span>
+<span class="w">                            </span><span class="no">hs.message = condition.message</span>
+<span class="w">                            </span><span class="no">return hs</span>
+<span class="w">                        </span><span class="no">end</span>
+<span class="w">                        </span><span class="no">if condition.type == "pgdatabase.postgres.oebc.tools/public-schema" and condition.status == "False" then</span>
+<span class="w">                            </span><span class="no">hs.status = "Degraded"</span>
+<span class="w">                            </span><span class="no">hs.message = condition.message</span>
+<span class="w">                            </span><span class="no">return hs</span>
+<span class="w">                        </span><span class="no">end</span>
 <span class="w">                    </span><span class="no">end</span>
 <span class="w">                </span><span class="no">end</span>
 <span class="w">            </span><span class="no">end</span>
@@ -903,7 +979,7 @@ See <a href="https://argo-cd.readthedocs.io/en/stable/operator-manual/custom-sty
 <span class="p">.</span><span class="nc">application-resource-tree__node--pguser</span><span class="w"> </span><span class="p">.</span><span class="nc">application-resource-tree__node-kind-icon</span><span class="w"> </span><span class="nt">div</span><span class="p">:</span><span class="nd">first-child</span><span class="w"> </span><span class="nt">span</span><span class="o">,</span>
 <span class="p">.</span><span class="nc">application-resource-tree__node--pgdatabase</span><span class="w"> </span><span class="p">.</span><span class="nc">application-resource-tree__node-kind-icon</span><span class="w"> </span><span class="nt">div</span><span class="p">:</span><span class="nd">first-child</span><span class="w"> </span><span class="nt">span</span><span class="o">,</span>
 <span class="p">.</span><span class="nc">application-resource-tree__node--pginstance</span><span class="w"> </span><span class="p">.</span><span class="nc">application-resource-tree__node-kind-icon</span><span class="w"> </span><span class="nt">div</span><span class="p">:</span><span class="nd">first-child</span><span class="w"> </span><span class="nt">span</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="k">display</span><span class="p">:</span><span class="w"> </span><span class="kc">none</span><span class="p">;</span>
+<span class="w">    </span><span class="k">display</span><span class="p">:</span><span class="w"> </span><span class="kc">none</span><span class="w"> </span><span class="cp">!important</span><span class="p">;</span>
 <span class="p">}</span>
 </code></pre></div>
 
