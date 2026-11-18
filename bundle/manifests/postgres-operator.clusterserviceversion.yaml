@@ -201,7 +201,7 @@ metadata:
         }
       ]
     capabilities: Basic Install
-    createdAt: "2026-11-12T09:18:49Z"
+    createdAt: "2026-11-18T09:46:50Z"
     operators.operatorframework.io/builder: operator-sdk-v1.42.3
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
   name: postgres-operator.v0.0.1
@@ -388,7 +388,7 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: spec.serviceAccountName
-                image: ghcr.io/brose-ebike/postgres-operator:v1.0.2
+                image: ghcr.io/brose-ebike/postgres-operator:v1.0.3
                 livenessProbe:
                   httpGet:
                     path: /healthz
